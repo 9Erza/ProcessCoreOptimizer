@@ -19,7 +19,8 @@
 ## 📥 Installation & Usage (How-to)
 
 ### 1. Download
-Navigate to the **[Releases](https://github.com/9Erza/ProcessCoreOptimizer/releases)** tab on the right and download the latest `ProcessCoreOptimizer.exe` (Single File).
+Navigate to the **[Releases](https://github.com/9Erza/ProcessCoreOptimizer/releases)** tab on the right and download the latest `ProcessCoreOptimizer_Setup.exe
+`.
 
 ### 2. Launching
 * If prompted by SmartScreen, click "More info" -> "Run anyway" (since this is an unsigned community tool).
