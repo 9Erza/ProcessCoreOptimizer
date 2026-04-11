@@ -1,4 +1,4 @@
-# 🚀 Process Core Optimizer
+# Process Core Optimizer
 **Advanced CPU Affinity Manager & Gaming Performance Stabilizer**
 
 ## 🎯 Project Overview
