@@ -389,35 +389,43 @@ namespace ProcessCoreOptimizer
                 client.DefaultRequestHeaders.Add("User-Agent", "ProcessCoreOptimizer-Updater");
 
                 string url = "https://raw.githubusercontent.com/9Erza/ProcessCoreOptimizer/refs/heads/main/ProcessCoreOptimizer/version.txt";
-                string latestVersion = (await client.GetStringAsync(url)).Trim();
-                string currentVersion = Application.ProductVersion;
+                string latestVersionRaw = (await client.GetStringAsync(url)).Trim();
+                string currentVersionRaw = Application.ProductVersion.Split('+')[0].Trim();
 
-                if (latestVersion != currentVersion)
+                if (Version.TryParse(latestVersionRaw, out Version vLatest) &&
+                    Version.TryParse(currentVersionRaw, out Version vCurrent))
                 {
-                    AddLog($"Update available: {latestVersion}");
-
-                    var result = MessageBox.Show(
-                        $"A new version ({latestVersion}) is available. Would you like to download it now?",
-                        "Update Available",
-                        MessageBoxButtons.YesNo,
-                        MessageBoxIcon.Information);
-
-                    if (result == DialogResult.Yes)
+                    if (vLatest > vCurrent)
                     {
-                        Process.Start(new ProcessStartInfo("https://github.com/9Erza/ProcessCoreOptimizer/releases")
+                        AddLog($"Update available: {latestVersionRaw}");
+
+                        var result = MessageBox.Show(
+                            $"A new version ({latestVersionRaw}) is available. Your current version is {currentVersionRaw}.\n\nWould you like to download it now?",
+                            "Update Available",
+                            MessageBoxButtons.YesNo,
+                            MessageBoxIcon.Information);
+
+                        if (result == DialogResult.Yes)
                         {
-                            UseShellExecute = true
-                        });
+                            Process.Start(new ProcessStartInfo("https://github.com/9Erza/ProcessCoreOptimizer/releases")
+                            {
+                                UseShellExecute = true
+                            });
+                        }
+                    }
+                    else
+                    {
+                        AddLog("System is up to date.");
                     }
                 }
                 else
                 {
-                    AddLog("System is up to date.");
+                    AddLog("Could not parse version format.");
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                AddLog("Update check failed.");
+                AddLog($"Update check failed: {ex.Message}");
             }
         }
     }
