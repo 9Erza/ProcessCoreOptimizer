@@ -29,6 +29,9 @@
         private void InitializeComponent()
         {
             components = new System.ComponentModel.Container();
+            DataGridViewCellStyle dataGridViewCellStyle4 = new DataGridViewCellStyle();
+            DataGridViewCellStyle dataGridViewCellStyle5 = new DataGridViewCellStyle();
+            DataGridViewCellStyle dataGridViewCellStyle6 = new DataGridViewCellStyle();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             listCores = new CheckedListBox();
             btnApply = new Button();
@@ -51,7 +54,6 @@
             contextMenuStrip1 = new ContextMenuStrip(components);
             openToolStripMenuItem = new ToolStripMenuItem();
             exitToolStripMenuItem = new ToolStripMenuItem();
-            panelCores = new GroupBox();
             listLog = new ListBox();
             lblGameModeStatus = new Label();
             btnToggleGameMode = new Button();
@@ -61,30 +63,43 @@
             lblProcessList = new Label();
             lblCoreSelection = new Label();
             lblVersion = new Label();
+            cbCloseToTray = new CheckBox();
+            rtbSpecs = new RichTextBox();
+            lblPCSpecs = new Label();
+            panelCores = new Panel();
             ((System.ComponentModel.ISupportInitialize)dgvProcesses).BeginInit();
             contextMenuStrip1.SuspendLayout();
             SuspendLayout();
             // 
             // listCores
             // 
+            listCores.BackColor = Color.FromArgb(20, 20, 26);
+            listCores.BorderStyle = BorderStyle.None;
             listCores.CheckOnClick = true;
+            listCores.Font = new Font("Montserrat", 12F, FontStyle.Bold, GraphicsUnit.Point, 238);
+            listCores.ForeColor = Color.White;
             listCores.FormattingEnabled = true;
-            listCores.Location = new Point(900, 28);
+            listCores.IntegralHeight = false;
+            listCores.Location = new Point(1029, 34);
+            listCores.Margin = new Padding(3, 4, 3, 4);
             listCores.MultiColumn = true;
             listCores.Name = "listCores";
-            listCores.ScrollAlwaysVisible = true;
-            listCores.Size = new Size(156, 436);
+            listCores.Size = new Size(308, 510);
             listCores.TabIndex = 1;
             // 
             // btnApply
             // 
-            btnApply.Font = new Font("Segoe UI", 16F);
-            btnApply.Location = new Point(900, 563);
+            btnApply.BackColor = Color.FromArgb(74, 137, 243);
+            btnApply.FlatAppearance.BorderSize = 0;
+            btnApply.FlatStyle = FlatStyle.Flat;
+            btnApply.Font = new Font("Montserrat ExtraBold", 16F, FontStyle.Bold);
+            btnApply.Location = new Point(1053, 676);
+            btnApply.Margin = new Padding(3, 4, 3, 4);
             btnApply.Name = "btnApply";
-            btnApply.Size = new Size(352, 106);
+            btnApply.Size = new Size(538, 127);
             btnApply.TabIndex = 2;
             btnApply.Text = "Set Affinity";
-            btnApply.UseVisualStyleBackColor = true;
+            btnApply.UseVisualStyleBackColor = false;
             btnApply.Click += btnApply_Click;
             // 
             // dgvProcesses
@@ -92,14 +107,50 @@
             dgvProcesses.AllowUserToAddRows = false;
             dgvProcesses.AllowUserToDeleteRows = false;
             dgvProcesses.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            dgvProcesses.BackgroundColor = Color.FromArgb(20, 20, 26);
+            dgvProcesses.BorderStyle = BorderStyle.None;
+            dgvProcesses.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
+            dgvProcesses.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
+            dataGridViewCellStyle4.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle4.BackColor = Color.FromArgb(20, 20, 26);
+            dataGridViewCellStyle4.Font = new Font("Montserrat ExtraBold", 8.999999F, FontStyle.Bold, GraphicsUnit.Point, 238);
+            dataGridViewCellStyle4.ForeColor = Color.White;
+            dataGridViewCellStyle4.SelectionBackColor = Color.FromArgb(20, 20, 26);
+            dataGridViewCellStyle4.SelectionForeColor = SystemColors.HighlightText;
+            dataGridViewCellStyle4.WrapMode = DataGridViewTriState.True;
+            dgvProcesses.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle4;
             dgvProcesses.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             dgvProcesses.Columns.AddRange(new DataGridViewColumn[] { colName, colCPU, colRAM, colID });
-            dgvProcesses.Location = new Point(12, 28);
+            dataGridViewCellStyle5.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle5.BackColor = Color.FromArgb(11, 11, 15);
+            dataGridViewCellStyle5.Font = new Font("Montserrat ExtraBold", 9.749999F, FontStyle.Bold, GraphicsUnit.Point, 238);
+            dataGridViewCellStyle5.ForeColor = Color.White;
+            dataGridViewCellStyle5.SelectionBackColor = Color.FromArgb(74, 137, 243);
+            dataGridViewCellStyle5.SelectionForeColor = SystemColors.HighlightText;
+            dataGridViewCellStyle5.WrapMode = DataGridViewTriState.False;
+            dgvProcesses.DefaultCellStyle = dataGridViewCellStyle5;
+            dgvProcesses.EnableHeadersVisualStyles = false;
+            dgvProcesses.GridColor = Color.FromArgb(35, 35, 42);
+            dgvProcesses.ImeMode = ImeMode.On;
+            dgvProcesses.Location = new Point(13, 32);
+            dgvProcesses.Margin = new Padding(3, 4, 3, 4);
             dgvProcesses.MultiSelect = false;
             dgvProcesses.Name = "dgvProcesses";
             dgvProcesses.ReadOnly = true;
+            dataGridViewCellStyle6.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle6.BackColor = SystemColors.Control;
+            dataGridViewCellStyle6.Font = new Font("Montserrat ExtraBold", 8.999999F, FontStyle.Bold, GraphicsUnit.Point, 238);
+            dataGridViewCellStyle6.ForeColor = SystemColors.WindowText;
+            dataGridViewCellStyle6.SelectionBackColor = SystemColors.Highlight;
+            dataGridViewCellStyle6.SelectionForeColor = SystemColors.HighlightText;
+            dataGridViewCellStyle6.WrapMode = DataGridViewTriState.True;
+            dgvProcesses.RowHeadersDefaultCellStyle = dataGridViewCellStyle6;
+            dgvProcesses.RowHeadersVisible = false;
+            dgvProcesses.RowTemplate.DefaultCellStyle.BackColor = Color.Gray;
+            dgvProcesses.RowTemplate.DefaultCellStyle.Font = new Font("Montserrat SemiBold", 8.249999F, FontStyle.Bold, GraphicsUnit.Point, 238);
+            dgvProcesses.RowTemplate.DefaultCellStyle.ForeColor = Color.White;
             dgvProcesses.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            dgvProcesses.Size = new Size(882, 641);
+            dgvProcesses.Size = new Size(1008, 512);
             dgvProcesses.TabIndex = 3;
             dgvProcesses.SelectionChanged += dgvProcesses_SelectionChanged;
             // 
@@ -136,77 +187,102 @@
             // btnSelectAll
             // 
             btnSelectAll.AccessibleName = "";
-            btnSelectAll.Font = new Font("Segoe UI", 12F);
-            btnSelectAll.Location = new Point(1096, 28);
+            btnSelectAll.BackColor = Color.FromArgb(74, 137, 243);
+            btnSelectAll.FlatAppearance.BorderSize = 0;
+            btnSelectAll.FlatStyle = FlatStyle.Flat;
+            btnSelectAll.Font = new Font("Montserrat ExtraBold", 12F, FontStyle.Bold, GraphicsUnit.Point, 238);
+            btnSelectAll.Location = new Point(1344, 34);
+            btnSelectAll.Margin = new Padding(3, 4, 3, 4);
             btnSelectAll.Name = "btnSelectAll";
-            btnSelectAll.Size = new Size(156, 49);
+            btnSelectAll.Size = new Size(247, 59);
             btnSelectAll.TabIndex = 4;
             btnSelectAll.Text = "Select All";
-            btnSelectAll.UseVisualStyleBackColor = true;
+            btnSelectAll.UseVisualStyleBackColor = false;
             btnSelectAll.Click += btnSelectAll_Click;
             // 
             // btnNone
             // 
-            btnNone.Font = new Font("Segoe UI", 12F);
-            btnNone.Location = new Point(1096, 83);
+            btnNone.BackColor = Color.FromArgb(74, 137, 243);
+            btnNone.FlatAppearance.BorderSize = 0;
+            btnNone.FlatStyle = FlatStyle.Flat;
+            btnNone.Font = new Font("Montserrat ExtraBold", 12F, FontStyle.Bold);
+            btnNone.Location = new Point(1344, 100);
+            btnNone.Margin = new Padding(3, 4, 3, 4);
             btnNone.Name = "btnNone";
-            btnNone.Size = new Size(156, 49);
+            btnNone.Size = new Size(247, 59);
             btnNone.TabIndex = 5;
             btnNone.Text = "Clear All";
-            btnNone.UseVisualStyleBackColor = true;
+            btnNone.UseVisualStyleBackColor = false;
             btnNone.Click += btnNone_Click;
             // 
             // btnSmtOff
             // 
-            btnSmtOff.Font = new Font("Segoe UI", 12F);
-            btnSmtOff.Location = new Point(1096, 138);
+            btnSmtOff.BackColor = Color.FromArgb(74, 137, 243);
+            btnSmtOff.FlatAppearance.BorderSize = 0;
+            btnSmtOff.FlatStyle = FlatStyle.Flat;
+            btnSmtOff.Font = new Font("Montserrat ExtraBold", 12F, FontStyle.Bold);
+            btnSmtOff.Location = new Point(1344, 166);
+            btnSmtOff.Margin = new Padding(3, 4, 3, 4);
             btnSmtOff.Name = "btnSmtOff";
-            btnSmtOff.Size = new Size(156, 49);
+            btnSmtOff.Size = new Size(247, 59);
             btnSmtOff.TabIndex = 6;
             btnSmtOff.Text = "SMT / HT OFF";
-            btnSmtOff.UseVisualStyleBackColor = true;
+            btnSmtOff.UseVisualStyleBackColor = false;
             btnSmtOff.Click += btnSmtOff_Click;
             // 
             // btnRefresh
             // 
-            btnRefresh.Font = new Font("Segoe UI", 12F);
-            btnRefresh.Location = new Point(900, 690);
+            btnRefresh.BackColor = Color.FromArgb(74, 137, 243);
+            btnRefresh.FlatAppearance.BorderSize = 0;
+            btnRefresh.FlatStyle = FlatStyle.Flat;
+            btnRefresh.Font = new Font("Montserrat ExtraBold", 12F, FontStyle.Bold);
+            btnRefresh.Location = new Point(1053, 840);
+            btnRefresh.Margin = new Padding(3, 4, 3, 4);
             btnRefresh.Name = "btnRefresh";
-            btnRefresh.Size = new Size(140, 50);
+            btnRefresh.Size = new Size(243, 60);
             btnRefresh.TabIndex = 7;
             btnRefresh.Text = "Manual Refresh";
-            btnRefresh.UseVisualStyleBackColor = true;
+            btnRefresh.UseVisualStyleBackColor = false;
             btnRefresh.Click += btnRefresh_Click;
             // 
             // btnSaveProfile
             // 
-            btnSaveProfile.Font = new Font("Segoe UI", 12F);
-            btnSaveProfile.Location = new Point(1096, 488);
+            btnSaveProfile.BackColor = Color.FromArgb(74, 137, 243);
+            btnSaveProfile.FlatAppearance.BorderSize = 0;
+            btnSaveProfile.FlatStyle = FlatStyle.Flat;
+            btnSaveProfile.Font = new Font("Montserrat ExtraBold", 12F, FontStyle.Bold);
+            btnSaveProfile.Location = new Point(1344, 586);
+            btnSaveProfile.Margin = new Padding(3, 4, 3, 4);
             btnSaveProfile.Name = "btnSaveProfile";
-            btnSaveProfile.Size = new Size(156, 49);
+            btnSaveProfile.Size = new Size(247, 59);
             btnSaveProfile.TabIndex = 8;
             btnSaveProfile.Text = "Save Profile";
-            btnSaveProfile.UseVisualStyleBackColor = true;
+            btnSaveProfile.UseVisualStyleBackColor = false;
             btnSaveProfile.Click += btnSaveProfile_Click;
             // 
             // btnRemoveProfile
             // 
-            btnRemoveProfile.Font = new Font("Segoe UI", 12F);
-            btnRemoveProfile.Location = new Point(900, 488);
+            btnRemoveProfile.BackColor = Color.FromArgb(74, 137, 243);
+            btnRemoveProfile.FlatAppearance.BorderSize = 0;
+            btnRemoveProfile.FlatStyle = FlatStyle.Flat;
+            btnRemoveProfile.Font = new Font("Montserrat ExtraBold", 12F, FontStyle.Bold);
+            btnRemoveProfile.Location = new Point(1053, 586);
+            btnRemoveProfile.Margin = new Padding(3, 4, 3, 4);
             btnRemoveProfile.Name = "btnRemoveProfile";
-            btnRemoveProfile.Size = new Size(156, 49);
+            btnRemoveProfile.Size = new Size(247, 59);
             btnRemoveProfile.TabIndex = 9;
             btnRemoveProfile.Text = "Remove Profile";
-            btnRemoveProfile.UseVisualStyleBackColor = true;
+            btnRemoveProfile.UseVisualStyleBackColor = false;
             btnRemoveProfile.Click += btnRemoveProfile_Click;
             // 
             // cbStartWithWindows
             // 
             cbStartWithWindows.AutoSize = true;
-            cbStartWithWindows.Font = new Font("Segoe UI", 12F);
-            cbStartWithWindows.Location = new Point(1096, 690);
+            cbStartWithWindows.Font = new Font("Montserrat", 12F, FontStyle.Regular, GraphicsUnit.Point, 238);
+            cbStartWithWindows.Location = new Point(1404, 811);
+            cbStartWithWindows.Margin = new Padding(3, 4, 3, 4);
             cbStartWithWindows.Name = "cbStartWithWindows";
-            cbStartWithWindows.Size = new Size(164, 25);
+            cbStartWithWindows.Size = new Size(187, 29);
             cbStartWithWindows.TabIndex = 10;
             cbStartWithWindows.Text = "Start with Windows";
             cbStartWithWindows.UseVisualStyleBackColor = true;
@@ -215,24 +291,28 @@
             // cbMinimizeToTray
             // 
             cbMinimizeToTray.AutoSize = true;
-            cbMinimizeToTray.Font = new Font("Segoe UI", 12F);
-            cbMinimizeToTray.Location = new Point(1096, 721);
+            cbMinimizeToTray.Font = new Font("Montserrat", 12F, FontStyle.Regular, GraphicsUnit.Point, 238);
+            cbMinimizeToTray.Location = new Point(1404, 840);
+            cbMinimizeToTray.Margin = new Padding(3, 4, 3, 4);
             cbMinimizeToTray.Name = "cbMinimizeToTray";
-            cbMinimizeToTray.Size = new Size(144, 25);
+            cbMinimizeToTray.Size = new Size(160, 29);
             cbMinimizeToTray.TabIndex = 11;
             cbMinimizeToTray.Text = "Minimize to Tray";
             cbMinimizeToTray.UseVisualStyleBackColor = true;
+            cbMinimizeToTray.CheckedChanged += cbMinimizeToTray_CheckedChanged;
             // 
             // cbAutoApply
             // 
             cbAutoApply.AutoSize = true;
-            cbAutoApply.Font = new Font("Segoe UI", 12F);
-            cbAutoApply.Location = new Point(1096, 750);
+            cbAutoApply.Font = new Font("Montserrat", 12F, FontStyle.Regular, GraphicsUnit.Point, 238);
+            cbAutoApply.Location = new Point(1404, 899);
+            cbAutoApply.Margin = new Padding(3, 4, 3, 4);
             cbAutoApply.Name = "cbAutoApply";
-            cbAutoApply.Size = new Size(164, 25);
+            cbAutoApply.Size = new Size(184, 29);
             cbAutoApply.TabIndex = 12;
             cbAutoApply.Text = "Auto-Apply Profiles";
             cbAutoApply.UseVisualStyleBackColor = true;
+            cbAutoApply.CheckedChanged += cbAutoApply_CheckedChanged;
             // 
             // trayIcon
             // 
@@ -262,103 +342,164 @@
             exitToolStripMenuItem.Text = "Exit";
             exitToolStripMenuItem.Click += exitToolStripMenuItem_Click;
             // 
-            // panelCores
-            // 
-            panelCores.Location = new Point(12, 682);
-            panelCores.Name = "panelCores";
-            panelCores.Size = new Size(457, 103);
-            panelCores.TabIndex = 13;
-            panelCores.TabStop = false;
-            // 
             // listLog
             // 
+            listLog.BackColor = Color.FromArgb(20, 20, 26);
+            listLog.BorderStyle = BorderStyle.None;
+            listLog.Font = new Font("Montserrat SemiBold", 8.999999F, FontStyle.Bold, GraphicsUnit.Point, 238);
+            listLog.ForeColor = Color.White;
             listLog.FormattingEnabled = true;
-            listLog.Location = new Point(12, 806);
+            listLog.Location = new Point(5, 771);
+            listLog.Margin = new Padding(3, 4, 3, 4);
             listLog.Name = "listLog";
-            listLog.Size = new Size(457, 109);
+            listLog.Size = new Size(522, 108);
             listLog.TabIndex = 14;
             // 
             // lblGameModeStatus
             // 
             lblGameModeStatus.AutoSize = true;
-            lblGameModeStatus.Font = new Font("Segoe UI", 12F);
-            lblGameModeStatus.Location = new Point(487, 705);
+            lblGameModeStatus.Font = new Font("Montserrat ExtraBold", 12F, FontStyle.Bold, GraphicsUnit.Point, 238);
+            lblGameModeStatus.Location = new Point(546, 611);
             lblGameModeStatus.Name = "lblGameModeStatus";
-            lblGameModeStatus.Size = new Size(175, 21);
+            lblGameModeStatus.Size = new Size(219, 25);
             lblGameModeStatus.TabIndex = 15;
             lblGameModeStatus.Text = "Game Mode: Checking...";
             // 
             // btnToggleGameMode
             // 
-            btnToggleGameMode.Font = new Font("Segoe UI", 12F);
-            btnToggleGameMode.Location = new Point(754, 690);
+            btnToggleGameMode.BackColor = Color.FromArgb(74, 137, 243);
+            btnToggleGameMode.FlatAppearance.BorderSize = 0;
+            btnToggleGameMode.FlatStyle = FlatStyle.Flat;
+            btnToggleGameMode.Font = new Font("Montserrat ExtraBold", 12F, FontStyle.Bold);
+            btnToggleGameMode.Location = new Point(546, 661);
+            btnToggleGameMode.Margin = new Padding(3, 4, 3, 4);
             btnToggleGameMode.Name = "btnToggleGameMode";
-            btnToggleGameMode.Size = new Size(140, 50);
+            btnToggleGameMode.Size = new Size(243, 60);
             btnToggleGameMode.TabIndex = 16;
-            btnToggleGameMode.Text = "Open Game Mode Settings";
-            btnToggleGameMode.UseVisualStyleBackColor = true;
+            btnToggleGameMode.Text = "Open settings";
+            btnToggleGameMode.UseVisualStyleBackColor = false;
             btnToggleGameMode.Click += btnToggleGameMode_Click;
             // 
             // lblGameModeWarning
             // 
             lblGameModeWarning.AutoSize = true;
-            lblGameModeWarning.Font = new Font("Segoe UI", 7F);
-            lblGameModeWarning.Location = new Point(487, 758);
+            lblGameModeWarning.Font = new Font("Montserrat ExtraBold", 6.75F, FontStyle.Bold, GraphicsUnit.Point, 238);
+            lblGameModeWarning.Location = new Point(546, 725);
             lblGameModeWarning.Name = "lblGameModeWarning";
-            lblGameModeWarning.Size = new Size(406, 12);
+            lblGameModeWarning.Size = new Size(459, 14);
             lblGameModeWarning.TabIndex = 17;
             lblGameModeWarning.Text = "Warning: Game Mode might overwrite your custom core affinity settings and cause stutters.";
             // 
             // lblLogs
             // 
             lblLogs.AutoSize = true;
-            lblLogs.Location = new Point(12, 788);
+            lblLogs.Font = new Font("Montserrat ExtraBold", 12F, FontStyle.Bold);
+            lblLogs.ForeColor = Color.FromArgb(50, 100, 180);
+            lblLogs.Location = new Point(6, 739);
             lblLogs.Name = "lblLogs";
-            lblLogs.Size = new Size(32, 15);
+            lblLogs.Size = new Size(58, 25);
             lblLogs.TabIndex = 18;
-            lblLogs.Text = "Logs";
+            lblLogs.Text = "LOGS";
             // 
             // lblCorePanel
             // 
             lblCorePanel.AutoSize = true;
-            lblCorePanel.Location = new Point(12, 672);
+            lblCorePanel.Font = new Font("Montserrat ExtraBold", 12F, FontStyle.Bold);
+            lblCorePanel.ForeColor = Color.FromArgb(50, 100, 180);
+            lblCorePanel.Location = new Point(6, 561);
             lblCorePanel.Name = "lblCorePanel";
-            lblCorePanel.Size = new Size(107, 15);
+            lblCorePanel.Size = new Size(197, 25);
             lblCorePanel.TabIndex = 19;
-            lblCorePanel.Text = "CPU Load per Core";
+            lblCorePanel.Text = "CPU LOAD PER CORE";
+            lblCorePanel.Click += lblCorePanel_Click;
             // 
             // lblProcessList
             // 
             lblProcessList.AutoSize = true;
-            lblProcessList.Location = new Point(11, 10);
+            lblProcessList.Font = new Font("Montserrat ExtraBold", 12F, FontStyle.Bold);
+            lblProcessList.ForeColor = Color.FromArgb(50, 100, 180);
+            lblProcessList.Location = new Point(13, 8);
             lblProcessList.Name = "lblProcessList";
-            lblProcessList.Size = new Size(68, 15);
+            lblProcessList.Size = new Size(133, 25);
             lblProcessList.TabIndex = 20;
-            lblProcessList.Text = "Process List";
+            lblProcessList.Text = "PROCESS LIST";
             // 
             // lblCoreSelection
             // 
             lblCoreSelection.AutoSize = true;
-            lblCoreSelection.Location = new Point(900, 10);
+            lblCoreSelection.Font = new Font("Montserrat ExtraBold", 12F, FontStyle.Bold);
+            lblCoreSelection.ForeColor = Color.FromArgb(50, 100, 180);
+            lblCoreSelection.Location = new Point(1029, 8);
             lblCoreSelection.Name = "lblCoreSelection";
-            lblCoreSelection.Size = new Size(83, 15);
+            lblCoreSelection.Size = new Size(161, 25);
             lblCoreSelection.TabIndex = 21;
-            lblCoreSelection.Text = "Core Selection";
+            lblCoreSelection.Text = "CORE SELECTION";
             // 
             // lblVersion
             // 
             lblVersion.AutoSize = true;
-            lblVersion.Location = new Point(1121, 900);
+            lblVersion.Font = new Font("Montserrat", 8.999999F, FontStyle.Regular, GraphicsUnit.Point, 238);
+            lblVersion.Location = new Point(5, 934);
             lblVersion.Name = "lblVersion";
-            lblVersion.Size = new Size(139, 15);
+            lblVersion.Size = new Size(152, 18);
             lblVersion.TabIndex = 22;
             lblVersion.Text = "Application Version: 1.0.1";
             // 
+            // cbCloseToTray
+            // 
+            cbCloseToTray.AutoSize = true;
+            cbCloseToTray.Font = new Font("Montserrat", 12F, FontStyle.Regular, GraphicsUnit.Point, 238);
+            cbCloseToTray.Location = new Point(1404, 871);
+            cbCloseToTray.Margin = new Padding(3, 4, 3, 4);
+            cbCloseToTray.Name = "cbCloseToTray";
+            cbCloseToTray.Size = new Size(130, 29);
+            cbCloseToTray.TabIndex = 23;
+            cbCloseToTray.Text = "Close to Tray";
+            cbCloseToTray.UseVisualStyleBackColor = true;
+            cbCloseToTray.CheckedChanged += cbCloseToTray_CheckedChanged;
+            // 
+            // rtbSpecs
+            // 
+            rtbSpecs.BackColor = Color.FromArgb(20, 20, 26);
+            rtbSpecs.BorderStyle = BorderStyle.None;
+            rtbSpecs.Font = new Font("Montserrat", 9.749999F, FontStyle.Regular, GraphicsUnit.Point, 238);
+            rtbSpecs.ForeColor = Color.White;
+            rtbSpecs.Location = new Point(546, 771);
+            rtbSpecs.Margin = new Padding(3, 4, 3, 4);
+            rtbSpecs.Name = "rtbSpecs";
+            rtbSpecs.Size = new Size(467, 108);
+            rtbSpecs.TabIndex = 24;
+            rtbSpecs.Text = "";
+            // 
+            // lblPCSpecs
+            // 
+            lblPCSpecs.AutoSize = true;
+            lblPCSpecs.Font = new Font("Montserrat ExtraBold", 12F, FontStyle.Bold);
+            lblPCSpecs.ForeColor = Color.FromArgb(50, 100, 180);
+            lblPCSpecs.Location = new Point(546, 744);
+            lblPCSpecs.Name = "lblPCSpecs";
+            lblPCSpecs.Size = new Size(96, 25);
+            lblPCSpecs.TabIndex = 25;
+            lblPCSpecs.Text = "PC SPECS";
+            // 
+            // panelCores
+            // 
+            panelCores.BackColor = Color.FromArgb(25, 25, 30);
+            panelCores.Location = new Point(6, 589);
+            panelCores.Name = "panelCores";
+            panelCores.Size = new Size(521, 147);
+            panelCores.TabIndex = 26;
+            // 
             // MainForm
             // 
-            AutoScaleDimensions = new SizeF(7F, 15F);
+            AutoScaleDimensions = new SizeF(8F, 18F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1264, 921);
+            BackColor = Color.FromArgb(35, 35, 40);
+            ClientSize = new Size(1605, 961);
+            Controls.Add(panelCores);
+            Controls.Add(lblPCSpecs);
+            Controls.Add(rtbSpecs);
+            Controls.Add(cbCloseToTray);
             Controls.Add(lblVersion);
             Controls.Add(lblCoreSelection);
             Controls.Add(lblProcessList);
@@ -368,7 +509,6 @@
             Controls.Add(btnToggleGameMode);
             Controls.Add(lblGameModeStatus);
             Controls.Add(listLog);
-            Controls.Add(panelCores);
             Controls.Add(cbAutoApply);
             Controls.Add(cbMinimizeToTray);
             Controls.Add(cbStartWithWindows);
@@ -381,8 +521,14 @@
             Controls.Add(dgvProcesses);
             Controls.Add(btnApply);
             Controls.Add(listCores);
+            Font = new Font("Montserrat", 9F);
+            ForeColor = Color.White;
+            FormBorderStyle = FormBorderStyle.FixedSingle;
             Icon = (Icon)resources.GetObject("$this.Icon");
+            Margin = new Padding(3, 4, 3, 4);
+            MaximizeBox = false;
             Name = "MainForm";
+            StartPosition = FormStartPosition.CenterScreen;
             Text = "Process Core Optimizer";
             ((System.ComponentModel.ISupportInitialize)dgvProcesses).EndInit();
             contextMenuStrip1.ResumeLayout(false);
@@ -409,7 +555,6 @@
         private CheckBox cbMinimizeToTray;
         private CheckBox cbAutoApply;
         private NotifyIcon trayIcon;
-        private GroupBox panelCores;
         private ListBox listLog;
         private ContextMenuStrip contextMenuStrip1;
         private ToolStripMenuItem openToolStripMenuItem;
@@ -422,5 +567,9 @@
         private Label lblProcessList;
         private Label lblCoreSelection;
         private Label lblVersion;
+        private CheckBox cbCloseToTray;
+        private RichTextBox rtbSpecs;
+        private Label lblPCSpecs;
+        private Panel panelCores;
     }
 }

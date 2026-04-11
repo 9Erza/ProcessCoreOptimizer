@@ -1,9 +1,14 @@
+using Microsoft.VisualBasic.Devices;
 using Microsoft.Win32;
 using Newtonsoft.Json;
 using System.Data;
 using System.Diagnostics;
-using System.Net.Http;
+using System.Drawing.Text;
 using System.IO;
+using System.Management;
+using System.Net.Http;
+using System.Runtime.InteropServices;
+using static Guna.UI2.WinForms.Suite.Descriptions;
 
 namespace ProcessCoreOptimizer
 {
@@ -14,6 +19,7 @@ namespace ProcessCoreOptimizer
     public partial class MainForm : Form
     {
         // --- FIELDS ---
+        private bool isLoading = false;
         private List<Process> displayedProcesses = new List<Process>();
         private AppSettings settings = new AppSettings();
         private static readonly string AppDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ProcessCoreOptimizer");
@@ -35,18 +41,47 @@ namespace ProcessCoreOptimizer
 
         private void InitializeApplication()
         {
-            LoadSettings();
             RefreshProcessTable();
             LoadCores();
             SetupCoreVisuals();
-
             trayIcon.Text = "Process Core Optimizer";
             string currentVersion = Application.ProductVersion.Split('+')[0];
             lblVersion.Text = $"Application Version: {currentVersion}";
-
             UpdateGameModeStatus();
+            LoadSystemSpecs();
+            LoadSettings();
             AddLog("Application initialized successfully.");
             CheckForUpdates();
+            Task.Run(async () =>
+            {
+                await Task.Delay(100);
+
+                this.Invoke(new Action(() =>
+                {
+                    int r = 8;
+                    int bigR = 10;
+
+                    Control[] toRound = {
+            btnSelectAll, btnNone, btnSmtOff, btnSaveProfile,
+            btnRemoveProfile, btnToggleGameMode, btnApply,
+            btnRefresh, dgvProcesses, listCores, rtbSpecs,
+            listLog, panelCores
+        };
+                    this.SuspendLayout();
+
+                    foreach (Control c in toRound)
+                    {
+                        if (c != null && c.Visible)
+                        {
+                            int radius = (c is Button) ? r : bigR;
+                            ApplyRoundCorners(c, radius);
+                        }
+                    }
+
+                    this.ResumeLayout(false);
+                    AddLog("UI Stylization completed.");
+                }));
+            });
         }
 
         // --- LOGGING SYSTEM ---
@@ -66,15 +101,16 @@ namespace ProcessCoreOptimizer
         }
 
         // --- SETTINGS MANAGEMENT ---
-
         private void SaveSettings()
         {
+            if (isLoading) return;
+
             if (!Directory.Exists(AppDataFolder)) Directory.CreateDirectory(AppDataFolder);
 
             settings.AutoApplyEnabled = cbAutoApply.Checked;
-            settings.AutoApplyEnabled = cbAutoApply.Checked;
             settings.MinimizeToTrayEnabled = cbMinimizeToTray.Checked;
             settings.StartWithWindows = cbStartWithWindows.Checked;
+            settings.CloseToTrayEnabled = cbCloseToTray.Checked;
 
             string json = JsonConvert.SerializeObject(settings, Formatting.Indented);
             File.WriteAllText(settingsPath, json);
@@ -83,17 +119,19 @@ namespace ProcessCoreOptimizer
         private void LoadSettings()
         {
             if (!File.Exists(settingsPath)) return;
-
             try
             {
+                isLoading = true;
                 string json = File.ReadAllText(settingsPath);
                 settings = JsonConvert.DeserializeObject<AppSettings>(json) ?? new AppSettings();
 
                 cbAutoApply.Checked = settings.AutoApplyEnabled;
                 cbMinimizeToTray.Checked = settings.MinimizeToTrayEnabled;
                 cbStartWithWindows.Checked = settings.StartWithWindows;
+                cbCloseToTray.Checked = settings.CloseToTrayEnabled;
             }
             catch { settings = new AppSettings(); }
+            finally { isLoading = false; }
         }
 
         private void SetStartup(bool start)
@@ -170,8 +208,12 @@ namespace ProcessCoreOptimizer
                     Size = new Size(barWidth, panelCores.Height - 20),
                     Location = new Point(10 + (i * (barWidth + spacing)), 10),
                     Style = ProgressBarStyle.Continuous,
-                    ForeColor = Color.DodgerBlue
+                    BackColor = Color.FromArgb(30, 30, 35),
+                    ForeColor = Color.FromArgb(74, 137, 243)
                 };
+
+                panelCores.Controls.Add(bar);
+                coreBars.Add(bar);
 
                 panelCores.Controls.Add(bar);
                 coreBars.Add(bar);
@@ -321,6 +363,93 @@ namespace ProcessCoreOptimizer
             }
             catch { }
         }
+        private void LoadSystemSpecs()
+        {
+            try
+            {
+                rtbSpecs.Clear();
+
+                // --- CPU ---
+                using (var searcher = new ManagementObjectSearcher("select Name from Win32_Processor"))
+                {
+                    foreach (var obj in searcher.Get())
+                    {
+                        string cpuName = obj["Name"].ToString();
+                        rtbSpecs.SelectionFont = new Font("Montserrat", 9, FontStyle.Bold);
+                        rtbSpecs.AppendText("CPU: ");
+
+                        rtbSpecs.SelectionFont = new Font("Montserrat", 9, FontStyle.Regular);
+                        rtbSpecs.AppendText(cpuName + " ");
+
+                        // CPU VENDOR
+                        if (cpuName.Contains("AMD")) { rtbSpecs.SelectionColor = Color.Red; rtbSpecs.AppendText("[AMD]"); }
+                        else if (cpuName.Contains("Intel")) { rtbSpecs.SelectionColor = Color.DodgerBlue; rtbSpecs.AppendText("[Intel]"); }
+
+                        rtbSpecs.SelectionColor = rtbSpecs.ForeColor;
+                        rtbSpecs.AppendText("\n");
+                    }
+                }
+
+                // --- GPU ---
+                using (var searcher = new ManagementObjectSearcher("select Name from Win32_VideoController"))
+                {
+                    int gpuCount = 1;
+                    foreach (var obj in searcher.Get())
+                    {
+                        string gpuName = obj["Name"].ToString();
+                        rtbSpecs.SelectionFont = new Font("Montserrat", 9, FontStyle.Bold);
+                        rtbSpecs.AppendText($"GPU{gpuCount}: ");
+
+                        rtbSpecs.SelectionFont = new Font("Montserrat", 9, FontStyle.Regular);
+                        rtbSpecs.AppendText(gpuName + " ");
+
+                        // GPU VENDOR
+                        if (gpuName.ToUpper().Contains("NVIDIA")) { rtbSpecs.SelectionColor = Color.LimeGreen; rtbSpecs.AppendText("[NVIDIA]"); }
+                        else if (gpuName.ToUpper().Contains("AMD")) { rtbSpecs.SelectionColor = Color.Red; rtbSpecs.AppendText("[AMD]"); }
+                        else if (gpuName.ToUpper().Contains("INTEL")) { rtbSpecs.SelectionColor = Color.DodgerBlue; rtbSpecs.AppendText("[INTEL]"); }
+
+                        rtbSpecs.SelectionColor = rtbSpecs.ForeColor;
+                        rtbSpecs.AppendText("\n");
+                        gpuCount++;
+                    }
+                }
+
+                // --- RAM ---
+                var computerInfo = new Microsoft.VisualBasic.Devices.ComputerInfo();
+                double totalRamGb = Math.Round(computerInfo.TotalPhysicalMemory / 1024.0 / 1024.0 / 1024.0, 0);
+
+                rtbSpecs.SelectionFont = new Font("Montserrat", 9, FontStyle.Bold);
+                rtbSpecs.AppendText("RAM: ");
+                rtbSpecs.SelectionFont = new Font("Montserrat", 9, FontStyle.Regular);
+                rtbSpecs.AppendText($"{totalRamGb} GB\n");
+
+                AddLog("System hardware detected.");
+            }
+            catch (Exception ex)
+            {
+                rtbSpecs.Text = "Hardware Info Unavailable";
+                AddLog("Specs Error: " + ex.Message);
+            }
+        }
+        private void ApplyRoundCorners(Control cnt, int radius)
+        {
+            if (cnt == null || cnt.Width <= radius || cnt.Height <= radius) return;
+
+            int diameter = radius * 2;
+            System.Drawing.Drawing2D.GraphicsPath gp = new System.Drawing.Drawing2D.GraphicsPath();
+
+            // LEFT UP
+            gp.AddArc(0, 0, diameter, diameter, 180, 90);
+            // RIGHT UP
+            gp.AddArc(cnt.Width - diameter, 0, diameter, diameter, 270, 90);
+            // RIGHT DOWN
+            gp.AddArc(cnt.Width - diameter, cnt.Height - diameter, diameter, diameter, 0, 90);
+            // LEFT DOWN
+            gp.AddArc(0, cnt.Height - diameter, diameter, diameter, 90, 90);
+
+            gp.CloseAllFigures();
+            cnt.Region = new Region(gp);
+        }
 
         // --- TRAY & WINDOW LOGIC ---
 
@@ -341,7 +470,21 @@ namespace ProcessCoreOptimizer
             }
         }
 
-        protected override void OnFormClosing(FormClosingEventArgs e) { base.OnFormClosing(e); SaveSettings(); }
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            if (e.CloseReason == CloseReason.UserClosing && cbCloseToTray.Checked)
+            {
+                e.Cancel = true;
+                this.Hide();
+                trayIcon.Visible = true;
+                AddLog("Application minimized to tray instead of closing.");
+            }
+            else
+            {
+                SaveSettings();
+                base.OnFormClosing(e);
+            }
+        }
 
         private void openToolStripMenuItem_Click(object sender, EventArgs e) => trayIcon_MouseDoubleClick(null, null);
         private void exitToolStripMenuItem_Click(object sender, EventArgs e) { trayIcon.Visible = false; Application.Exit(); }
@@ -375,10 +518,10 @@ namespace ProcessCoreOptimizer
             }
             catch { AddLog("Failed to open system settings."); }
         }
-
         // --- DESIGNER PLACEHOLDERS ---
         private void cbAutoApply_CheckedChanged(object sender, EventArgs e) => SaveSettings();
         private void cbMinimizeToTray_CheckedChanged(object sender, EventArgs e) => SaveSettings();
+        private void cbCloseToTray_CheckedChanged(object sender, EventArgs e) => SaveSettings();
         private void cbStartWithWindows_CheckedChanged(object sender, EventArgs e) { SetStartup(cbStartWithWindows.Checked); SaveSettings(); }
         private void btnRefresh_Click(object sender, EventArgs e) => RefreshProcessTable();
         private async void CheckForUpdates()
@@ -428,6 +571,11 @@ namespace ProcessCoreOptimizer
                 AddLog($"Update check failed: {ex.Message}");
             }
         }
+
+        private void lblCorePanel_Click(object sender, EventArgs e)
+        {
+
+        }
     }
 
     public class AppSettings
@@ -436,16 +584,26 @@ namespace ProcessCoreOptimizer
         public bool AutoApplyEnabled { get; set; } = false;
         public bool MinimizeToTrayEnabled { get; set; } = false;
         public bool StartWithWindows { get; set; } = false;
+        public bool CloseToTrayEnabled { get; set; } = false;
     }
 
     public class VerticalProgressBar : ProgressBar
     {
+        [DllImport("uxtheme.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        private static extern int SetWindowTheme(IntPtr hWnd, string pszSubAppName, string pszSubIdList);
+        
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            base.OnHandleCreated(e);
+            SetWindowTheme(this.Handle, "", "");
+        }
+
         protected override CreateParams CreateParams
         {
             get
             {
                 CreateParams cp = base.CreateParams;
-                cp.Style |= 0x04; // PBS_VERTICAL
+                cp.Style |= 0x04;
                 return cp;
             }
         }
