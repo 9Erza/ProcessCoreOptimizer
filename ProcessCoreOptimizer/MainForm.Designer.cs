@@ -1,6 +1,6 @@
 ﻿namespace ProcessCoreOptimizer
 {
-    partial class Form1
+    partial class MainForm
     {
         /// <summary>
         ///  Required designer variable.
@@ -29,7 +29,7 @@
         private void InitializeComponent()
         {
             components = new System.ComponentModel.Container();
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             listCores = new CheckedListBox();
             btnApply = new Button();
             dgvProcesses = new DataGridView();
@@ -354,7 +354,7 @@
             lblVersion.TabIndex = 22;
             lblVersion.Text = "Application Version: 1.0.1";
             // 
-            // Form1
+            // MainForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
@@ -381,8 +381,9 @@
             Controls.Add(dgvProcesses);
             Controls.Add(btnApply);
             Controls.Add(listCores);
-            Name = "Form1";
-            Text = "Form1";
+            Icon = (Icon)resources.GetObject("$this.Icon");
+            Name = "MainForm";
+            Text = "Process Core Optimizer";
             ((System.ComponentModel.ISupportInitialize)dgvProcesses).EndInit();
             contextMenuStrip1.ResumeLayout(false);
             ResumeLayout(false);

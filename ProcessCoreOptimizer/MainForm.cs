@@ -2,6 +2,7 @@ using Microsoft.Win32;
 using Newtonsoft.Json;
 using System.Data;
 using System.Diagnostics;
+using System.Net.Http;
 using System.IO;
 
 namespace ProcessCoreOptimizer
@@ -10,7 +11,7 @@ namespace ProcessCoreOptimizer
     /// Main application logic for Process Core Optimizer.
     /// Handles CPU affinity, process monitoring, and system settings.
     /// </summary>
-    public partial class Form1 : Form
+    public partial class MainForm : Form
     {
         // --- FIELDS ---
         private List<Process> displayedProcesses = new List<Process>();
@@ -25,7 +26,7 @@ namespace ProcessCoreOptimizer
 
         // --- INITIALIZATION ---
 
-        public Form1()
+        public MainForm()
         {
             InitializeComponent();
             InitializeApplication();
@@ -39,10 +40,12 @@ namespace ProcessCoreOptimizer
             SetupCoreVisuals();
 
             trayIcon.Text = "Process Core Optimizer";
-            lblVersion.Text = $"Application Version: {Application.ProductVersion}";
+            string currentVersion = Application.ProductVersion.Split('+')[0];
+            lblVersion.Text = $"Application Version: {currentVersion}";
 
             UpdateGameModeStatus();
             AddLog("Application initialized successfully.");
+            CheckForUpdates();
         }
 
         // --- LOGGING SYSTEM ---
@@ -374,6 +377,45 @@ namespace ProcessCoreOptimizer
         private void cbMinimizeToTray_CheckedChanged(object sender, EventArgs e) => SaveSettings();
         private void cbStartWithWindows_CheckedChanged(object sender, EventArgs e) { SetStartup(cbStartWithWindows.Checked); SaveSettings(); }
         private void btnRefresh_Click(object sender, EventArgs e) => RefreshProcessTable();
+        private async void CheckForUpdates()
+        {
+            try
+            {
+                using HttpClient client = new HttpClient();
+                client.DefaultRequestHeaders.Add("User-Agent", "ProcessCoreOptimizer-Updater");
+
+                string url = "https://raw.githubusercontent.com/9Erza/ProcessCoreOptimizer/refs/heads/main/ProcessCoreOptimizer/version.txt";
+                string latestVersion = (await client.GetStringAsync(url)).Trim();
+                string currentVersion = Application.ProductVersion;
+
+                if (latestVersion != currentVersion)
+                {
+                    AddLog($"Update available: {latestVersion}");
+
+                    var result = MessageBox.Show(
+                        $"A new version ({latestVersion}) is available. Would you like to download it now?",
+                        "Update Available",
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Information);
+
+                    if (result == DialogResult.Yes)
+                    {
+                        Process.Start(new ProcessStartInfo("https://github.com/9Erza/ProcessCoreOptimizer/releases")
+                        {
+                            UseShellExecute = true
+                        });
+                    }
+                }
+                else
+                {
+                    AddLog("System is up to date.");
+                }
+            }
+            catch
+            {
+                AddLog("Update check failed.");
+            }
+        }
     }
 
     public class AppSettings
