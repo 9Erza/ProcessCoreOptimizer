@@ -16,7 +16,8 @@ namespace ProcessCoreOptimizer
         // --- FIELDS ---
         private List<Process> displayedProcesses = new List<Process>();
         private AppSettings settings = new AppSettings();
-        private string settingsPath = "settings.json";
+        private static readonly string AppDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ProcessCoreOptimizer");
+        private string settingsPath = Path.Combine(AppDataFolder, "settings.json");
 
         private Dictionary<int, TimeSpan> lastCpuTime = new Dictionary<int, TimeSpan>();
         private DateTime lastSampleTime = DateTime.Now;
@@ -68,6 +69,9 @@ namespace ProcessCoreOptimizer
 
         private void SaveSettings()
         {
+            if (!Directory.Exists(AppDataFolder)) Directory.CreateDirectory(AppDataFolder);
+
+            settings.AutoApplyEnabled = cbAutoApply.Checked;
             settings.AutoApplyEnabled = cbAutoApply.Checked;
             settings.MinimizeToTrayEnabled = cbMinimizeToTray.Checked;
             settings.StartWithWindows = cbStartWithWindows.Checked;
