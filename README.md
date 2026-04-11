@@ -29,7 +29,7 @@ Navigate to the **[Releases](https://github.com/9Erza/ProcessCoreOptimizer/relea
 2. **Assign Cores:** Toggle the checkboxes for the specific CPU cores you want the application to use.
 3. **Apply Settings:** Click **"Set Affinity"** to immediately apply the core constraints to the running process.
 4. **Save Profile:** Click **"Save Profile"** so the app automatically remembers and applies these settings every time it detects this process in the future.
-5. **Background Mode:** Close or minimize the window; the app will stay active in your System Tray to monitor and manage your profiles.
+5. **Background Mode:** Minimize the window; the app will stay active in your System Tray (if you check "Minimize to Tray") to monitor and manage your profiles.
 
 ---
 ### 👨‍💻 Developer Info
