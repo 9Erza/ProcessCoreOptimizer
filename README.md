@@ -10,6 +10,17 @@
 * **Windows 11 Game Mode Sync:** Built-in diagnostics to detect conflicts with system-level Game Mode settings.
 * **Minimalist Tray Execution:** Runs silently in the System Tray with near-zero resource impact.
 
+## 💻 Compatibility & Hardware Note
+This application was primarily developed and tested on **AMD Ryzen** platforms.
+* **Verified Hardware:** Ryzen 7 7800X3D, Ryzen 7 5700X.
+
+### ⚠️ Intel Hybrid Architecture (12th Gen+)
+Currently, the "SMT/HT Off" quick-action feature is optimized for CPUs with uniform core types (like AMD Ryzen or Intel 11th Gen and older). 
+> [!WARNING]
+> On newer Intel processors (12th Gen and up) featuring a **Hybrid Architecture (P-Cores & E-Cores)**, the automatic "SMT Off" toggle may not behave as expected due to the distinct core division. While manual affinity selection still works, the automated SMT/HT logic is not yet fully compatible with hybrid thread scheduling.
+
+**Planned Update:** Full support for Intel Hybrid Architecture (P/E-Core detection and management) is planned for future releases.
+
 ## 🛠 Technical Stack
 * **Framework:** .NET 10.0 (LTS)
 * **Language:** C#
@@ -22,8 +33,13 @@
 Navigate to the **[Releases](https://github.com/9Erza/ProcessCoreOptimizer/releases)** tab on the right and download the latest `ProcessCoreOptimizer_Setup.exe
 `.
 
-### 2. Launching
-* If prompted by SmartScreen, click "More info" -> "Run anyway" (since this is an unsigned community tool).
+### 🛠️ 2. Installation & Launching
+1. **Download** the `ProcessCoreOptimizer_Setup.exe` from the [latest release](https://github.com/9Erza/ProcessCoreOptimizer/releases) assets.
+2. **Run the installer** and follow the simple on-screen instructions.
+> [!IMPORTANT]
+> **Windows SmartScreen:** Since this is an unsigned community tool, Windows might show a warning. 
+> Click **"More info"** and then **"Run anyway"** to proceed with the installation.
+3. **Launch the app** via the desktop shortcut or Start Menu and start optimizing your CPU!
 
 ### 3. Basic Workflow
 1. **Find Process:** Select your target game or application from the active processes list.
@@ -35,6 +51,6 @@ Navigate to the **[Releases](https://github.com/9Erza/ProcessCoreOptimizer/relea
 ---
 ### 👨‍💻 Developer Info
 Created by **9Erza**. This project is open-source under the MIT License. 
-*Targeting high-end optimization for the 2026 Windows ecosystem.*
+*Targeting high-end optimization for the Windows ecosystem.*
 
 **[⭐ Star this repository if you find it useful!]**
