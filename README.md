@@ -22,8 +22,13 @@
 Navigate to the **[Releases](https://github.com/9Erza/ProcessCoreOptimizer/releases)** tab on the right and download the latest `ProcessCoreOptimizer_Setup.exe
 `.
 
-### 2. Launching
-* If prompted by SmartScreen, click "More info" -> "Run anyway" (since this is an unsigned community tool).
+### 🛠️ 2. Installation & Launching
+1. **Download** the `ProcessCoreOptimizer_Setup.exe` from the [latest release](https://github.com/9Erza/ProcessCoreOptimizer/releases) assets.
+2. **Run the installer** and follow the simple on-screen instructions.
+> [!IMPORTANT]
+> **Windows SmartScreen:** Since this is an unsigned community tool, Windows might show a warning. 
+> Click **"More info"** and then **"Run anyway"** to proceed with the installation.
+3. **Launch the app** via the desktop shortcut or Start Menu and start optimizing your CPU!
 
 ### 3. Basic Workflow
 1. **Find Process:** Select your target game or application from the active processes list.
@@ -35,6 +40,6 @@ Navigate to the **[Releases](https://github.com/9Erza/ProcessCoreOptimizer/relea
 ---
 ### 👨‍💻 Developer Info
 Created by **9Erza**. This project is open-source under the MIT License. 
-*Targeting high-end optimization for the 2026 Windows ecosystem.*
+*Targeting high-end optimization for the Windows ecosystem.*
 
 **[⭐ Star this repository if you find it useful!]**
