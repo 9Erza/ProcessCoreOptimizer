@@ -18,6 +18,7 @@ This application was primarily developed and tested on **AMD Ryzen** platforms.
 Currently, the "SMT/HT Off" quick-action feature is optimized for CPUs with uniform core types (like AMD Ryzen or Intel 11th Gen and older). 
 > [!WARNING]
 > On newer Intel processors (12th Gen and up) featuring a **Hybrid Architecture (P-Cores & E-Cores)**, the automatic "SMT Off" toggle may not behave as expected due to the distinct core division. While manual affinity selection still works, the automated SMT/HT logic is not yet fully compatible with hybrid thread scheduling.
+
 **Planned Update:** Full support for Intel Hybrid Architecture (P/E-Core detection and management) is planned for future releases.
 
 ## 🛠 Technical Stack
