@@ -1,4 +1,4 @@
-# 🚀 Process Core Optimizer v1.0.1
+# 🚀 Process Core Optimizer
 **Advanced CPU Affinity Manager & Gaming Performance Stabilizer**
 
 ## 🎯 Project Overview
