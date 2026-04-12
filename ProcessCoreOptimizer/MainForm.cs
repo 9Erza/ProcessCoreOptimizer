@@ -31,7 +31,11 @@ namespace ProcessCoreOptimizer
         private List<ProgressBar> coreBars = new List<ProgressBar>();
         private List<PerformanceCounter> coreCounters = new List<PerformanceCounter>();
 
-        // --- INITIALIZATION ---
+        private const string TAG_PHYS = "[P]";      // Physical Core
+        private const string TAG_THREAD = "[T]";    // HT/SMT Thread
+        private const string TAG_ECORE = "[E]";     // Intel Efficiency Core
+
+        // --- INITIALIZATION ---a
 
         public MainForm()
         {
@@ -65,7 +69,7 @@ namespace ProcessCoreOptimizer
                     Control[] toRound = {
             btnSelectAll, btnNone, btnSmtOff, btnSaveProfile,
             btnRemoveProfile, btnToggleGameMode, btnApply,
-            dgvProcesses, listCores, rtbSpecs,
+            dgvProcesses, listCores, rtbSpecs, btnDisableECores,
             listLog, panelCores, listSavedProfiles
         };
                     this.SuspendLayout();
@@ -182,6 +186,36 @@ namespace ProcessCoreOptimizer
                 return false;
             }
         }
+        private string GetCoreDescription(int index, bool isIntel, int physicalCores, int logicalProcessors)
+        {
+            // INTEL with HT
+            if (isIntel && logicalProcessors > physicalCores)
+            {
+                int pCoresWithHT = logicalProcessors - physicalCores;
+                int pThreadsCount = pCoresWithHT * 2;
+
+                if (index < pThreadsCount)
+                    return (index % 2 == 0) ? TAG_PHYS : TAG_THREAD;
+                else
+                    return TAG_ECORE;
+            }
+
+            // INTEL without HT
+            if (isIntel && logicalProcessors == physicalCores)
+            {
+
+                return TAG_PHYS;
+            }
+
+            // AMD with SMT or legacy INTEL without E-Cores
+            if (logicalProcessors > physicalCores)
+            {
+                return (index % 2 == 0) ? TAG_PHYS : TAG_THREAD;
+            }
+
+            // Only logical Legacy Intel/AMD CPU without any HT
+            return TAG_PHYS;
+        }
 
         private void RefreshProcessTable()
         {
@@ -203,8 +237,42 @@ namespace ProcessCoreOptimizer
         private void LoadCores()
         {
             listCores.Items.Clear();
-            for (int i = 0; i < Environment.ProcessorCount; i++)
-                listCores.Items.Add($"Core {i}");
+
+            bool isIntel = false;
+            int physicalCores = 0;
+            int logicalProcessors = Environment.ProcessorCount;
+
+            try
+            {
+                using (var searcher = new ManagementObjectSearcher("Select * from Win32_Processor"))
+                {
+                    foreach (var item in searcher.Get())
+                    {
+                        string manufacturer = item["Manufacturer"]?.ToString() ?? "";
+                        isIntel = manufacturer.Contains("Intel");
+                        physicalCores = Convert.ToInt32(item["NumberOfCores"]);
+                    }
+                }
+            }
+            catch { /* fallback */ physicalCores = logicalProcessors; }
+
+            for (int i = 0; i < logicalProcessors; i++)
+            {
+                string desc = GetCoreDescription(i, isIntel, physicalCores, logicalProcessors);
+                listCores.Items.Add($"Core {i} {desc}");
+            }
+
+            bool hasECoresFound = false;
+            for (int i = 0; i < listCores.Items.Count; i++)
+            {
+                if (listCores.Items[i].ToString().Contains(TAG_ECORE))
+                {
+                    hasECoresFound = true;
+                    break;
+                }
+            }
+
+            btnDisableECores.Visible = hasECoresFound;
         }
 
         private void SetupCoreVisuals()
@@ -427,7 +495,17 @@ namespace ProcessCoreOptimizer
 
         private void btnSelectAll_Click(object sender, EventArgs e) { for (int i = 0; i < listCores.Items.Count; i++) listCores.SetItemChecked(i, true); }
         private void btnNone_Click(object sender, EventArgs e) { for (int i = 0; i < listCores.Items.Count; i++) listCores.SetItemChecked(i, false); }
-        private void btnSmtOff_Click(object sender, EventArgs e) { for (int i = 0; i < listCores.Items.Count; i++) listCores.SetItemChecked(i, i % 2 == 0); }
+        private void btnSmtOff_Click(object sender, EventArgs e)
+        {
+            for (int i = 0; i < listCores.Items.Count; i++)
+            {
+                if (listCores.Items[i].ToString().Contains(TAG_THREAD))
+                    listCores.SetItemChecked(i, false);
+                else
+                    listCores.SetItemChecked(i, true);
+            }
+            AddLog("SMT/HT logic threads disabled.");
+        }
 
         private void dgvProcesses_SelectionChanged(object sender, EventArgs e)
         {
@@ -666,6 +744,18 @@ namespace ProcessCoreOptimizer
 
                 AddLog($"Preview loaded for {selectedProcessName}. Change cores and click Save to edit.");
             }
+        }
+
+        private void btnDisableECores_Click(object sender, EventArgs e)
+        {
+            for (int i = 0; i < listCores.Items.Count; i++)
+            {
+                if (listCores.Items[i].ToString().Contains(TAG_ECORE))
+                    listCores.SetItemChecked(i, false);
+                else
+                    listCores.SetItemChecked(i, true);
+            }
+            AddLog("Intel E-Cores disabled.");
         }
     }
 

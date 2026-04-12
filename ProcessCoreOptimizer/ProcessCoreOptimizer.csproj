@@ -8,11 +8,21 @@
     <ImplicitUsings>enable</ImplicitUsings>
 	<NoWarn>$(NoWarn);NU1701</NoWarn>
     <ApplicationIcon>ProcessCoreOptimizer.ico</ApplicationIcon>
-    <Version>1.0.4</Version>
+    <Version>1.0.5</Version>
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Resources\Montserrat-Italic-VariableFont_wght.ttf" />
+    <None Remove="Resources\Montserrat-VariableFont_wght.ttf" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Content Include="ProcessCoreOptimizer.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\Montserrat-Italic-VariableFont_wght.ttf" />
+    <EmbeddedResource Include="Resources\Montserrat-VariableFont_wght.ttf" />
   </ItemGroup>
 
   <ItemGroup>
