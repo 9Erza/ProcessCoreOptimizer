@@ -50,6 +50,7 @@ namespace ProcessCoreOptimizer
             UpdateGameModeStatus();
             LoadSystemSpecs();
             LoadSettings();
+            RefreshProfilesList();
             AddLog("Application initialized successfully.");
             CheckForUpdates();
             Task.Run(async () =>
@@ -64,8 +65,8 @@ namespace ProcessCoreOptimizer
                     Control[] toRound = {
             btnSelectAll, btnNone, btnSmtOff, btnSaveProfile,
             btnRemoveProfile, btnToggleGameMode, btnApply,
-            btnRefresh, dgvProcesses, listCores, rtbSpecs,
-            listLog, panelCores
+            dgvProcesses, listCores, rtbSpecs,
+            listLog, panelCores, listSavedProfiles
         };
                     this.SuspendLayout();
 
@@ -159,11 +160,27 @@ namespace ProcessCoreOptimizer
         {
             try
             {
-                if (proc.MainWindowHandle == IntPtr.Zero || proc.ProcessName == "Idle") return false;
-                string path = proc.MainModule.FileName.ToLower();
-                return !(path.Contains("windows\\system32") || path.Contains("windows\\syswow64"));
+                if (proc.Id <= 4 || proc.ProcessName == "Idle") return false;
+
+                string path = "";
+                try
+                {
+                    path = proc.MainModule.FileName.ToLower();
+                }
+                catch (System.ComponentModel.Win32Exception)
+                {
+                    return false;
+                }
+
+                if (path.Contains("windows\\system32") || path.Contains("windows\\syswow64"))
+                    return false;
+
+                return proc.MainWindowHandle != IntPtr.Zero;
             }
-            catch { return false; }
+            catch
+            {
+                return false;
+            }
         }
 
         private void RefreshProcessTable()
@@ -192,6 +209,14 @@ namespace ProcessCoreOptimizer
 
         private void SetupCoreVisuals()
         {
+            if (coreCounters != null)
+            {
+                foreach (var pc in coreCounters)
+                {
+                    pc.Dispose();
+                }
+            }
+
             panelCores.Controls.Clear();
             coreBars.Clear();
             coreCounters.Clear();
@@ -215,11 +240,15 @@ namespace ProcessCoreOptimizer
                 panelCores.Controls.Add(bar);
                 coreBars.Add(bar);
 
-                panelCores.Controls.Add(bar);
-                coreBars.Add(bar);
-
-                PerformanceCounter pc = new PerformanceCounter("Processor", "% Processor Time", i.ToString());
-                coreCounters.Add(pc);
+                try
+                {
+                    PerformanceCounter pc = new PerformanceCounter("Processor", "% Processor Time", i.ToString());
+                    coreCounters.Add(pc);
+                }
+                catch (Exception ex)
+                {
+                    AddLog($"Counter Error (Core {i}): {ex.Message}");
+                }
             }
         }
 
@@ -321,26 +350,76 @@ namespace ProcessCoreOptimizer
         private void btnSaveProfile_Click(object sender, EventArgs e)
         {
             if (dgvProcesses.CurrentRow == null) return;
+
+
             string procName = dgvProcesses.CurrentRow.Cells[0].Value.ToString();
             long mask = 0;
-            foreach (int index in listCores.CheckedIndices) mask |= (1L << index);
+            foreach (int index in listCores.CheckedIndices)
+                mask |= (1L << index);
 
-            if (mask == 0) return;
+            if (mask == 0)
+            {
+                AddLog("Error: You must select at least one core.");
+                return;
+            }
+
             settings.ProcessProfiles[procName] = mask;
+
             SaveSettings();
-            AddLog($"Profile saved for {procName}");
+
+            RefreshProfilesList();
+
+            dgvProcesses.CurrentRow.DefaultCellStyle.BackColor = Color.FromArgb(40, 80, 40);
+            dgvProcesses.CurrentRow.DefaultCellStyle.ForeColor = Color.White;
+
+            AddLog($"Profile saved/updated for {procName}");
         }
 
         private void btnRemoveProfile_Click(object sender, EventArgs e)
         {
-            if (dgvProcesses.CurrentRow == null) return;
-            string procName = dgvProcesses.CurrentRow.Cells[0].Value.ToString();
+            string procName = "";
+
+            if (listSavedProfiles.SelectedItem != null)
+            {
+                procName = listSavedProfiles.SelectedItem.ToString();
+            }
+            else if (dgvProcesses.CurrentRow != null)
+            {
+                procName = dgvProcesses.CurrentRow.Cells[0].Value.ToString();
+            }
+
+            if (string.IsNullOrEmpty(procName)) return;
 
             if (settings.ProcessProfiles.Remove(procName))
             {
                 SaveSettings();
-                dgvProcesses.CurrentRow.DefaultCellStyle.BackColor = Color.White;
-                AddLog($"Profile removed for {procName}");
+
+                RefreshProfilesList();
+
+                foreach (DataGridViewRow row in dgvProcesses.Rows)
+                {
+                    if (row.Cells[0].Value?.ToString() == procName)
+                    {
+                        row.DefaultCellStyle.BackColor = Color.White;
+                        row.DefaultCellStyle.ForeColor = Color.Black;
+                    }
+                }
+
+                AddLog($"Profile deleted for {procName}");
+            }
+            else
+            {
+                AddLog($"No profile found to delete for {procName}");
+            }
+        }
+
+        private void RefreshProfilesList()
+        {
+            listSavedProfiles.Items.Clear();
+
+            foreach (var profileName in settings.ProcessProfiles.Keys)
+            {
+                listSavedProfiles.Items.Add(profileName);
             }
         }
 
@@ -349,7 +428,6 @@ namespace ProcessCoreOptimizer
         private void btnSelectAll_Click(object sender, EventArgs e) { for (int i = 0; i < listCores.Items.Count; i++) listCores.SetItemChecked(i, true); }
         private void btnNone_Click(object sender, EventArgs e) { for (int i = 0; i < listCores.Items.Count; i++) listCores.SetItemChecked(i, false); }
         private void btnSmtOff_Click(object sender, EventArgs e) { for (int i = 0; i < listCores.Items.Count; i++) listCores.SetItemChecked(i, i % 2 == 0); }
-        private void btnManualRefresh_Click(object sender, EventArgs e) { RefreshProcessTable(); AddLog("Manual refresh triggered."); }
 
         private void dgvProcesses_SelectionChanged(object sender, EventArgs e)
         {
@@ -572,9 +650,22 @@ namespace ProcessCoreOptimizer
             }
         }
 
-        private void lblCorePanel_Click(object sender, EventArgs e)
+        private void listSavedProfiles_SelectedIndexChanged(object sender, EventArgs e)
         {
+            if (listSavedProfiles.SelectedItem == null) return;
 
+            string selectedProcessName = listSavedProfiles.SelectedItem.ToString();
+
+            if (settings.ProcessProfiles.TryGetValue(selectedProcessName, out long savedMask))
+            {
+                for (int i = 0; i < listCores.Items.Count; i++)
+                {
+                    bool isCoreActive = (savedMask & (1L << i)) != 0;
+                    listCores.SetItemChecked(i, isCoreActive);
+                }
+
+                AddLog($"Preview loaded for {selectedProcessName}. Change cores and click Save to edit.");
+            }
         }
     }
 

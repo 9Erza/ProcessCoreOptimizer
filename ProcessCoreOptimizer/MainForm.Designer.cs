@@ -29,9 +29,9 @@
         private void InitializeComponent()
         {
             components = new System.ComponentModel.Container();
-            DataGridViewCellStyle dataGridViewCellStyle1 = new DataGridViewCellStyle();
-            DataGridViewCellStyle dataGridViewCellStyle2 = new DataGridViewCellStyle();
-            DataGridViewCellStyle dataGridViewCellStyle3 = new DataGridViewCellStyle();
+            DataGridViewCellStyle dataGridViewCellStyle4 = new DataGridViewCellStyle();
+            DataGridViewCellStyle dataGridViewCellStyle5 = new DataGridViewCellStyle();
+            DataGridViewCellStyle dataGridViewCellStyle6 = new DataGridViewCellStyle();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             listCores = new CheckedListBox();
             btnApply = new Button();
@@ -44,7 +44,6 @@
             btnSelectAll = new Button();
             btnNone = new Button();
             btnSmtOff = new Button();
-            btnRefresh = new Button();
             btnSaveProfile = new Button();
             btnRemoveProfile = new Button();
             cbStartWithWindows = new CheckBox();
@@ -67,6 +66,7 @@
             rtbSpecs = new RichTextBox();
             lblPCSpecs = new Label();
             panelCores = new Panel();
+            listSavedProfiles = new ListBox();
             ((System.ComponentModel.ISupportInitialize)dgvProcesses).BeginInit();
             contextMenuStrip1.SuspendLayout();
             SuspendLayout();
@@ -93,10 +93,10 @@
             btnApply.FlatAppearance.BorderSize = 0;
             btnApply.FlatStyle = FlatStyle.Flat;
             btnApply.Font = new Font("Montserrat ExtraBold", 16F, FontStyle.Bold);
-            btnApply.Location = new Point(1053, 676);
+            btnApply.Location = new Point(1029, 811);
             btnApply.Margin = new Padding(3, 4, 3, 4);
             btnApply.Name = "btnApply";
-            btnApply.Size = new Size(538, 127);
+            btnApply.Size = new Size(308, 117);
             btnApply.TabIndex = 2;
             btnApply.Text = "Set Affinity";
             btnApply.UseVisualStyleBackColor = false;
@@ -111,24 +111,24 @@
             dgvProcesses.BorderStyle = BorderStyle.None;
             dgvProcesses.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
             dgvProcesses.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
-            dataGridViewCellStyle1.Alignment = DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle1.BackColor = Color.FromArgb(20, 20, 26);
-            dataGridViewCellStyle1.Font = new Font("Montserrat ExtraBold", 8.999999F, FontStyle.Bold, GraphicsUnit.Point, 238);
-            dataGridViewCellStyle1.ForeColor = Color.White;
-            dataGridViewCellStyle1.SelectionBackColor = Color.FromArgb(20, 20, 26);
-            dataGridViewCellStyle1.SelectionForeColor = SystemColors.HighlightText;
-            dataGridViewCellStyle1.WrapMode = DataGridViewTriState.True;
-            dgvProcesses.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle1;
+            dataGridViewCellStyle4.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle4.BackColor = Color.FromArgb(20, 20, 26);
+            dataGridViewCellStyle4.Font = new Font("Montserrat ExtraBold", 8.999999F, FontStyle.Bold, GraphicsUnit.Point, 238);
+            dataGridViewCellStyle4.ForeColor = Color.White;
+            dataGridViewCellStyle4.SelectionBackColor = Color.FromArgb(20, 20, 26);
+            dataGridViewCellStyle4.SelectionForeColor = SystemColors.HighlightText;
+            dataGridViewCellStyle4.WrapMode = DataGridViewTriState.True;
+            dgvProcesses.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle4;
             dgvProcesses.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             dgvProcesses.Columns.AddRange(new DataGridViewColumn[] { colName, colCPU, colRAM, colID });
-            dataGridViewCellStyle2.Alignment = DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle2.BackColor = Color.FromArgb(11, 11, 15);
-            dataGridViewCellStyle2.Font = new Font("Montserrat ExtraBold", 9.749999F, FontStyle.Bold, GraphicsUnit.Point, 238);
-            dataGridViewCellStyle2.ForeColor = Color.White;
-            dataGridViewCellStyle2.SelectionBackColor = Color.FromArgb(74, 137, 243);
-            dataGridViewCellStyle2.SelectionForeColor = SystemColors.HighlightText;
-            dataGridViewCellStyle2.WrapMode = DataGridViewTriState.False;
-            dgvProcesses.DefaultCellStyle = dataGridViewCellStyle2;
+            dataGridViewCellStyle5.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle5.BackColor = Color.FromArgb(11, 11, 15);
+            dataGridViewCellStyle5.Font = new Font("Montserrat ExtraBold", 9.749999F, FontStyle.Bold, GraphicsUnit.Point, 238);
+            dataGridViewCellStyle5.ForeColor = Color.White;
+            dataGridViewCellStyle5.SelectionBackColor = Color.FromArgb(74, 137, 243);
+            dataGridViewCellStyle5.SelectionForeColor = SystemColors.HighlightText;
+            dataGridViewCellStyle5.WrapMode = DataGridViewTriState.False;
+            dgvProcesses.DefaultCellStyle = dataGridViewCellStyle5;
             dgvProcesses.EnableHeadersVisualStyles = false;
             dgvProcesses.GridColor = Color.FromArgb(35, 35, 42);
             dgvProcesses.ImeMode = ImeMode.On;
@@ -137,14 +137,14 @@
             dgvProcesses.MultiSelect = false;
             dgvProcesses.Name = "dgvProcesses";
             dgvProcesses.ReadOnly = true;
-            dataGridViewCellStyle3.Alignment = DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle3.BackColor = SystemColors.Control;
-            dataGridViewCellStyle3.Font = new Font("Montserrat ExtraBold", 8.999999F, FontStyle.Bold, GraphicsUnit.Point, 238);
-            dataGridViewCellStyle3.ForeColor = SystemColors.WindowText;
-            dataGridViewCellStyle3.SelectionBackColor = SystemColors.Highlight;
-            dataGridViewCellStyle3.SelectionForeColor = SystemColors.HighlightText;
-            dataGridViewCellStyle3.WrapMode = DataGridViewTriState.True;
-            dgvProcesses.RowHeadersDefaultCellStyle = dataGridViewCellStyle3;
+            dataGridViewCellStyle6.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle6.BackColor = SystemColors.Control;
+            dataGridViewCellStyle6.Font = new Font("Montserrat ExtraBold", 8.999999F, FontStyle.Bold, GraphicsUnit.Point, 238);
+            dataGridViewCellStyle6.ForeColor = SystemColors.WindowText;
+            dataGridViewCellStyle6.SelectionBackColor = SystemColors.Highlight;
+            dataGridViewCellStyle6.SelectionForeColor = SystemColors.HighlightText;
+            dataGridViewCellStyle6.WrapMode = DataGridViewTriState.True;
+            dgvProcesses.RowHeadersDefaultCellStyle = dataGridViewCellStyle6;
             dgvProcesses.RowHeadersVisible = false;
             dgvProcesses.RowTemplate.DefaultCellStyle.BackColor = Color.Gray;
             dgvProcesses.RowTemplate.DefaultCellStyle.Font = new Font("Montserrat SemiBold", 8.249999F, FontStyle.Bold, GraphicsUnit.Point, 238);
@@ -230,28 +230,13 @@
             btnSmtOff.UseVisualStyleBackColor = false;
             btnSmtOff.Click += btnSmtOff_Click;
             // 
-            // btnRefresh
-            // 
-            btnRefresh.BackColor = Color.FromArgb(74, 137, 243);
-            btnRefresh.FlatAppearance.BorderSize = 0;
-            btnRefresh.FlatStyle = FlatStyle.Flat;
-            btnRefresh.Font = new Font("Montserrat ExtraBold", 12F, FontStyle.Bold);
-            btnRefresh.Location = new Point(1053, 840);
-            btnRefresh.Margin = new Padding(3, 4, 3, 4);
-            btnRefresh.Name = "btnRefresh";
-            btnRefresh.Size = new Size(243, 60);
-            btnRefresh.TabIndex = 7;
-            btnRefresh.Text = "Manual Refresh";
-            btnRefresh.UseVisualStyleBackColor = false;
-            btnRefresh.Click += btnRefresh_Click;
-            // 
             // btnSaveProfile
             // 
             btnSaveProfile.BackColor = Color.FromArgb(74, 137, 243);
             btnSaveProfile.FlatAppearance.BorderSize = 0;
             btnSaveProfile.FlatStyle = FlatStyle.Flat;
             btnSaveProfile.Font = new Font("Montserrat ExtraBold", 12F, FontStyle.Bold);
-            btnSaveProfile.Location = new Point(1344, 586);
+            btnSaveProfile.Location = new Point(1344, 561);
             btnSaveProfile.Margin = new Padding(3, 4, 3, 4);
             btnSaveProfile.Name = "btnSaveProfile";
             btnSaveProfile.Size = new Size(247, 59);
@@ -266,7 +251,7 @@
             btnRemoveProfile.FlatAppearance.BorderSize = 0;
             btnRemoveProfile.FlatStyle = FlatStyle.Flat;
             btnRemoveProfile.Font = new Font("Montserrat ExtraBold", 12F, FontStyle.Bold);
-            btnRemoveProfile.Location = new Point(1053, 586);
+            btnRemoveProfile.Location = new Point(1060, 561);
             btnRemoveProfile.Margin = new Padding(3, 4, 3, 4);
             btnRemoveProfile.Name = "btnRemoveProfile";
             btnRemoveProfile.Size = new Size(247, 59);
@@ -411,7 +396,6 @@
             lblCorePanel.Size = new Size(197, 25);
             lblCorePanel.TabIndex = 19;
             lblCorePanel.Text = "CPU LOAD PER CORE";
-            lblCorePanel.Click += lblCorePanel_Click;
             // 
             // lblProcessList
             // 
@@ -489,12 +473,26 @@
             panelCores.Size = new Size(521, 147);
             panelCores.TabIndex = 26;
             // 
+            // listSavedProfiles
+            // 
+            listSavedProfiles.BackColor = Color.FromArgb(25, 25, 30);
+            listSavedProfiles.BorderStyle = BorderStyle.None;
+            listSavedProfiles.Font = new Font("Montserrat SemiBold", 8.999999F, FontStyle.Bold, GraphicsUnit.Point, 238);
+            listSavedProfiles.ForeColor = Color.White;
+            listSavedProfiles.FormattingEnabled = true;
+            listSavedProfiles.Location = new Point(1029, 632);
+            listSavedProfiles.Name = "listSavedProfiles";
+            listSavedProfiles.Size = new Size(564, 162);
+            listSavedProfiles.TabIndex = 27;
+            listSavedProfiles.SelectedIndexChanged += listSavedProfiles_SelectedIndexChanged;
+            // 
             // MainForm
             // 
             AutoScaleDimensions = new SizeF(8F, 18F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.FromArgb(35, 35, 40);
             ClientSize = new Size(1605, 961);
+            Controls.Add(listSavedProfiles);
             Controls.Add(panelCores);
             Controls.Add(lblPCSpecs);
             Controls.Add(rtbSpecs);
@@ -513,7 +511,6 @@
             Controls.Add(cbStartWithWindows);
             Controls.Add(btnRemoveProfile);
             Controls.Add(btnSaveProfile);
-            Controls.Add(btnRefresh);
             Controls.Add(btnSmtOff);
             Controls.Add(btnNone);
             Controls.Add(btnSelectAll);
@@ -547,7 +544,6 @@
         private Button btnSelectAll;
         private Button btnNone;
         private Button btnSmtOff;
-        private Button btnRefresh;
         private Button btnSaveProfile;
         private Button btnRemoveProfile;
         private CheckBox cbStartWithWindows;
@@ -570,5 +566,6 @@
         private RichTextBox rtbSpecs;
         private Label lblPCSpecs;
         private Panel panelCores;
+        private ListBox listSavedProfiles;
     }
 }
