@@ -8,7 +8,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
 	<NoWarn>$(NoWarn);NU1701</NoWarn>
     <ApplicationIcon>ProcessCoreOptimizer.ico</ApplicationIcon>
-    <Version>1.0.5</Version>
+    <Version>1.0.6</Version>
   </PropertyGroup>
 
   <ItemGroup>

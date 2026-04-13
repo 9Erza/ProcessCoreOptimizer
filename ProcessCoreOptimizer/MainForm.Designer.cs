@@ -29,9 +29,9 @@
         private void InitializeComponent()
         {
             components = new System.ComponentModel.Container();
-            DataGridViewCellStyle dataGridViewCellStyle1 = new DataGridViewCellStyle();
-            DataGridViewCellStyle dataGridViewCellStyle2 = new DataGridViewCellStyle();
-            DataGridViewCellStyle dataGridViewCellStyle3 = new DataGridViewCellStyle();
+            DataGridViewCellStyle dataGridViewCellStyle4 = new DataGridViewCellStyle();
+            DataGridViewCellStyle dataGridViewCellStyle5 = new DataGridViewCellStyle();
+            DataGridViewCellStyle dataGridViewCellStyle6 = new DataGridViewCellStyle();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             listCores = new CheckedListBox();
             btnApply = new Button();
@@ -68,6 +68,7 @@
             panelCores = new Panel();
             listSavedProfiles = new ListBox();
             btnDisableECores = new Button();
+            cbStartMinimized = new CheckBox();
             ((System.ComponentModel.ISupportInitialize)dgvProcesses).BeginInit();
             contextMenuStrip1.SuspendLayout();
             SuspendLayout();
@@ -112,24 +113,24 @@
             dgvProcesses.BorderStyle = BorderStyle.None;
             dgvProcesses.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
             dgvProcesses.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
-            dataGridViewCellStyle1.Alignment = DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle1.BackColor = Color.FromArgb(20, 20, 26);
-            dataGridViewCellStyle1.Font = new Font("Montserrat ExtraBold", 8.999999F, FontStyle.Bold, GraphicsUnit.Point, 238);
-            dataGridViewCellStyle1.ForeColor = Color.White;
-            dataGridViewCellStyle1.SelectionBackColor = Color.FromArgb(20, 20, 26);
-            dataGridViewCellStyle1.SelectionForeColor = SystemColors.HighlightText;
-            dataGridViewCellStyle1.WrapMode = DataGridViewTriState.True;
-            dgvProcesses.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle1;
+            dataGridViewCellStyle4.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle4.BackColor = Color.FromArgb(20, 20, 26);
+            dataGridViewCellStyle4.Font = new Font("Montserrat ExtraBold", 8.999999F, FontStyle.Bold, GraphicsUnit.Point, 238);
+            dataGridViewCellStyle4.ForeColor = Color.White;
+            dataGridViewCellStyle4.SelectionBackColor = Color.FromArgb(20, 20, 26);
+            dataGridViewCellStyle4.SelectionForeColor = SystemColors.HighlightText;
+            dataGridViewCellStyle4.WrapMode = DataGridViewTriState.True;
+            dgvProcesses.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle4;
             dgvProcesses.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             dgvProcesses.Columns.AddRange(new DataGridViewColumn[] { colName, colCPU, colRAM, colID });
-            dataGridViewCellStyle2.Alignment = DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle2.BackColor = Color.FromArgb(11, 11, 15);
-            dataGridViewCellStyle2.Font = new Font("Montserrat ExtraBold", 9.749999F, FontStyle.Bold, GraphicsUnit.Point, 238);
-            dataGridViewCellStyle2.ForeColor = Color.White;
-            dataGridViewCellStyle2.SelectionBackColor = Color.FromArgb(74, 137, 243);
-            dataGridViewCellStyle2.SelectionForeColor = SystemColors.HighlightText;
-            dataGridViewCellStyle2.WrapMode = DataGridViewTriState.False;
-            dgvProcesses.DefaultCellStyle = dataGridViewCellStyle2;
+            dataGridViewCellStyle5.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle5.BackColor = Color.FromArgb(11, 11, 15);
+            dataGridViewCellStyle5.Font = new Font("Montserrat ExtraBold", 9.749999F, FontStyle.Bold, GraphicsUnit.Point, 238);
+            dataGridViewCellStyle5.ForeColor = Color.White;
+            dataGridViewCellStyle5.SelectionBackColor = Color.FromArgb(74, 137, 243);
+            dataGridViewCellStyle5.SelectionForeColor = SystemColors.HighlightText;
+            dataGridViewCellStyle5.WrapMode = DataGridViewTriState.False;
+            dgvProcesses.DefaultCellStyle = dataGridViewCellStyle5;
             dgvProcesses.EnableHeadersVisualStyles = false;
             dgvProcesses.GridColor = Color.FromArgb(35, 35, 42);
             dgvProcesses.ImeMode = ImeMode.On;
@@ -138,14 +139,14 @@
             dgvProcesses.MultiSelect = false;
             dgvProcesses.Name = "dgvProcesses";
             dgvProcesses.ReadOnly = true;
-            dataGridViewCellStyle3.Alignment = DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle3.BackColor = SystemColors.Control;
-            dataGridViewCellStyle3.Font = new Font("Montserrat ExtraBold", 8.999999F, FontStyle.Bold, GraphicsUnit.Point, 238);
-            dataGridViewCellStyle3.ForeColor = SystemColors.WindowText;
-            dataGridViewCellStyle3.SelectionBackColor = SystemColors.Highlight;
-            dataGridViewCellStyle3.SelectionForeColor = SystemColors.HighlightText;
-            dataGridViewCellStyle3.WrapMode = DataGridViewTriState.True;
-            dgvProcesses.RowHeadersDefaultCellStyle = dataGridViewCellStyle3;
+            dataGridViewCellStyle6.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle6.BackColor = SystemColors.Control;
+            dataGridViewCellStyle6.Font = new Font("Montserrat ExtraBold", 8.999999F, FontStyle.Bold, GraphicsUnit.Point, 238);
+            dataGridViewCellStyle6.ForeColor = SystemColors.WindowText;
+            dataGridViewCellStyle6.SelectionBackColor = SystemColors.Highlight;
+            dataGridViewCellStyle6.SelectionForeColor = SystemColors.HighlightText;
+            dataGridViewCellStyle6.WrapMode = DataGridViewTriState.True;
+            dgvProcesses.RowHeadersDefaultCellStyle = dataGridViewCellStyle6;
             dgvProcesses.RowHeadersVisible = false;
             dgvProcesses.RowTemplate.DefaultCellStyle.BackColor = Color.Gray;
             dgvProcesses.RowTemplate.DefaultCellStyle.Font = new Font("Montserrat SemiBold", 8.249999F, FontStyle.Bold, GraphicsUnit.Point, 238);
@@ -153,6 +154,7 @@
             dgvProcesses.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dgvProcesses.Size = new Size(1008, 512);
             dgvProcesses.TabIndex = 3;
+            dgvProcesses.CellClick += dgvProcesses_CellClick;
             dgvProcesses.SelectionChanged += dgvProcesses_SelectionChanged;
             // 
             // colName
@@ -278,7 +280,7 @@
             // 
             cbMinimizeToTray.AutoSize = true;
             cbMinimizeToTray.Font = new Font("Montserrat", 12F, FontStyle.Regular, GraphicsUnit.Point, 238);
-            cbMinimizeToTray.Location = new Point(1404, 840);
+            cbMinimizeToTray.Location = new Point(1404, 860);
             cbMinimizeToTray.Margin = new Padding(3, 4, 3, 4);
             cbMinimizeToTray.Name = "cbMinimizeToTray";
             cbMinimizeToTray.Size = new Size(160, 29);
@@ -291,7 +293,7 @@
             // 
             cbAutoApply.AutoSize = true;
             cbAutoApply.Font = new Font("Montserrat", 12F, FontStyle.Regular, GraphicsUnit.Point, 238);
-            cbAutoApply.Location = new Point(1404, 899);
+            cbAutoApply.Location = new Point(1404, 908);
             cbAutoApply.Margin = new Padding(3, 4, 3, 4);
             cbAutoApply.Name = "cbAutoApply";
             cbAutoApply.Size = new Size(184, 29);
@@ -433,7 +435,7 @@
             // 
             cbCloseToTray.AutoSize = true;
             cbCloseToTray.Font = new Font("Montserrat", 12F, FontStyle.Regular, GraphicsUnit.Point, 238);
-            cbCloseToTray.Location = new Point(1404, 871);
+            cbCloseToTray.Location = new Point(1404, 885);
             cbCloseToTray.Margin = new Padding(3, 4, 3, 4);
             cbCloseToTray.Name = "cbCloseToTray";
             cbCloseToTray.Size = new Size(130, 29);
@@ -502,12 +504,26 @@
             btnDisableECores.UseVisualStyleBackColor = false;
             btnDisableECores.Click += btnDisableECores_Click;
             // 
+            // cbStartMinimized
+            // 
+            cbStartMinimized.AutoSize = true;
+            cbStartMinimized.Font = new Font("Montserrat", 12F, FontStyle.Regular, GraphicsUnit.Point, 238);
+            cbStartMinimized.Location = new Point(1404, 836);
+            cbStartMinimized.Margin = new Padding(3, 4, 3, 4);
+            cbStartMinimized.Name = "cbStartMinimized";
+            cbStartMinimized.Size = new Size(156, 29);
+            cbStartMinimized.TabIndex = 29;
+            cbStartMinimized.Text = "Start Minimized";
+            cbStartMinimized.UseVisualStyleBackColor = true;
+            cbStartMinimized.CheckedChanged += cbStartMinimized_CheckedChanged;
+            // 
             // MainForm
             // 
             AutoScaleDimensions = new SizeF(8F, 18F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.FromArgb(35, 35, 40);
             ClientSize = new Size(1605, 961);
+            Controls.Add(cbStartMinimized);
             Controls.Add(btnDisableECores);
             Controls.Add(listSavedProfiles);
             Controls.Add(panelCores);
@@ -585,5 +601,6 @@
         private Panel panelCores;
         private ListBox listSavedProfiles;
         private Button btnDisableECores;
+        private CheckBox cbStartMinimized;
     }
 }

@@ -54,6 +54,15 @@ namespace ProcessCoreOptimizer
             UpdateGameModeStatus();
             LoadSystemSpecs();
             LoadSettings();
+            if (settings.StartMinimizedEnabled)
+            {
+                this.WindowState = FormWindowState.Minimized;
+                if (cbMinimizeToTray.Checked)
+                {
+                    this.Hide();
+                    trayIcon.Visible = true;
+                }
+            }
             RefreshProfilesList();
             AddLog("Application initialized successfully.");
             CheckForUpdates();
@@ -116,6 +125,7 @@ namespace ProcessCoreOptimizer
             settings.MinimizeToTrayEnabled = cbMinimizeToTray.Checked;
             settings.StartWithWindows = cbStartWithWindows.Checked;
             settings.CloseToTrayEnabled = cbCloseToTray.Checked;
+            settings.StartMinimizedEnabled = cbStartMinimized.Checked;
 
             string json = JsonConvert.SerializeObject(settings, Formatting.Indented);
             File.WriteAllText(settingsPath, json);
@@ -134,6 +144,7 @@ namespace ProcessCoreOptimizer
                 cbMinimizeToTray.Checked = settings.MinimizeToTrayEnabled;
                 cbStartWithWindows.Checked = settings.StartWithWindows;
                 cbCloseToTray.Checked = settings.CloseToTrayEnabled;
+                cbStartMinimized.Checked = settings.StartMinimizedEnabled;
             }
             catch { settings = new AppSettings(); }
             finally { isLoading = false; }
@@ -417,10 +428,23 @@ namespace ProcessCoreOptimizer
 
         private void btnSaveProfile_Click(object sender, EventArgs e)
         {
-            if (dgvProcesses.CurrentRow == null) return;
+            string procName = "";
 
+            if (dgvProcesses.SelectedRows.Count > 0 && dgvProcesses.CurrentRow != null)
+            {
+                procName = dgvProcesses.CurrentRow.Cells[0].Value.ToString();
+            }
+            else if (listSavedProfiles.SelectedItem != null)
+            {
+                procName = listSavedProfiles.SelectedItem.ToString();
+            }
 
-            string procName = dgvProcesses.CurrentRow.Cells[0].Value.ToString();
+            if (string.IsNullOrEmpty(procName))
+            {
+                AddLog("Error: Select a process or profile first.");
+                return;
+            }
+
             long mask = 0;
             foreach (int index in listCores.CheckedIndices)
                 mask |= (1L << index);
@@ -432,13 +456,17 @@ namespace ProcessCoreOptimizer
             }
 
             settings.ProcessProfiles[procName] = mask;
-
             SaveSettings();
-
             RefreshProfilesList();
 
-            dgvProcesses.CurrentRow.DefaultCellStyle.BackColor = Color.FromArgb(40, 80, 40);
-            dgvProcesses.CurrentRow.DefaultCellStyle.ForeColor = Color.White;
+            foreach (DataGridViewRow row in dgvProcesses.Rows)
+            {
+                if (row.Cells[0].Value?.ToString() == procName)
+                {
+                    row.DefaultCellStyle.BackColor = Color.FromArgb(40, 80, 40);
+                    row.DefaultCellStyle.ForeColor = Color.White;
+                }
+            }
 
             AddLog($"Profile saved/updated for {procName}");
         }
@@ -509,7 +537,7 @@ namespace ProcessCoreOptimizer
 
         private void dgvProcesses_SelectionChanged(object sender, EventArgs e)
         {
-            if (dgvProcesses.CurrentRow == null) return;
+            if (dgvProcesses.CurrentRow == null || !dgvProcesses.Focused) return;
             try
             {
                 int pid = Convert.ToInt32(dgvProcesses.CurrentRow.Cells[3].Value);
@@ -730,7 +758,9 @@ namespace ProcessCoreOptimizer
 
         private void listSavedProfiles_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (listSavedProfiles.SelectedItem == null) return;
+            if (listSavedProfiles.SelectedItem == null || !listSavedProfiles.Focused) return;
+
+            dgvProcesses.ClearSelection();
 
             string selectedProcessName = listSavedProfiles.SelectedItem.ToString();
 
@@ -757,6 +787,16 @@ namespace ProcessCoreOptimizer
             }
             AddLog("Intel E-Cores disabled.");
         }
+
+        private void dgvProcesses_CellClick(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex >= 0)
+            {
+                listSavedProfiles.SelectedIndex = -1;
+            }
+        }
+
+        private void cbStartMinimized_CheckedChanged(object sender, EventArgs e) => SaveSettings();
     }
 
     public class AppSettings
@@ -766,13 +806,14 @@ namespace ProcessCoreOptimizer
         public bool MinimizeToTrayEnabled { get; set; } = false;
         public bool StartWithWindows { get; set; } = false;
         public bool CloseToTrayEnabled { get; set; } = false;
+        public bool StartMinimizedEnabled { get; set; } = false;
     }
 
     public class VerticalProgressBar : ProgressBar
     {
         [DllImport("uxtheme.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         private static extern int SetWindowTheme(IntPtr hWnd, string pszSubAppName, string pszSubIdList);
-        
+
         protected override void OnHandleCreated(EventArgs e)
         {
             base.OnHandleCreated(e);
