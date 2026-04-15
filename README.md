@@ -39,6 +39,7 @@ Track your system's vital signs in real-time with a dedicated metrics tab:
 Please note that due to the complete transition from WinForms to WPF, **previous process profiles may not be compatible**. I highly recommend re-creating your profiles within this new version to ensure everything works correctly.
 
 ---
+
 ## 📸 Screenshots
 
 <details>
@@ -74,6 +75,8 @@ Please note that due to the complete transition from WinForms to WPF, **previous
     </tr>
   </table>
 </details>
+
+---
 
 ## 📥 Download & Installation
 
