@@ -4,65 +4,80 @@
   <img src="https://raw.githubusercontent.com/9Erza/ProcessCoreOptimizer/refs/heads/main/ProcessCoreOptimizer/Images/processcoreoptimizer.ico" alt="Process Core Optimizer Logo">
 </p>
 
-![License](https://img.shields.io/github/license/9Erza/ProcessCoreOptimizer?style=flat-square)
-![Version](https://img.shields.io/github/v/release/9Erza/ProcessCoreOptimizer?style=flat-square)
-![Platform](https://img.shields.io/badge/platform-Windows-blue?style=flat-square)
+<p align="center">
+  <img src="https://img.shields.io/github/license/9Erza/ProcessCoreOptimizer?style=flat-square" alt="License">
+  <img src="https://img.shields.io/github/v/release/9Erza/ProcessCoreOptimizer?style=flat-square" alt="Version">
+  <img src="https://img.shields.io/badge/platform-Windows-blue?style=flat-square" alt="Platform">
+</p>
 
-**Process Core Optimizer** is a high-performance system utility I built using WPF (Windows Presentation Foundation). It is designed to give you total control over your CPU resources. You can optimize your gaming and professional applications by manually assigning CPU Affinity, managing priorities, and automating performance profiles.
+**Process Core Optimizer (PCO)** is a professional-grade system utility built on the WPF framework, engineered to grant you absolute control over Windows thread scheduling and CPU resource allocation. Whether you are a competitive gamer or a power user, PCO ensures your critical applications get the performance they deserve.
+
+---
+
+The latest version introduces a sophisticated 3-tier optimization logic, allowing you to choose how the Windows Scheduler treats your processes:
+
+- **🔵 Affinity (Standard):** Strict hard-binding of threads to specific cores. Ideal for legacy software and standard applications.
+- **🟢 CPU Sets (Smart):** A modern "soft-affinity" approach. It prioritizes selected cores for your game, providing superior frame pacing and reduced micro-stutters without starving the OS.
+- **🟡 Exclusive (Hardcore):** Pure core isolation. PCO actively evicts background processes (browsers, Discord, system bloat) from your game's assigned cores, creating a high-performance "Clean Core Environment."
+
+---
+
+## 🛡️ Anti-Cheat Stealth Integration
+
+* **Smart Optimization:** By utilizing **CPU Sets** instead of traditional affinity locking, PCO avoids compatibility issues with aggressive anti-cheats (FaceitAC (CS2), Vanguard (Valorant)) while still delivering performance benefits.
+* **Stealth Integration:** v1.1.1 uses low-level Windows API calls (`PROCESS_SET_LIMITED_INFORMATION`) to seamlessly apply CPU Sets to protected processes without triggering anti-cheat alarms, "Access Denied" errors, or system crashes.
 
 ---
 
 ## 🌟 Key Features
 
-### 🛠️ Advanced Process Management
-- **CPU Affinity Control:** Pin specific applications to high-performance cores and avoid efficiency cores (E-Cores) to eliminate stuttering in games like CS2 or Valorant.
-- **Set Priority:** Directly change process priority levels from "Idle" to "Real-Time" to ensure your critical apps get maximum CPU attention.
-- **Automated Profiles:** Save custom optimization profiles for your favorite games. The app automatically detects when a game starts and applies your saved Affinity and Priority settings in the background.
+### 🛠️ Strategic Process Control
+- **P/E-Core Management:** Force your games onto high-frequency Performance cores and away from Efficiency cores (E-Cores) to eliminate latency spikes.
+- **Dynamic Priority Adjustments:** Switch process priorities on the fly (from Idle to Real-Time) to ensure your active tasks are never bottlenecked.
+- **Persistent Profiles:** Save custom configurations that are automatically applied whenever your game is detected in the background.
 
-### 📊 Hardware Monitoring
-Track your system's vital signs in real-time with a dedicated metrics tab:
-- **CPU Monitoring:** - Usage %, Temperature, Average Clock Speed, and Power Draw (TDP).
-  - *Note: Some advanced CPU statistics require the app to run in Administrator mode.*
-- **GPU Monitoring:** - Usage %, Temperature, VRAM Usage, Core Clock, Memory Clock, Hot Spot Temperature, and Power Draw.
-- **RAM Monitoring:** - Total usage percentage and a detailed breakdown of Used vs. Available memory (in GB).
+### 🎨 Intelligent UX/UI
+- **Color-Coded Feedback:** The process list features dynamic tags: **[Affinity]**, **[CPU Sets]**, and **[Exclusive]** to provide instant visual confirmation of active optimizations.
+- **Modern Dark Interface:** A sleek, high-DPI aware WPF design with smooth transitions and organized layouts.
+- **System Tray Integration:** Minimize the app to the tray for silent, automated background management.
+- **Bilingual Support:** Fully localized in **English** and **Polish**.
 
-
-### ⚙️ Usability & UI
-- **Modern WPF Interface:** I've completely rebuilt the UI for a sleek, dark, and high-DPI aware experience.
-- **Start as Administrator:** New option to automatically launch with elevated privileges, which is essential for managing system-protected processes.
-- **Bilingual Support:** Full support for both **English** and **Polish**. Switch languages on the fly!
-- **System Tray & Auto-Start:** Runs discretely in the background and can launch with Windows so you can "set and forget" your optimizations.
+### 📊 Real-Time Hardware Telemetry
+Track your system's vital signs with built-in monitoring (powered by LibreHardwareMonitor):
+- **CPU:** Usage per core, Temperature, Average Clock Speed, and Power Draw (TDP).
+- **GPU:** Load, Core/Memory Clocks, Hot Spot, VRAM Temperature, and Power Draw.
+- **RAM:** Total utilization % and detailed breakdown of Used vs. Available memory in GB.
 
 ---
 
-## ⚠️ Important: Profile Migration
-Please note that due to the complete transition from WinForms to WPF, **previous process profiles may not be compatible**. I highly recommend re-creating your profiles within this new version to ensure everything works correctly.
+## ⚠️ Important: Version Compatibility
+Version 1.1.1 uses a new, more secure method for saving profiles. If you are upgrading from an older version and your profiles do not appear correctly, please delete `profiles.json` in the application folder and recreate them to take full advantage of the new engine.
 
 ---
 
 ## 📸 Screenshots
 
 <details>
-  <summary><b>📷 Click to expand / hide screenshots</b></summary>
+  <summary><b>📷 Click to expand / hide gallery</b></summary>
   <br>
   <table align="center">
     <tr>
       <td align="center" width="50%">
-        <b>🖥️ System Processes</b><br>
+        <b>🖥️ System Processes (with Color Tags)</b><br>
         <img src="https://raw.githubusercontent.com/9Erza/ProcessCoreOptimizer/main/ProcessCoreOptimizer/Screenshots/screen_system-processes.png" width="100%" alt="System Processes" />
       </td>
       <td align="center" width="50%">
-        <b>💾 Saved Profiles</b><br>
+        <b>💾 Enhanced Profiles Manager</b><br>
         <img src="https://raw.githubusercontent.com/9Erza/ProcessCoreOptimizer/main/ProcessCoreOptimizer/Screenshots/screen_saved-profiles.png" width="100%" alt="Saved Profiles" />
       </td>
     </tr>
     <tr>
       <td align="center">
-        <b>📊 Hardware Monitor 1</b><br>
+        <b>📊 Hardware Monitor (CPU/GPU)</b><br>
         <img src="https://raw.githubusercontent.com/9Erza/ProcessCoreOptimizer/main/ProcessCoreOptimizer/Screenshots/screen_hardware-monitor-1.png" width="100%" alt="Hardware Monitor 1" />
       </td>
       <td align="center">
-        <b>📊 Hardware Monitor 2</b><br>
+        <b>📊 Detailed Telemetry</b><br>
         <img src="https://raw.githubusercontent.com/9Erza/ProcessCoreOptimizer/main/ProcessCoreOptimizer/Screenshots/screen_hardware-monitor-2.png" width="100%" alt="Hardware Monitor 2" />
       </td>
     </tr>
@@ -78,20 +93,18 @@ Please note that due to the complete transition from WinForms to WPF, **previous
 
 ---
 
-## 📥 Download & Installation
+## 📥 Installation
 
-The application is distributed as a standalone installer.
-
-1. Go to the [**Releases**](https://github.com/9Erza/ProcessCoreOptimizer/releases) tab.
-2. Download the latest installer: `ProcessCoreOptimizer_Setup.exe`.
-3. **Recommendation:** I highly suggest manually uninstalling any previous version before installing this one to ensure a clean setup.
-4. Run the installer and follow the instructions.
-5. **Note:** Enable the **"Run as Administrator"** option in the settings tab to allow the software to modify priorities and affinities for all processes.
+1. Navigate to the [**Releases**](https://github.com/9Erza/ProcessCoreOptimizer/releases) section.
+2. Download `ProcessCoreOptimizer_Setup.exe`.
+3. Run the installer.
+4. **Note:** Enable the **"Run as Administrator"** option in the app settings to allow the bypass of system-level restrictions for protected games.
 
 ---
 
 ## 🛠️ Tech Stack
-- **Framework:** .NET 10 (C#)
+- **Language:** C#
+- **Framework:** .NET 10
 - **UI Engine:** WPF (Windows Presentation Foundation)
 
 ---
