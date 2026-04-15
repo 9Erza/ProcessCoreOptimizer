@@ -6,11 +6,21 @@ using ProcessCoreOptimizer.WPF.ViewModels;
 
 namespace ProcessCoreOptimizer.WPF.Views
 {
+    /// <summary>
+    /// Interaction logic for MainWindow.xaml, handling custom window chrome, 
+    /// system tray integration, and application lifecycle events.
+    /// </summary>
     public partial class MainWindow : Window
     {
-        private System.Windows.Forms.NotifyIcon _notifyIcon;
-        private MainViewModel _viewModel;
+        #region Private Fields
+
+        private readonly System.Windows.Forms.NotifyIcon _notifyIcon;
+        private readonly MainViewModel _viewModel;
         private bool _isExplicitClose = false;
+
+        #endregion
+
+        #region Constructor & Initialization
 
         public MainWindow()
         {
@@ -18,11 +28,29 @@ namespace ProcessCoreOptimizer.WPF.Views
             _viewModel = new MainViewModel();
             this.DataContext = _viewModel;
 
+            // Initialize System Tray Icon
             _notifyIcon = new System.Windows.Forms.NotifyIcon();
+            InitializeSystemTray();
 
+            // Auto-scroll logic for the console log ListBox
+            ((System.Collections.Specialized.INotifyCollectionChanged)LogConsole.Items).CollectionChanged += (s, e) =>
+            {
+                if (e.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Add && e.NewItems != null)
+                {
+                    LogConsole.ScrollIntoView(e.NewItems[0]);
+                }
+            };
+
+            this.Loaded += MainWindow_Loaded;
+        }
+
+        /// <summary>
+        /// Configures the System Tray (NotifyIcon) appearance, context menu, and localization.
+        /// </summary>
+        private void InitializeSystemTray()
+        {
             try
             {
-
                 using (var process = System.Diagnostics.Process.GetCurrentProcess())
                 {
                     _notifyIcon.Icon = System.Drawing.Icon.ExtractAssociatedIcon(process.MainModule.FileName);
@@ -44,19 +72,12 @@ namespace ProcessCoreOptimizer.WPF.Views
 
             _notifyIcon.ContextMenuStrip.Items.Add(openText, null, (s, e) => ShowApplication());
             _notifyIcon.ContextMenuStrip.Items.Add(exitText, null, (s, e) => CloseApplication());
-
-            ((System.Collections.Specialized.INotifyCollectionChanged)LogConsole.Items).CollectionChanged += (s, e) =>
-            {
-                if (e.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Add && e.NewItems != null)
-                {
-                    LogConsole.ScrollIntoView(e.NewItems[0]);
-                }
-            };
-
-            this.Loaded += MainWindow_Loaded;
         }
 
-        #region CUSTOM TITLE BAR CONTROLS
+        #endregion
+
+        #region Custom Title Bar Controls
+
         private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (e.ClickCount == 2)
@@ -76,21 +97,19 @@ namespace ProcessCoreOptimizer.WPF.Views
 
         private void MaximizeButton_Click(object sender, RoutedEventArgs e)
         {
-            if (this.WindowState == WindowState.Maximized)
-            {
-                this.WindowState = WindowState.Normal;
-            }
-            else
-            {
-                this.WindowState = WindowState.Maximized;
-            }
+            this.WindowState = this.WindowState == WindowState.Maximized
+                ? WindowState.Normal
+                : WindowState.Maximized;
         }
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
             this.Close();
         }
+
         #endregion
+
+        #region Window Lifecycle & Tray Management
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
@@ -104,22 +123,6 @@ namespace ProcessCoreOptimizer.WPF.Views
             }
         }
 
-        protected override void OnClosing(CancelEventArgs e)
-        {
-            if (!_isExplicitClose && _viewModel.AppSettings.CloseToTray)
-            {
-                e.Cancel = true;
-                this.Hide();
-                _notifyIcon.ShowBalloonTip(2000, "Process Core Optimizer is running", "The application was minimized to the system tray.", System.Windows.Forms.ToolTipIcon.Info);
-            }
-            else
-            {
-                _notifyIcon.Visible = false;
-                _notifyIcon.Dispose();
-                base.OnClosing(e);
-            }
-        }
-
         protected override void OnStateChanged(EventArgs e)
         {
             if (this.WindowState == WindowState.Minimized && _viewModel.AppSettings.MinimizeToTray)
@@ -127,12 +130,35 @@ namespace ProcessCoreOptimizer.WPF.Views
                 this.Hide();
             }
 
+            // Update maximize/restore icon based on current window state
             if (MaximizeIconBtn != null)
             {
                 MaximizeIconBtn.Content = this.WindowState == WindowState.Maximized ? "\uE923" : "\uE922";
             }
 
             base.OnStateChanged(e);
+        }
+
+        protected override void OnClosing(CancelEventArgs e)
+        {
+            if (!_isExplicitClose && _viewModel.AppSettings.CloseToTray)
+            {
+                e.Cancel = true;
+                this.Hide();
+
+                string balloonTitle = "Process Core Optimizer";
+                string balloonText = _viewModel.AppSettings.Language == "pl"
+                    ? "Aplikacja została zminimalizowana do zasobnika systemowego."
+                    : "The application was minimized to the system tray.";
+
+                _notifyIcon.ShowBalloonTip(2000, balloonTitle, balloonText, System.Windows.Forms.ToolTipIcon.Info);
+            }
+            else
+            {
+                _notifyIcon.Visible = false;
+                _notifyIcon.Dispose();
+                base.OnClosing(e);
+            }
         }
 
         private void ShowApplication()
@@ -147,5 +173,7 @@ namespace ProcessCoreOptimizer.WPF.Views
             _isExplicitClose = true;
             System.Windows.Application.Current.Shutdown();
         }
+
+        #endregion
     }
 }

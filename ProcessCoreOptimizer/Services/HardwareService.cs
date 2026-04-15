@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Management;
+using System.Runtime.InteropServices;
+using ProcessCoreOptimizer.WPF.Helpers;
 using ProcessCoreOptimizer.WPF.Models;
 
 namespace ProcessCoreOptimizer.WPF.Services
@@ -13,14 +15,17 @@ namespace ProcessCoreOptimizer.WPF.Services
     /// </summary>
     public class HardwareService
     {
-        #region Fields
+        #region Private Fields
+
         /// <summary>
         /// List of system performance counters, one for each logical processor.
         /// </summary>
         private readonly List<PerformanceCounter> _cpuCounters = new();
+
         #endregion
 
         #region Constructor
+
         /// <summary>
         /// Initializes the HardwareService and prepares performance counters for monitoring.
         /// </summary>
@@ -28,9 +33,11 @@ namespace ProcessCoreOptimizer.WPF.Services
         {
             InitializeCounters();
         }
+
         #endregion
 
-        #region Public Methods
+        #region CPU Topology & Architecture Analysis
+
         /// <summary>
         /// Detects the physical and logical CPU layout, classifying cores into 
         /// Performance (P), Efficiency (E), and Hyper-Threading (T) types.
@@ -99,6 +106,10 @@ namespace ProcessCoreOptimizer.WPF.Services
             return cores;
         }
 
+        #endregion
+
+        #region Performance Telemetry
+
         /// <summary>
         /// Samples the current real-time utilization for each logical processor core.
         /// </summary>
@@ -124,11 +135,70 @@ namespace ProcessCoreOptimizer.WPF.Services
 
             return loads;
         }
+
+        #endregion
+
+        #region Advanced OS Integration (CPU Sets)
+
+        /// <summary>
+        /// Retrieves the mapping from the system kernel: Logical Core Index -> Native CpuSet ID.
+        /// Essential for supporting the "CPU Sets (Smart)" optimization mode.
+        /// </summary>
+        /// <returns>A dictionary mapping logical core indices to their native Windows CPU Set IDs.</returns>
+        public Dictionary<int, uint> GetLogicalCoreToCpuSetIdMap()
+        {
+            var map = new Dictionary<int, uint>();
+            IntPtr currentProcessHandle = Process.GetCurrentProcess().Handle;
+
+            // Determine the required buffer size
+            NativeMethods.GetSystemCpuSetInformation(IntPtr.Zero, 0, out uint length, currentProcessHandle, 0);
+            if (length == 0) return map;
+
+            IntPtr buffer = Marshal.AllocHGlobal((int)length);
+            try
+            {
+                if (NativeMethods.GetSystemCpuSetInformation(buffer, length, out length, currentProcessHandle, 0))
+                {
+                    IntPtr currentPtr = buffer;
+                    IntPtr endPtr = IntPtr.Add(buffer, (int)length);
+
+                    while (currentPtr.ToInt64() < endPtr.ToInt64())
+                    {
+                        uint size = (uint)Marshal.ReadInt32(currentPtr, 0);
+                        uint type = (uint)Marshal.ReadInt32(currentPtr, 4);
+
+                        // Type 0 indicates a CpuSetInformation structure
+                        if (type == 0)
+                        {
+                            uint id = (uint)Marshal.ReadInt32(currentPtr, 8);
+                            byte logicalIndex = Marshal.ReadByte(currentPtr, 14);
+
+                            if (!map.ContainsKey(logicalIndex))
+                            {
+                                map.Add(logicalIndex, id);
+                            }
+                        }
+
+                        // Failsafe to prevent infinite loops
+                        if (size == 0) break;
+                        currentPtr = IntPtr.Add(currentPtr, (int)size);
+                    }
+                }
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(buffer);
+            }
+
+            return map;
+        }
+
         #endregion
 
         #region Private Helper Methods
+
         /// <summary>
-        /// Pre-configures the performance counters to avoid overhead during the main loop.
+        /// Pre-configures the performance counters to avoid overhead during the main monitoring loop.
         /// </summary>
         private void InitializeCounters()
         {
@@ -150,6 +220,7 @@ namespace ProcessCoreOptimizer.WPF.Services
                 Debug.WriteLine($"Failed to initialize CPU counters: {ex.Message}");
             }
         }
+
         #endregion
     }
 }

@@ -8,8 +8,8 @@
         Background="Transparent"
         ResizeMode="CanResizeWithGrip">
 
-
     <Window.Resources>
+
         <Style x:Key="FlagSwitchStyle" TargetType="ToggleButton">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -216,6 +216,7 @@
             <Setter Property="GridLinesVisibility" Value="None"/>
             <Setter Property="Foreground" Value="#E0E0E0"/>
         </Style>
+
         <Style TargetType="DataGridColumnHeader">
             <Setter Property="Background" Value="#252526"/>
             <Setter Property="Foreground" Value="#9E9E9E"/>
@@ -224,6 +225,7 @@
             <Setter Property="BorderThickness" Value="0,0,0,2"/>
             <Setter Property="BorderBrush" Value="#333"/>
         </Style>
+
         <Style TargetType="DataGridCell">
             <Setter Property="Padding" Value="15,8"/>
             <Setter Property="BorderThickness" Value="0"/>
@@ -505,9 +507,35 @@
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
                         <TextBlock Grid.Row="0" Text="{DynamicResource StrProcessList}" FontSize="22" FontWeight="Bold" Margin="0,0,0,15" Foreground="#FFFFFF"/>
+
                         <DataGrid Grid.Row="1" ItemsSource="{Binding Processes}" SelectedItem="{Binding SelectedProcess}" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single" CanUserAddRows="False">
+
+                            <DataGrid.RowStyle>
+                                <Style TargetType="DataGridRow">
+                                    <Setter Property="Background" Value="Transparent"/>
+                                    <Setter Property="Foreground" Value="#E0E0E0"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ModeTag}" Value="Affinity">
+                                            <Setter Property="Foreground" Value="#4A89F3"/>
+                                            <Setter Property="FontWeight" Value="Bold"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ModeTag}" Value="CPU Sets">
+                                            <Setter Property="Foreground" Value="#2ECC71"/>
+                                            <Setter Property="FontWeight" Value="Bold"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ModeTag}" Value="Exclusive">
+                                            <Setter Property="Foreground" Value="#F1C40F"/>
+                                            <Setter Property="FontWeight" Value="Bold"/>
+                                        </DataTrigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter Property="Foreground" Value="White"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DataGrid.RowStyle>
+
                             <DataGrid.Columns>
-                                <DataGridTextColumn Binding="{Binding Name}" Width="*" >
+                                <DataGridTextColumn Binding="{Binding DisplayName}" Width="*" >
                                     <DataGridTextColumn.HeaderTemplate>
                                         <DataTemplate>
                                             <TextBlock Text="{DynamicResource StrColName}" />
@@ -562,6 +590,7 @@
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
                         <TextBlock Grid.Row="0" Text="{DynamicResource StrYourProfiles}" FontSize="22" FontWeight="Bold" Margin="0,0,0,15" Foreground="#FFFFFF"/>
+
                         <DataGrid Grid.Row="1" ItemsSource="{Binding SavedProfiles}" SelectedItem="{Binding SelectedSavedProfile}" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single" CanUserAddRows="False">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Binding="{Binding ProcessName}" Width="*" >
@@ -589,6 +618,40 @@
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
+
+                                <DataGridTemplateColumn Width="160">
+                                    <DataGridTemplateColumn.HeaderTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{DynamicResource StrColMode}" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.HeaderTemplate>
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock VerticalAlignment="Center" FontWeight="Bold">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="#E0E0E0"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding OptimizationMode}" Value="Affinity">
+                                                                <Setter Property="Text" Value="{DynamicResource ModeAffinity}"/>
+                                                                <Setter Property="Foreground" Value="#4A89F3"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding OptimizationMode}" Value="CpuSets">
+                                                                <Setter Property="Text" Value="{DynamicResource ModeCpuSets}"/>
+                                                                <Setter Property="Foreground" Value="#2ECC71"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding OptimizationMode}" Value="Exclusive">
+                                                                <Setter Property="Text" Value="{DynamicResource ModeExclusive}"/>
+                                                                <Setter Property="Foreground" Value="#F1C40F"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+
                             </DataGrid.Columns>
                         </DataGrid>
                     </Grid>
@@ -813,8 +876,38 @@
                         </ScrollViewer>
 
                         <StackPanel Grid.Row="3">
-                            <TextBlock Text="{DynamicResource StrSetPriority}" FontWeight="Bold" FontSize="16" Margin="0,10,0,10" Foreground="#E74C3C"/>
+                            <TextBlock Text="{DynamicResource StrOptimizationMode}" FontWeight="Bold" FontSize="16" Margin="0,10,0,10" Foreground="#4A89F3"/>
+                            <ComboBox ItemsSource="{Binding AvailableOptimizationModes}" SelectedItem="{Binding SelectedOptimizationMode, Mode=TwoWay}" Style="{StaticResource ModernComboBox}" Margin="0,0,0,15">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock>
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="#E0E0E0"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding}" Value="Affinity">
+                                                            <Setter Property="Text" Value="{DynamicResource ModeAffinity}"/>
+                                                            <Setter Property="Foreground" Value="#4A89F3"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding}" Value="CpuSets">
+                                                            <Setter Property="Text" Value="{DynamicResource ModeCpuSets}"/>
+                                                            <Setter Property="Foreground" Value="#2ECC71"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding}" Value="Exclusive">
+                                                            <Setter Property="Text" Value="{DynamicResource ModeExclusive}"/>
+                                                            <Setter Property="Foreground" Value="#F1C40F"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+
+                            <TextBlock Text="{DynamicResource StrSetPriority}" FontWeight="Bold" FontSize="16" Margin="0,0,0,10" Foreground="#E74C3C"/>
                             <ComboBox ItemsSource="{Binding AvailablePriorities}" SelectedItem="{Binding SelectedPriority, Mode=TwoWay}" Style="{StaticResource ModernComboBox}" Margin="0,0,0,20"/>
+
                             <Separator Background="#333" Margin="0,5,0,20"/>
                         </StackPanel>
 

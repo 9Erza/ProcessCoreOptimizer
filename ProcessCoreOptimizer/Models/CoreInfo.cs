@@ -9,13 +9,16 @@ namespace ProcessCoreOptimizer.WPF.Models
     public class CoreInfo : ViewModelBase
     {
         #region Private Fields
+
         private bool _isChecked = true;
         private double _loadUsage;
+
         #endregion
 
-        #region Identification Properties
+        #region Core Identification
+
         /// <summary>
-        /// Gets or sets the logical index of the CPU core.
+        /// Gets or sets the logical index of the CPU core as assigned by the OS.
         /// </summary>
         public int Index { get; set; }
 
@@ -28,23 +31,27 @@ namespace ProcessCoreOptimizer.WPF.Models
         /// Gets the formatted display name used in the UI (e.g., "Core 0 [P]").
         /// </summary>
         public string DisplayName => $"Core {Index} {TypeTag}";
+
         #endregion
 
-        #region Architectural Classification Flags
+        #region Hardware Architecture Flags
+
         /// <summary>
-        /// Gets or sets a value indicating whether this logical processor is a SMT/Hyper-Threading thread.
+        /// Gets or sets a value indicating whether this logical processor is an SMT/Hyper-Threading logical thread.
         /// </summary>
         public bool IsThread { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether this is an Efficiency core (Intel Hybrid Architecture).
+        /// Gets or sets a value indicating whether this is an Efficiency core (e.g., in Intel Hybrid Architecture).
         /// </summary>
         public bool IsECore { get; set; }
+
         #endregion
 
-        #region UI and Performance Properties
+        #region UI Binding & Telemetry
+
         /// <summary>
-        /// Gets or sets a value indicating whether the core is selected for process affinity.
+        /// Gets or sets a value indicating whether the core is selected by the user for process affinity.
         /// </summary>
         public bool IsChecked
         {
@@ -53,13 +60,14 @@ namespace ProcessCoreOptimizer.WPF.Models
         }
 
         /// <summary>
-        /// Gets or sets the current CPU load percentage for this specific core.
+        /// Gets or sets the current real-time CPU load percentage for this specific core.
         /// </summary>
         public double LoadUsage
         {
             get => _loadUsage;
             set => SetProperty(ref _loadUsage, value);
         }
+
         #endregion
     }
 }
