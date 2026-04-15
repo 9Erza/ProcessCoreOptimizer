@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Management;
 using LibreHardwareMonitor.Hardware;
 
 namespace ProcessCoreOptimizer.WPF.Services
@@ -11,11 +12,14 @@ namespace ProcessCoreOptimizer.WPF.Services
     /// </summary>
     public class HardwareMonitorService : IDisposable
     {
-        #region Fields
+        #region Private Fields
+
         private readonly Computer _computer;
+
         #endregion
 
         #region Constructor
+
         /// <summary>
         /// Initializes a new instance of the HardwareMonitorService and opens driver connections.
         /// </summary>
@@ -30,9 +34,11 @@ namespace ProcessCoreOptimizer.WPF.Services
             };
             _computer.Open();
         }
+
         #endregion
 
-        #region Public Methods
+        #region Metric Retrieval
+
         /// <summary>
         /// Scans all hardware components and returns a snapshot of current performance metrics.
         /// </summary>
@@ -83,7 +89,7 @@ namespace ProcessCoreOptimizer.WPF.Services
                 // --- RAM MONITORING ---
                 if (hardware.HardwareType == HardwareType.Memory)
                 {
-                    // Używamy dokładnych nazw "==", aby uniknąć pomyłki z "Virtual Memory Used" z pliku stronicowania
+                    // Use exact "==" match to avoid confusion with "Virtual Memory Used" from the paging file
                     metrics.RamUsagePct = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Load && s.Name == "Memory")?.Value ?? 0;
                     metrics.RamUsedGB = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Data && s.Name == "Memory Used")?.Value ?? 0;
                     metrics.RamAvailableGB = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Data && s.Name == "Memory Available")?.Value ?? 0;
@@ -99,8 +105,8 @@ namespace ProcessCoreOptimizer.WPF.Services
             }
 
             // --- NATIVE RAM FALLBACK ---
-            // Jeśli LibreHardwareMonitor zawiedzie (np. przez konflikt sterowników Ring0 z prawami Admina), 
-            // pobieramy dane o RAM bezpośrednio i bezpiecznie z jądra systemu Windows.
+            // If LibreHardwareMonitor fails (e.g., due to Ring0 driver conflicts or missing Admin rights), 
+            // securely retrieve RAM data directly from the Windows OS kernel.
             if (metrics.RamUsagePct == 0 || metrics.RamUsedGB == 0)
             {
                 try
@@ -108,7 +114,7 @@ namespace ProcessCoreOptimizer.WPF.Services
                     using var availableCounter = new System.Diagnostics.PerformanceCounter("Memory", "Available MBytes");
                     double availableMB = availableCounter.NextValue();
 
-                    // Windows Management Instrumentation (WMI) do pobrania całkowitej pamięci
+                    // Windows Management Instrumentation (WMI) to fetch total visible memory
                     using var searcher = new System.Management.ManagementObjectSearcher("SELECT TotalVisibleMemorySize FROM Win32_OperatingSystem");
                     double totalMB = 0;
                     foreach (var item in searcher.Get())
@@ -124,21 +130,34 @@ namespace ProcessCoreOptimizer.WPF.Services
                         metrics.RamUsagePct = Math.Round((usedMB / totalMB) * 100, 1);
                     }
                 }
-                catch { /* Ignorujemy błędy fallbacku, żeby nie wysypać aplikacji */ }
+                catch
+                {
+                    // Ignore fallback errors to prevent application crashes
+                }
             }
 
             return metrics;
         }
+
         #endregion
 
         #region Cleanup
+
         /// <summary>
         /// Safely closes the hardware driver connections and releases resources.
         /// </summary>
         public void Dispose()
         {
-            try { _computer.Close(); } catch { /* Ignore cleanup errors */ }
+            try
+            {
+                _computer.Close();
+            }
+            catch
+            {
+                // Ignore cleanup errors 
+            }
         }
+
         #endregion
     }
 
@@ -148,14 +167,17 @@ namespace ProcessCoreOptimizer.WPF.Services
     public class HardwareMetrics
     {
         #region CPU Metrics
+
         public double CpuLoad { get; set; }
         public double CpuTemp { get; set; }
         public double CpuPower { get; set; }
         public double CpuClock { get; set; }
         public List<string> CoreTemps { get; set; } = new List<string>();
+
         #endregion
 
         #region GPU Metrics
+
         public double GpuLoad { get; set; }
         public double GpuTemp { get; set; }
         public double GpuHotSpot { get; set; }
@@ -164,13 +186,16 @@ namespace ProcessCoreOptimizer.WPF.Services
         public double GpuMemClock { get; set; }
         public double GpuPower { get; set; }
         public double VramUsagePct { get; set; }
+
         #endregion
 
         #region RAM & Storage Metrics
+
         public double RamUsagePct { get; set; }
         public double RamUsedGB { get; set; }
         public double RamAvailableGB { get; set; }
         public string StorageInfo { get; set; } = "No data";
+
         #endregion
     }
 }

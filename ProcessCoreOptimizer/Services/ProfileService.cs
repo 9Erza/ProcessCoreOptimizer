@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using ProcessCoreOptimizer.WPF.Models;
+using System.Text.Json.Serialization;
 
 namespace ProcessCoreOptimizer.WPF.Services
 {
@@ -27,19 +28,18 @@ namespace ProcessCoreOptimizer.WPF.Services
         /// <returns>A collection of saved ProcessProfile objects.</returns>
         public List<ProcessProfile> LoadProfiles()
         {
-            if (!File.Exists(_filePath))
-            {
-                return new List<ProcessProfile>();
-            }
+            if (!File.Exists(_filePath)) return new List<ProcessProfile>();
 
             try
             {
                 string jsonContent = File.ReadAllText(_filePath);
-                return JsonSerializer.Deserialize<List<ProcessProfile>>(jsonContent) ?? new List<ProcessProfile>();
+                var options = new JsonSerializerOptions();
+                options.Converters.Add(new JsonStringEnumConverter()); // POPRAWKA
+
+                return JsonSerializer.Deserialize<List<ProcessProfile>>(jsonContent, options) ?? new List<ProcessProfile>();
             }
             catch
             {
-                // Return an empty list on deserialization failure to prevent application crashes
                 return new List<ProcessProfile>();
             }
         }
@@ -52,13 +52,13 @@ namespace ProcessCoreOptimizer.WPF.Services
         {
             try
             {
-                string jsonContent = JsonSerializer.Serialize(profiles, new JsonSerializerOptions { WriteIndented = true });
+                var options = new JsonSerializerOptions { WriteIndented = true };
+                options.Converters.Add(new JsonStringEnumConverter()); // POPRAWKA
+
+                string jsonContent = JsonSerializer.Serialize(profiles, options);
                 File.WriteAllText(_filePath, jsonContent);
             }
-            catch
-            {
-                // Silent catch for I/O errors; consider adding logging if persistence is critical
-            }
+            catch { }
         }
         #endregion
     }
