@@ -19,7 +19,7 @@
 - **Set Priority:** Directly change process priority levels from "Idle" to "Real-Time" to ensure your critical apps get maximum CPU attention.
 - **Automated Profiles:** Save custom optimization profiles for your favorite games. The app automatically detects when a game starts and applies your saved Affinity and Priority settings in the background.
 
-### 📊 Comprehensive Hardware Monitoring
+### 📊 Hardware Monitoring
 Track your system's vital signs in real-time with a dedicated metrics tab:
 - **CPU Monitoring:** - Usage %, Temperature, Average Clock Speed, and Power Draw (TDP).
   - *Note: Some advanced CPU statistics require the app to run in Administrator mode.*
