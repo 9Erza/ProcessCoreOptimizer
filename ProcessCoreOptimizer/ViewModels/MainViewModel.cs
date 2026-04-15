@@ -51,7 +51,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         private string _selectedPriority = "Normal";
         private List<ProcessProfile> _profiles = new();
 
-        public string AppVersion { get; } = "1.10.0";
+        public string AppVersion { get; } = "1.1.0";
         private readonly string _versionRawUrl = "https://raw.githubusercontent.com/9Erza/ProcessCoreOptimizer/refs/heads/main/ProcessCoreOptimizer/version.txt";
         private readonly string _releasesUrl = "https://github.com/9Erza/ProcessCoreOptimizer/releases";
 
