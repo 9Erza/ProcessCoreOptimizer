@@ -42,7 +42,11 @@ Please note that due to the complete transition from WinForms to WPF, **previous
 
 ## 📸 Screenshots
 
-<p align="center">
+## 📸 Screenshots
+
+<details>
+  <summary><b>📷 Click to expand / hide screenshots</b></summary>
+  <br>
   <table align="center">
     <tr>
       <td align="center" width="50%">
@@ -53,7 +57,7 @@ Please note that due to the complete transition from WinForms to WPF, **previous
         <b>💾 Saved Profiles</b><br>
         <img src="https://raw.githubusercontent.com/9Erza/ProcessCoreOptimizer/main/ProcessCoreOptimizer/Screenshots/screen_saved-profiles.png" width="100%" alt="Saved Profiles" />
       </td>
-    }
+    </tr>
     <tr>
       <td align="center">
         <b>📊 Hardware Monitor 1</b><br>
@@ -63,16 +67,16 @@ Please note that due to the complete transition from WinForms to WPF, **previous
         <b>📊 Hardware Monitor 2</b><br>
         <img src="https://raw.githubusercontent.com/9Erza/ProcessCoreOptimizer/main/ProcessCoreOptimizer/Screenshots/screen_hardware-monitor-2.png" width="100%" alt="Hardware Monitor 2" />
       </td>
-    }
+    </tr>
     <tr>
       <td align="center" colspan="2">
         <br>
         <b>⚙️ Application Settings</b><br>
         <img src="https://raw.githubusercontent.com/9Erza/ProcessCoreOptimizer/main/ProcessCoreOptimizer/Screenshots/screen_settings.png" width="49.5%" alt="Settings" />
       </td>
-    }
+    </tr>
   </table>
-</p>
+</details>
 
 ## 📥 Download & Installation
 
