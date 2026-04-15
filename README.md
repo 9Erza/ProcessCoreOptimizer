@@ -42,33 +42,34 @@ Please note that due to the complete transition from WinForms to WPF, **previous
 
 ## 📸 Screenshots
 
+## 📸 Screenshots
+
 <p align="center">
   <b>📊 Real-time Hardware Monitoring</b><br>
-  <img src="Screenshots/screen_hardware-monitor-1.png" width="48%" />
-  <img src="Screenshots/screen_hardware-monitor-2.png" width="48%" />
+  <img src="https://raw.githubusercontent.com/9Erza/ProcessCoreOptimizer/main/ProcessCoreOptimizer/Screenshots/screen_hardware-monitor-1.png" width="48%" />
+  <img src="https://raw.githubusercontent.com/9Erza/ProcessCoreOptimizer/main/ProcessCoreOptimizer/Screenshots/screen_hardware-monitor-2.png" width="48%" />
 </p>
 
 <br>
 
 <p align="center">
   <b>🖥️ System Processes & Management</b><br>
-  <img src="Screenshots/screen_system-processes.png" width="85%" alt="System Processes">
+  <img src="https://raw.githubusercontent.com/9Erza/ProcessCoreOptimizer/main/ProcessCoreOptimizer/Screenshots/screen_system-processes.png" width="85%" alt="System Processes">
 </p>
 
 <br>
 
 <p align="center">
   <b>💾 Saved Profiles</b><br>
-  <img src="Screenshots/screen_saved-profiles.png" width="85%" alt="Saved Profiles">
+  <img src="https://raw.githubusercontent.com/9Erza/ProcessCoreOptimizer/main/ProcessCoreOptimizer/Screenshots/screen_saved-profiles.png" width="85%" alt="Saved Profiles">
 </p>
 
 <br>
 
 <p align="center">
   <b>⚙️ Application Settings</b><br>
-  <img src="Screenshots/screen_settings.png" width="85%" alt="Settings">
+  <img src="https://raw.githubusercontent.com/9Erza/ProcessCoreOptimizer/main/ProcessCoreOptimizer/Screenshots/screen_settings.png" width="85%" alt="Settings">
 </p>
----
 
 ## 📥 Download & Installation
 
