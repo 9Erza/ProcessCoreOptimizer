@@ -1,3 +1,9 @@
+<p align="center">
+  <img src="[https://github.com/9Erza/ProcessCoreOptimizer/raw/main/processcoreoptimizer.png](https://raw.githubusercontent.com/9Erza/ProcessCoreOptimizer/refs/heads/main/ProcessCoreOptimizer/Images/processcoreoptimizer.ico)" width="128" alt="Process Core Optimizer Logo">
+</p>
+
+# Process Core Optimizer
+
 # Process Core Optimizer
 
 ![License](https://img.shields.io/github/license/9Erza/ProcessCoreOptimizer?style=flat-square)
