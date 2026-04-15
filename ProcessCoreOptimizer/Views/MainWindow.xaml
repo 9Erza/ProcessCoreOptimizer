@@ -1,0 +1,843 @@
+﻿<Window x:Class="ProcessCoreOptimizer.WPF.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Process Core Optimizer" Height="750" Width="1100"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None" 
+        AllowsTransparency="True" 
+        Background="Transparent"
+        ResizeMode="CanResizeWithGrip">
+
+
+    <Window.Resources>
+        <Style x:Key="FlagSwitchStyle" TargetType="ToggleButton">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="6" Padding="4,2">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Image x:Name="UsFlag" Source="/Images/us_flag.png" Width="24" Height="16" Stretch="UniformToFill" Opacity="1" VerticalAlignment="Center" Margin="0,0,8,0" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                <Image x:Name="PlFlag" Source="/Images/pl_flag.png" Width="24" Height="16" Stretch="UniformToFill" Opacity="0.3" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"/>
+                            </StackPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#252526"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="UsFlag" Property="Opacity" Value="0.3"/>
+                                <Setter TargetName="PlFlag" Property="Opacity" Value="1"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="WindowBtnStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#888888"/>
+            <Setter Property="Width" Value="45"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#333333"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="WindowCloseBtnStyle" TargetType="Button" BasedOn="{StaticResource WindowBtnStyle}">
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#E81123"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style TargetType="Expander">
+            <Setter Property="Foreground" Value="#4A89F3"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Expander">
+                        <DockPanel>
+                            <ToggleButton x:Name="HeaderSite" ContentTemplate="{TemplateBinding HeaderTemplate}" ContentTemplateSelector="{TemplateBinding HeaderTemplateSelector}" Content="{TemplateBinding Header}" DockPanel.Dock="Top" Foreground="{TemplateBinding Foreground}" FontWeight="{TemplateBinding FontWeight}" FontSize="{TemplateBinding FontSize}" Padding="5" Margin="0,0,0,10" IsChecked="{Binding IsExpanded, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border Background="Transparent" Cursor="Hand">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock x:Name="Arrow" Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="#4A89F3" RenderTransformOrigin="0.5,0.5">
+                                                    <TextBlock.RenderTransform>
+                                                        <RotateTransform Angle="-90"/>
+                                                    </TextBlock.RenderTransform>
+                                                </TextBlock>
+                                                <ContentPresenter VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsChecked" Value="True">
+                                                <Setter TargetName="Arrow" Property="RenderTransform">
+                                                    <Setter.Value>
+                                                        <RotateTransform Angle="0"/>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Trigger>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Arrow" Property="Foreground" Value="#7AA8F8"/>
+                                                <Setter Property="Foreground" Value="#7AA8F8"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <ContentPresenter x:Name="ExpandSite" DockPanel.Dock="Bottom" Focusable="false" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" Margin="{TemplateBinding Padding}" Visibility="Collapsed" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                        </DockPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsExpanded" Value="true">
+                                <Setter Property="Visibility" TargetName="ExpandSite" Value="Visible"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ScrollBar">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Width" Value="10"/>
+            <Setter Property="MinHeight" Value="10"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollBar">
+                        <Grid Background="Transparent">
+                            <Track x:Name="PART_Track" IsDirectionReversed="true">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="ScrollBar.PageUpCommand" Opacity="0"/>
+                                </Track.DecreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb>
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Border CornerRadius="4" Background="#3F3F46" Margin="2"/>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="ScrollBar.PageDownCommand" Opacity="0"/>
+                                </Track.IncreaseRepeatButton>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="Orientation" Value="Horizontal">
+                    <Setter Property="Width" Value="Auto"/>
+                    <Setter Property="Height" Value="10"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ScrollBar">
+                                <Grid Background="Transparent">
+                                    <Track x:Name="PART_Track" IsDirectionReversed="False">
+                                        <Track.DecreaseRepeatButton>
+                                            <RepeatButton Command="ScrollBar.PageLeftCommand" Opacity="0"/>
+                                        </Track.DecreaseRepeatButton>
+                                        <Track.Thumb>
+                                            <Thumb>
+                                                <Thumb.Template>
+                                                    <ControlTemplate TargetType="Thumb">
+                                                        <Border CornerRadius="4" Background="#3F3F46" Margin="2"/>
+                                                    </ControlTemplate>
+                                                </Thumb.Template>
+                                            </Thumb>
+                                        </Track.Thumb>
+                                        <Track.IncreaseRepeatButton>
+                                            <RepeatButton Command="ScrollBar.PageRightCommand" Opacity="0"/>
+                                        </Track.IncreaseRepeatButton>
+                                    </Track>
+                                </Grid>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="#E0E0E0"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <StackPanel Orientation="Horizontal">
+                            <Border x:Name="CheckBorder" Width="18" Height="18" BorderBrush="#555" BorderThickness="2" Background="#222" CornerRadius="4">
+                                <Path x:Name="CheckMark" Data="M 3,9 L 7,13 L 14,4" Stroke="#4A89F3" StrokeThickness="2.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Visibility="Collapsed"/>
+                            </Border>
+                            <ContentPresenter Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="CheckMark" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="CheckBorder" Property="BorderBrush" Value="#4A89F3"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="CheckBorder" Property="BorderBrush" Value="#4A89F3"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="DataGrid">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="RowBackground" Value="Transparent"/>
+            <Setter Property="AlternatingRowBackground" Value="#1E1E1E"/>
+            <Setter Property="HeadersVisibility" Value="Column"/>
+            <Setter Property="GridLinesVisibility" Value="None"/>
+            <Setter Property="Foreground" Value="#E0E0E0"/>
+        </Style>
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#252526"/>
+            <Setter Property="Foreground" Value="#9E9E9E"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="15,10"/>
+            <Setter Property="BorderThickness" Value="0,0,0,2"/>
+            <Setter Property="BorderBrush" Value="#333"/>
+        </Style>
+        <Style TargetType="DataGridCell">
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#3F3F46"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style TargetType="Button" x:Key="StandardButton">
+            <Setter Property="Background" Value="#333333"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Height" Value="45"/>
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="Button" x:Key="SidebarButton">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#A0A0A0"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Height" Value="45"/>
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Padding" Value="20,0,0,0"/>
+            <Setter Property="Margin" Value="10,0,10,5"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#2D2D30"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <ControlTemplate x:Key="ComboBoxToggleButton" TargetType="ToggleButton">
+            <Border x:Name="templateRoot" Background="#252526" BorderBrush="#333" BorderThickness="1" CornerRadius="6">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="30"/>
+                    </Grid.ColumnDefinitions>
+                    <Path x:Name="arrow" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" Data="M 0 0 L 4 4 L 8 0" Stroke="#E0E0E0" StrokeThickness="2" Fill="Transparent" Stretch="None" Margin="0,2,0,0"/>
+                </Grid>
+            </Border>
+        </ControlTemplate>
+
+        <Style x:Key="ModernComboBox" TargetType="ComboBox">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="#252526"/>
+            <Setter Property="BorderBrush" Value="#333"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid x:Name="templateRoot" SnapsToDevicePixels="true">
+                            <ToggleButton x:Name="toggleButton" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Background="{TemplateBinding Background}" IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" Template="{StaticResource ComboBoxToggleButton}"/>
+                            <ContentPresenter x:Name="contentPresenter" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}" Content="{TemplateBinding SelectionBoxItem}" ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" IsHitTestVisible="false" Margin="{TemplateBinding Padding}" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                            <Popup x:Name="PART_Popup" AllowsTransparency="true" IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}" Placement="Bottom" PopupAnimation="Slide" Margin="0,4,0,0">
+                                <Border x:Name="dropDownBorder" Background="#252526" BorderBrush="#333" BorderThickness="1" CornerRadius="6" MaxHeight="250" MinWidth="{Binding ActualWidth, ElementName=templateRoot}">
+                                    <ScrollViewer x:Name="DropDownScrollViewer">
+                                        <ItemsPresenter x:Name="ItemsPresenter" KeyboardNavigation.DirectionalNavigation="Contained"/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="ItemContainerStyle">
+                <Setter.Value>
+                    <Style TargetType="ComboBoxItem">
+                        <Setter Property="Foreground" Value="#E0E0E0"/>
+                        <Setter Property="Padding" Value="10,8"/>
+                        <Setter Property="Cursor" Value="Hand"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ComboBoxItem">
+                                    <Border x:Name="Bd" Background="Transparent" Padding="{TemplateBinding Padding}" CornerRadius="4" Margin="4,2">
+                                        <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsHighlighted" Value="True">
+                                            <Setter TargetName="Bd" Property="Background" Value="#4A89F3"/>
+                                            <Setter Property="Foreground" Value="White"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="Button" x:Key="SmallFilterButton">
+            <Setter Property="Background" Value="#252526"/>
+            <Setter Property="Foreground" Value="#A0A0A0"/>
+            <Setter Property="BorderBrush" Value="#333"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#3F3F46"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.4"/>
+                    <Setter Property="Cursor" Value="Arrow"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+    </Window.Resources>
+
+    <Border Background="#121212" CornerRadius="8" BorderBrush="#333" BorderThickness="1" SnapsToDevicePixels="True">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="230"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="32"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <Border Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Background="#181818" BorderThickness="0,0,1,0" BorderBrush="#2D2D30">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0">
+                        <StackPanel VerticalAlignment="Top">
+
+                            <TextBlock Text="Process Core Optimizer" FontWeight="Bold" FontSize="18" Foreground="#4A89F3" TextWrapping="Wrap" HorizontalAlignment="Center" Margin="0,30,0,10"/>
+
+                            <Border Width="64" Height="64" Margin="0,0,0,25" CornerRadius="12" HorizontalAlignment="Center" ClipToBounds="True">
+                                <Image Source="/Images/processcoreoptimizer.ico" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
+                            </Border>
+
+                            <Button Content="{DynamicResource StrSystemProcesses}" Command="{Binding SwitchTabCommand}" CommandParameter="Processes">
+                                <Button.Style>
+                                    <Style TargetType="{x:Type Button}" BasedOn="{StaticResource SidebarButton}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ActiveTab}" Value="Processes">
+                                                <Setter Property="Background" Value="#3F3F46"/>
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+
+                            <Button Content="{DynamicResource StrSavedProfiles}" Command="{Binding SwitchTabCommand}" CommandParameter="Profiles">
+                                <Button.Style>
+                                    <Style TargetType="{x:Type Button}" BasedOn="{StaticResource SidebarButton}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ActiveTab}" Value="Profiles">
+                                                <Setter Property="Background" Value="#3F3F46"/>
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+
+                            <Button Content="{DynamicResource StrHardwareMonitor}" Command="{Binding SwitchTabCommand}" CommandParameter="Hardware">
+                                <Button.Style>
+                                    <Style TargetType="{x:Type Button}" BasedOn="{StaticResource SidebarButton}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ActiveTab}" Value="Hardware">
+                                                <Setter Property="Background" Value="#3F3F46"/>
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </StackPanel>
+
+                        <Button Content="{DynamicResource StrSettings}" Command="{Binding SwitchTabCommand}" CommandParameter="Settings" VerticalAlignment="Bottom" Margin="10,0,10,15">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource SidebarButton}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ActiveTab}" Value="Settings">
+                                            <Setter Property="Background" Value="#3F3F46"/>
+                                            <Setter Property="Foreground" Value="White"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </Grid>
+
+                    <Grid Grid.Row="1" Margin="15,0,15,5" Height="220">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Text="{DynamicResource StrConsoleLog}" FontSize="11" FontWeight="Bold" Foreground="#666" Margin="5,0,0,8"/>
+                        <Border Grid.Row="1" Background="#0A0A0A" BorderBrush="#2D2D30" BorderThickness="1" CornerRadius="6" Padding="5">
+                            <ListBox x:Name="LogConsole" ItemsSource="{Binding ActionLogs}" Background="Transparent" BorderThickness="0" Foreground="#A0A0A0" FontSize="11" FontFamily="Consolas">
+                                <ListBox.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <VirtualizingStackPanel VerticalAlignment="Bottom"/>
+                                    </ItemsPanelTemplate>
+                                </ListBox.ItemsPanel>
+                                <ListBox.ItemContainerStyle>
+                                    <Style TargetType="ListBoxItem">
+                                        <Setter Property="Padding" Value="5,2,10,2"/>
+                                        <Setter Property="IsHitTestVisible" Value="False"/>
+                                    </Style>
+                                </ListBox.ItemContainerStyle>
+                            </ListBox>
+                        </Border>
+                    </Grid>
+
+                    <Grid Grid.Row="2" Margin="20,0,20,15">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <ToggleButton Grid.Column="0" Style="{StaticResource FlagSwitchStyle}" IsChecked="{Binding IsPolishLanguage}"/>
+                        <TextBlock Grid.Column="1" Text="{Binding AppVersion, StringFormat=v{0}}" Foreground="#555" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="1" Grid.Column="1" Margin="25,5,25,25">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="380"/>
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" Background="#181818" CornerRadius="8" Padding="20" BorderThickness="1" BorderBrush="#2D2D30" Margin="0,0,25,0" Visibility="{Binding ViewProcesses}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Text="{DynamicResource StrProcessList}" FontSize="22" FontWeight="Bold" Margin="0,0,0,15" Foreground="#FFFFFF"/>
+                        <DataGrid Grid.Row="1" ItemsSource="{Binding Processes}" SelectedItem="{Binding SelectedProcess}" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single" CanUserAddRows="False">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Binding="{Binding Name}" Width="*" >
+                                    <DataGridTextColumn.HeaderTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{DynamicResource StrColName}" />
+                                        </DataTemplate>
+                                    </DataGridTextColumn.HeaderTemplate>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Binding="{Binding Priority}" Width="100">
+                                    <DataGridTextColumn.HeaderTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{DynamicResource StrColPriority}" />
+                                        </DataTemplate>
+                                    </DataGridTextColumn.HeaderTemplate>
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Style.Triggers>
+                                                <Trigger Property="Text" Value="High">
+                                                    <Setter Property="Foreground" Value="#E74C3C"/>
+                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                </Trigger>
+                                                <Trigger Property="Text" Value="RealTime">
+                                                    <Setter Property="Foreground" Value="#9B59B6"/>
+                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Binding="{Binding RamUsageMB}" Width="80" >
+                                    <DataGridTextColumn.HeaderTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{DynamicResource StrColRam}" />
+                                        </DataTemplate>
+                                    </DataGridTextColumn.HeaderTemplate>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Binding="{Binding CpuUsage}" Width="70" >
+                                    <DataGridTextColumn.HeaderTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{DynamicResource StrColCpu}" />
+                                        </DataTemplate>
+                                    </DataGridTextColumn.HeaderTemplate>
+                                </DataGridTextColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Column="0" Background="#181818" CornerRadius="8" Padding="20" BorderThickness="1" BorderBrush="#2D2D30" Margin="0,0,25,0" Visibility="{Binding ViewProfiles}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Text="{DynamicResource StrYourProfiles}" FontSize="22" FontWeight="Bold" Margin="0,0,0,15" Foreground="#FFFFFF"/>
+                        <DataGrid Grid.Row="1" ItemsSource="{Binding SavedProfiles}" SelectedItem="{Binding SelectedSavedProfile}" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single" CanUserAddRows="False">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Binding="{Binding ProcessName}" Width="*" >
+                                    <DataGridTextColumn.HeaderTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{DynamicResource StrColName}" />
+                                        </DataTemplate>
+                                    </DataGridTextColumn.HeaderTemplate>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Binding="{Binding Priority}" Width="100">
+                                    <DataGridTextColumn.HeaderTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{DynamicResource StrColPriority}" />
+                                        </DataTemplate>
+                                    </DataGridTextColumn.HeaderTemplate>
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Style.Triggers>
+                                                <Trigger Property="Text" Value="High">
+                                                    <Setter Property="Foreground" Value="#E74C3C"/>
+                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Column="0" Grid.ColumnSpan="2" Background="#181818" CornerRadius="8" Padding="20" BorderThickness="1" BorderBrush="#2D2D30" Visibility="{Binding ViewHardwareMonitor}">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Text="{DynamicResource StrHardwareMonitor}" FontSize="24" FontWeight="Bold" Foreground="#FFFFFF" Margin="0,0,0,20"/>
+
+                            <UniformGrid Grid.Row="1" Columns="2" Rows="3">
+                                <Border Background="#222" Margin="10" CornerRadius="8" Padding="20" BorderThickness="0,4,0,0" BorderBrush="#4A89F3">
+                                    <StackPanel>
+                                        <TextBlock Text="{DynamicResource StrCpuUsage}" Foreground="#888" FontSize="12" FontWeight="Bold"/>
+                                        <TextBlock Text="{Binding FullMetrics.CpuLoad, StringFormat={}{0:N1}%}" Foreground="White" FontSize="36" FontWeight="Bold" Margin="0,10"/>
+                                        <ProgressBar Value="{Binding FullMetrics.CpuLoad}" Height="6" Foreground="#4A89F3" Background="#111" BorderThickness="0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Background="#222" Margin="10" CornerRadius="8" Padding="20" BorderThickness="0,4,0,0" BorderBrush="#4A89F3">
+                                    <StackPanel>
+                                        <TextBlock Text="{DynamicResource StrCpuTemp}" Foreground="#888" FontSize="12" FontWeight="Bold"/>
+                                        <TextBlock Text="{Binding FullMetrics.CpuTemp, StringFormat={}{0:N1}°C}" Foreground="White" FontSize="36" FontWeight="Bold" Margin="0,10"/>
+                                        <ProgressBar Value="{Binding FullMetrics.CpuTemp}" Height="6" Foreground="#4A89F3" Background="#111" BorderThickness="0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Background="#222" Margin="10" CornerRadius="8" Padding="20" BorderThickness="0,4,0,0" BorderBrush="#E74C3C">
+                                    <StackPanel>
+                                        <TextBlock Text="{DynamicResource StrGpuUsage}" Foreground="#888" FontSize="12" FontWeight="Bold"/>
+                                        <TextBlock Text="{Binding FullMetrics.GpuLoad, StringFormat={}{0:N1}%}" Foreground="White" FontSize="36" FontWeight="Bold" Margin="0,10"/>
+                                        <ProgressBar Value="{Binding FullMetrics.GpuLoad}" Height="6" Foreground="#E74C3C" Background="#111" BorderThickness="0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Background="#222" Margin="10" CornerRadius="8" Padding="20" BorderThickness="0,4,0,0" BorderBrush="#E74C3C">
+                                    <StackPanel>
+                                        <TextBlock Text="{DynamicResource StrGpuTemp}" Foreground="#888" FontSize="12" FontWeight="Bold"/>
+                                        <TextBlock Text="{Binding FullMetrics.GpuTemp, StringFormat={}{0:N1}°C}" Foreground="White" FontSize="36" FontWeight="Bold" Margin="0,10"/>
+                                        <ProgressBar Value="{Binding FullMetrics.GpuTemp}" Height="6" Foreground="#E74C3C" Background="#111" BorderThickness="0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Background="#222" Margin="10" CornerRadius="8" Padding="20" BorderThickness="0,4,0,0" BorderBrush="#9B59B6">
+                                    <StackPanel>
+                                        <TextBlock Text="{DynamicResource StrRamUsage}" Foreground="#888" FontSize="12" FontWeight="Bold"/>
+                                        <TextBlock Text="{Binding FullMetrics.RamUsagePct, StringFormat={}{0:N1}%}" Foreground="White" FontSize="36" FontWeight="Bold" Margin="0,10"/>
+                                        <ProgressBar Value="{Binding FullMetrics.RamUsagePct}" Height="6" Foreground="#9B59B6" Background="#111" BorderThickness="0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Background="#222" Margin="10" CornerRadius="8" Padding="20" BorderThickness="0,4,0,0" BorderBrush="#9B59B6">
+                                    <StackPanel>
+                                        <TextBlock Text="{DynamicResource StrRamUsedAvail}" Foreground="#888" FontSize="12" FontWeight="Bold"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,10">
+                                            <TextBlock Text="{Binding FullMetrics.RamUsedGB, StringFormat={}{0:N1}}" Foreground="White" FontSize="36" FontWeight="Bold"/>
+                                            <TextBlock Text="{Binding FullMetrics.RamAvailableGB, StringFormat='/ {0:N0} GB'}" Foreground="#666" FontSize="20" Margin="8,0,0,5" VerticalAlignment="Bottom"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </UniformGrid>
+
+                            <Expander Grid.Row="2" Header="{DynamicResource StrExpandHardware}" Margin="10,20,10,0">
+                                <UniformGrid Columns="2" Margin="0,15,0,0">
+                                    <Border Background="#121212" Margin="5" Padding="15" CornerRadius="8">
+                                        <StackPanel>
+                                            <TextBlock Text="{DynamicResource StrGpuDetails}" FontWeight="Bold" Foreground="#E74C3C" Margin="0,0,0,10" FontSize="14"/>
+                                            <Grid Margin="0,2">
+                                                <TextBlock Text="{DynamicResource StrVramUsage}" Foreground="#888"/>
+                                                <TextBlock Text="{Binding FullMetrics.VramUsagePct, StringFormat={}{0:N1}%}" HorizontalAlignment="Right"/>
+                                            </Grid>
+                                            <Grid Margin="0,2">
+                                                <TextBlock Text="{DynamicResource StrCoreClock}" Foreground="#888"/>
+                                                <TextBlock Text="{Binding FullMetrics.GpuCoreClock, StringFormat={}{0:N0} MHz}" HorizontalAlignment="Right"/>
+                                            </Grid>
+                                            <Grid Margin="0,2">
+                                                <TextBlock Text="{DynamicResource StrMemClock}" Foreground="#888"/>
+                                                <TextBlock Text="{Binding FullMetrics.GpuMemClock, StringFormat={}{0:N0} MHz}" HorizontalAlignment="Right"/>
+                                            </Grid>
+                                            <Grid Margin="0,2">
+                                                <TextBlock Text="{DynamicResource StrHotSpot}" Foreground="#888"/>
+                                                <TextBlock Text="{Binding FullMetrics.GpuHotSpot, StringFormat={}{0:N1}°C}" HorizontalAlignment="Right"/>
+                                            </Grid>
+                                            <Grid Margin="0,2">
+                                                <TextBlock Text="{DynamicResource StrVramTemp}" Foreground="#888"/>
+                                                <TextBlock Text="{Binding FullMetrics.GpuVramTemp, StringFormat={}{0:N1}°C}" HorizontalAlignment="Right"/>
+                                            </Grid>
+                                            <Grid Margin="0,2">
+                                                <TextBlock Text="{DynamicResource StrPowerDraw}" Foreground="#888"/>
+                                                <TextBlock Text="{Binding FullMetrics.GpuPower, StringFormat={}{0:N1} W}" HorizontalAlignment="Right" Foreground="#F1C40F" FontWeight="Bold"/>
+                                            </Grid>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Background="#121212" Margin="5" Padding="15" CornerRadius="8">
+                                        <StackPanel>
+                                            <TextBlock Text="{DynamicResource StrCpuDetails}" FontWeight="Bold" Foreground="#4A89F3" Margin="0,0,0,10" FontSize="14"/>
+                                            <Grid Margin="0,2">
+                                                <TextBlock Text="{DynamicResource StrAvgClock}" Foreground="#888"/>
+                                                <TextBlock Text="{Binding FullMetrics.CpuClock, StringFormat={}{0:N0} MHz}" HorizontalAlignment="Right"/>
+                                            </Grid>
+                                            <Grid Margin="0,2">
+                                                <TextBlock Text="{DynamicResource StrPowerDraw}" Foreground="#888"/>
+                                                <TextBlock Text="{Binding FullMetrics.CpuPower, StringFormat={}{0:N1} W}" HorizontalAlignment="Right" Foreground="#F1C40F" FontWeight="Bold"/>
+                                            </Grid>
+                                            <TextBlock Text="{DynamicResource StrCoreTemps}" Foreground="#888" Margin="0,15,0,5" FontSize="12" FontWeight="SemiBold"/>
+                                            <ItemsControl ItemsSource="{Binding FullMetrics.CoreTemps}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding}" FontSize="12" Foreground="#aaa" Margin="0,2,0,0"/>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </Border>
+                                </UniformGrid>
+                            </Expander>
+                        </Grid>
+                    </ScrollViewer>
+                </Border>
+
+                <Border Grid.Column="0" Grid.ColumnSpan="2" Background="#181818" CornerRadius="8" Padding="30" BorderThickness="1" BorderBrush="#2D2D30" Visibility="{Binding ViewSettings}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Text="{DynamicResource StrAppSettings}" FontSize="24" FontWeight="Bold" Foreground="#FFFFFF" Margin="0,0,0,30"/>
+                        <StackPanel Grid.Row="1" Width="400" HorizontalAlignment="Left">
+
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,25">
+                                <TextBlock Text="{DynamicResource StrLanguage}" Foreground="#E0E0E0" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                                <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedLanguageName, Mode=TwoWay}" Width="150" Style="{StaticResource ModernComboBox}"/>
+                            </StackPanel>
+
+                            <CheckBox Content="{DynamicResource StrStartWindows}" IsChecked="{Binding AppSettings.StartWithWindows}" Command="{Binding ToggleSettingCommand}" Margin="0,0,0,20">
+                                <CheckBox.LayoutTransform>
+                                    <ScaleTransform ScaleX="1.2" ScaleY="1.2"/>
+                                </CheckBox.LayoutTransform>
+                            </CheckBox>
+                            <CheckBox Content="{DynamicResource StrStartMinimized}" IsChecked="{Binding AppSettings.StartMinimized}" Command="{Binding ToggleSettingCommand}" Margin="0,0,0,20">
+                                <CheckBox.LayoutTransform>
+                                    <ScaleTransform ScaleX="1.2" ScaleY="1.2"/>
+                                </CheckBox.LayoutTransform>
+                            </CheckBox>
+                            <CheckBox Content="{DynamicResource StrMinToTray}" IsChecked="{Binding AppSettings.MinimizeToTray}" Command="{Binding ToggleSettingCommand}" Margin="0,0,0,20">
+                                <CheckBox.LayoutTransform>
+                                    <ScaleTransform ScaleX="1.2" ScaleY="1.2"/>
+                                </CheckBox.LayoutTransform>
+                            </CheckBox>
+                            <CheckBox Content="{DynamicResource StrCloseToTray}" IsChecked="{Binding AppSettings.CloseToTray}" Command="{Binding ToggleSettingCommand}" Margin="0,0,0,20">
+                                <CheckBox.LayoutTransform>
+                                    <ScaleTransform ScaleX="1.2" ScaleY="1.2"/>
+                                </CheckBox.LayoutTransform>
+                            </CheckBox>
+                            <Separator Background="#333" Margin="0,10,0,20"/>
+                            <CheckBox Content="{DynamicResource StrStartAdmin}" IsChecked="{Binding AppSettings.RunAsAdministrator}" Command="{Binding ToggleSettingCommand}" Margin="0,0,0,5">
+                                <CheckBox.LayoutTransform>
+                                    <ScaleTransform ScaleX="1.2" ScaleY="1.2"/>
+                                </CheckBox.LayoutTransform>
+                            </CheckBox>
+                            <TextBlock Text="{DynamicResource StrAdminReq}" Foreground="#888" FontSize="11" Margin="35,0,0,0"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Column="1" Background="#181818" CornerRadius="8" Padding="20" BorderThickness="1" BorderBrush="#2D2D30">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ViewSettings}" Value="Visible">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding ViewHardwareMonitor}" Value="Visible">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Text="{DynamicResource StrCpuCores}" FontSize="22" FontWeight="Bold" Margin="0,0,0,15" Foreground="#FFFFFF"/>
+
+                        <UniformGrid Grid.Row="1" Columns="2" Rows="2" Margin="0,0,0,15">
+                            <Button Content="{DynamicResource StrSelectAll}" Command="{Binding SelectAllCommand}" Style="{StaticResource SmallFilterButton}" Margin="0,0,5,5"/>
+                            <Button Content="{DynamicResource StrClearAll}" Command="{Binding ClearAllCommand}" Style="{StaticResource SmallFilterButton}" Margin="5,0,0,5"/>
+                            <Button Content="{DynamicResource StrDisableSMT}" Command="{Binding DisableSmtCommand}" Style="{StaticResource SmallFilterButton}" Margin="0,0,5,0"/>
+                            <Button Content="{DynamicResource StrDisableECores}" Command="{Binding DisableECoresCommand}" IsEnabled="{Binding HasECores}" Style="{StaticResource SmallFilterButton}" Margin="5,0,0,0"/>
+                        </UniformGrid>
+
+                        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Margin="0,0,0,15">
+                            <ItemsControl ItemsSource="{Binding Cores}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <UniformGrid Columns="2"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Margin="4" Padding="10" Background="#222" CornerRadius="6" BorderThickness="1" BorderBrush="#333">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+                                                <CheckBox Grid.Row="0" IsChecked="{Binding IsChecked}" Content="{Binding DisplayName}"/>
+                                                <ProgressBar Grid.Row="1" Value="{Binding LoadUsage}" Maximum="100" Height="4" Margin="0,8,0,0" Foreground="#4A89F3" Background="#111" BorderThickness="0"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+
+                        <StackPanel Grid.Row="3">
+                            <TextBlock Text="{DynamicResource StrSetPriority}" FontWeight="Bold" FontSize="16" Margin="0,10,0,10" Foreground="#E74C3C"/>
+                            <ComboBox ItemsSource="{Binding AvailablePriorities}" SelectedItem="{Binding SelectedPriority, Mode=TwoWay}" Style="{StaticResource ModernComboBox}" Margin="0,0,0,20"/>
+                            <Separator Background="#333" Margin="0,5,0,20"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="4" Visibility="{Binding ViewProcesses}">
+                            <Button Content="{DynamicResource StrSetAffinity}" Command="{Binding ApplySettingsCommand}" Background="#4A89F3" Margin="0,0,0,10" Style="{StaticResource StandardButton}"/>
+                            <Button Content="{DynamicResource StrSaveProfile}" Command="{Binding SaveProfileCommand}" Background="#2ECC71" Style="{StaticResource StandardButton}"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="4" Visibility="{Binding ViewProfiles}">
+                            <Button Content="{DynamicResource StrUpdateProfile}" Command="{Binding UpdateProfileCommand}" Background="#F39C12" Margin="0,0,0,10" Style="{StaticResource StandardButton}"/>
+                            <Button Content="{DynamicResource StrDeleteProfile}" Command="{Binding DeleteProfileCommand}" Background="#E74C3C" Style="{StaticResource StandardButton}"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <Grid Grid.Row="0" Grid.Column="1" Background="Transparent" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Style="{StaticResource WindowBtnStyle}" Content="&#xE921;" Click="MinimizeButton_Click"/>
+                    <Button x:Name="MaximizeIconBtn" Style="{StaticResource WindowBtnStyle}" Content="&#xE922;" Click="MaximizeButton_Click"/>
+                    <Button Style="{StaticResource WindowCloseBtnStyle}" Content="&#xE8BB;" Click="CloseButton_Click"/>
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

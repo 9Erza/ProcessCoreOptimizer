@@ -1,0 +1,52 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:system="clr-namespace:System;assembly=mscorlib">
+    <system:String x:Key="StrSystemProcesses">Procesy Systemowe</system:String>
+    <system:String x:Key="StrSavedProfiles">Zapisane Profile</system:String>
+    <system:String x:Key="StrHardwareMonitor">Monitor Sprzętu</system:String>
+    <system:String x:Key="StrSettings">Ustawienia</system:String>
+    <system:String x:Key="StrConsoleLog">LOGI KONSOLI</system:String>
+    <system:String x:Key="StrProcessList">Lista Procesów</system:String>
+    <system:String x:Key="StrYourProfiles">Twoje Profile</system:String>
+    <system:String x:Key="StrCpuUsage">UŻYCIE CPU</system:String>
+    <system:String x:Key="StrCpuTemp">TEMPERATURA CPU</system:String>
+    <system:String x:Key="StrGpuUsage">UŻYCIE GPU</system:String>
+    <system:String x:Key="StrGpuTemp">TEMPERATURA GPU</system:String>
+    <system:String x:Key="StrRamUsage">UŻYCIE RAM (%)</system:String>
+    <system:String x:Key="StrRamUsedAvail">RAM ZAJĘTY / DOSTĘPNY</system:String>
+    <system:String x:Key="StrExpandHardware">Rozwiń Szczegóły Sprzętu</system:String>
+    <system:String x:Key="StrGpuDetails">SZCZEGÓŁY GPU</system:String>
+    <system:String x:Key="StrCpuDetails">SZCZEGÓŁY CPU</system:String>
+    <system:String x:Key="StrAppSettings">Ustawienia Aplikacji</system:String>
+    <system:String x:Key="StrStartWindows">Uruchamiaj z systemem Windows</system:String>
+    <system:String x:Key="StrStartMinimized">Uruchom zminimalizowany</system:String>
+    <system:String x:Key="StrMinToTray">Minimalizuj do zasobnika</system:String>
+    <system:String x:Key="StrCloseToTray">Zamykaj do zasobnika</system:String>
+    <system:String x:Key="StrStartAdmin">Uruchom jako Administrator</system:String>
+    <system:String x:Key="StrAdminReq">Wymaga restartu. Pozwala na optymalizację w tle.</system:String>
+    <system:String x:Key="StrLanguage">Język / Language</system:String>
+    <system:String x:Key="StrCpuCores">Rdzenie CPU</system:String>
+    <system:String x:Key="StrSelectAll">Zaznacz Wszystko</system:String>
+    <system:String x:Key="StrClearAll">Odznacz Wszystko</system:String>
+    <system:String x:Key="StrDisableSMT">Wyłącz SMT</system:String>
+    <system:String x:Key="StrDisableECores">Wyłącz E-Cores</system:String>
+    <system:String x:Key="StrSetPriority">Ustaw Priorytet</system:String>
+    <system:String x:Key="StrSetAffinity">Ustaw Koligację</system:String>
+    <system:String x:Key="StrSaveProfile">Zapisz Profil</system:String>
+    <system:String x:Key="StrUpdateProfile">Aktualizuj Profil</system:String>
+    <system:String x:Key="StrDeleteProfile">Usuń Profil</system:String>
+
+    <system:String x:Key="StrColName">NAZWA</system:String>
+    <system:String x:Key="StrColPriority">PRIORYTET</system:String>
+    <system:String x:Key="StrColRam">RAM</system:String>
+    <system:String x:Key="StrColCpu">CPU</system:String>
+
+    <system:String x:Key="StrVramUsage">Zużycie VRAM:</system:String>
+    <system:String x:Key="StrCoreClock">Takt. Rdzenia:</system:String>
+    <system:String x:Key="StrMemClock">Takt. Pamięci:</system:String>
+    <system:String x:Key="StrHotSpot">Hot Spot:</system:String>
+    <system:String x:Key="StrVramTemp">Temp. VRAM:</system:String>
+    <system:String x:Key="StrPowerDraw">Pobór Mocy:</system:String>
+    <system:String x:Key="StrAvgClock">Średnie Takt.:</system:String>
+    <system:String x:Key="StrCoreTemps">Temperatury Rdzeni:</system:String>
+</ResourceDictionary>
