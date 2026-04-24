@@ -847,7 +847,7 @@
                         <UniformGrid Grid.Row="1" Columns="2" Rows="2" Margin="0,0,0,15">
                             <Button Content="{DynamicResource StrSelectAll}" Command="{Binding SelectAllCommand}" Style="{StaticResource SmallFilterButton}" Margin="0,0,5,5"/>
                             <Button Content="{DynamicResource StrClearAll}" Command="{Binding ClearAllCommand}" Style="{StaticResource SmallFilterButton}" Margin="5,0,0,5"/>
-                            <Button Content="{DynamicResource StrDisableSMT}" Command="{Binding DisableSmtCommand}" Style="{StaticResource SmallFilterButton}" Margin="0,0,5,0"/>
+                            <Button Content="{Binding CpuVendorText}" Command="{Binding DisableSmtCommand}" Style="{StaticResource SmallFilterButton}" Margin="0,0,5,0"/>
                             <Button Content="{DynamicResource StrDisableECores}" Command="{Binding DisableECoresCommand}" IsEnabled="{Binding HasECores}" Style="{StaticResource SmallFilterButton}" Margin="5,0,0,0"/>
                         </UniformGrid>
 

@@ -1,65 +1,106 @@
-﻿using System;
+﻿using Microsoft.Win32;
+using ProcessCoreOptimizer.WPF.Logging;
+using ProcessCoreOptimizer.WPF.Models;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Security.Principal;
 using System.Text.Json;
-using Microsoft.Win32;
-using ProcessCoreOptimizer.WPF.Models;
 
 namespace ProcessCoreOptimizer.WPF.Services
 {
     /// <summary>
-    /// Service responsible for managing application settings persistence 
+    /// Service responsible for managing application settings persistence
     /// and handling system-level integrations like Windows Startup and Administrator elevation.
     /// </summary>
-    public class SettingsService
+    public class SettingsService : IDisposable
     {
-        #region Fields
+        #region Private Fields
+
         private readonly string _filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
         private readonly string _appName = "ProcessCoreOptimizer";
         private readonly string _exePath = Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty;
+        private readonly ILogger _logger = LoggerService.Instance;
+        private bool _disposed;
+
         #endregion
 
-        #region Public Methods - Settings Persistence
+        #region Settings Persistence
+
         /// <summary>
-        /// Loads application settings from the local JSON file. 
-        /// Returns default settings if the file is missing or invalid.
+        /// Loads application settings from the local JSON configuration file. 
+        /// Returns default settings if the file is missing, empty, or invalid.
         /// </summary>
+        /// <returns>The deserialized AppSettings object.</returns>
         public AppSettings LoadSettings()
         {
-            if (!File.Exists(_filePath)) return new AppSettings();
+            if (!File.Exists(_filePath))
+            {
+                _logger.Info("Settings file not found - using default settings");
+                return new AppSettings();
+            }
 
             try
             {
                 string jsonContent = File.ReadAllText(_filePath);
-                return JsonSerializer.Deserialize<AppSettings>(jsonContent) ?? new AppSettings();
+                var settings = JsonSerializer.Deserialize<AppSettings>(jsonContent) ?? new AppSettings();
+                _logger.Debug($"Settings loaded successfully from {_filePath}");
+                return settings;
             }
-            catch
+            catch (JsonException ex)
             {
+                _logger.Error($"Failed to deserialize settings - using default settings. Error: {ex.Message}", ex);
+                return new AppSettings();
+            }
+            catch (IOException ex)
+            {
+                _logger.Error($"Failed to read settings file - using default settings. Error: {ex.Message}", ex);
+                return new AppSettings();
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Unexpected error loading settings - using default settings. Error: {ex.Message}", ex);
                 return new AppSettings();
             }
         }
 
         /// <summary>
-        /// Saves the provided settings to a JSON file and applies Windows startup configurations.
+        /// Saves the provided settings to the local JSON file and immediately applies Windows startup configurations.
         /// </summary>
+        /// <param name="settings">The AppSettings instance to serialize.</param>
         public void SaveSettings(AppSettings settings)
         {
             try
             {
                 var options = new JsonSerializerOptions { WriteIndented = true };
-                File.WriteAllText(_filePath, JsonSerializer.Serialize(settings, options));
+                string jsonContent = JsonSerializer.Serialize(settings, options);
+                File.WriteAllText(_filePath, jsonContent);
+                _logger.Info($"Settings saved successfully to {_filePath}");
             }
-            catch { /* Consider logging I/O failure */ }
+            catch (JsonException ex)
+            {
+                _logger.Error($"Failed to serialize settings. Error: {ex.Message}", ex);
+            }
+            catch (IOException ex)
+            {
+                _logger.Error($"Failed to write settings file. Error: {ex.Message}", ex);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Unexpected error saving settings. Error: {ex.Message}", ex);
+            }
 
             ApplyWindowsStartup(settings);
         }
+
         #endregion
 
-        #region Public Methods - Elevation Logic
+        #region Elevation & UAC Logic
+
         /// <summary>
-        /// Checks if the current process is running with elevated Administrator privileges.
+        /// Checks if the current application process is running with elevated Administrator privileges.
         /// </summary>
+        /// <returns>True if the user is in the Administrator role; otherwise, false.</returns>
         public bool IsRunAsAdmin()
         {
             using var identity = WindowsIdentity.GetCurrent();
@@ -68,7 +109,8 @@ namespace ProcessCoreOptimizer.WPF.Services
         }
 
         /// <summary>
-        /// Restarts the application and triggers a Windows UAC prompt to run as Administrator.
+        /// Restarts the application and triggers a Windows User Account Control (UAC) prompt 
+        /// to elevate the process to Administrator rights.
         /// </summary>
         public void RestartAsAdmin()
         {
@@ -78,7 +120,7 @@ namespace ProcessCoreOptimizer.WPF.Services
             {
                 FileName = _exePath,
                 UseShellExecute = true,
-                Verb = "runas" // Standard Windows verb for triggering UAC
+                Verb = "runas" // Standard Windows verb for triggering the elevation prompt
             };
 
             try
@@ -88,77 +130,172 @@ namespace ProcessCoreOptimizer.WPF.Services
             }
             catch
             {
-                // User likely cancelled the UAC prompt; stay in current session
+                // The user likely cancelled the UAC prompt; silently fail and remain in the current session
             }
         }
+
         #endregion
 
-        #region Public Methods - Windows Integration
+        #region Windows Startup Integration
+
         /// <summary>
         /// Configures the application to start with Windows. 
-        /// Uses the Registry for standard startup or Task Scheduler for Admin-privileged startup.
+        /// Uses the Registry for standard startup, or an XML-defined Windows Task Scheduler entry for silent Admin-privileged startup.
         /// </summary>
+        /// <param name="settings">The current application settings.</param>
         public void ApplyWindowsStartup(AppSettings settings)
         {
             try
             {
-                // Accessing the CurrentUser Run key for standard startup
+                _logger.Info($"Applying Windows startup configuration: Start={settings.StartWithWindows}, Admin={settings.RunAsAdministrator}");
+
+                // Access the CurrentUser Run key for standard startup behavior
                 using var key = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", true);
 
                 if (settings.StartWithWindows)
                 {
                     if (settings.RunAsAdministrator)
                     {
-                        // To start as Admin without showing a UAC prompt every boot, 
-                        // we must create a task in the Windows Task Scheduler with 'Highest' privileges.
                         key?.DeleteValue(_appName, false);
-                        Process.Start(new ProcessStartInfo
+
+                        // CRITICAL: We cannot create an elevated scheduled task without Admin rights.
+                        // If the user hasn't elevated yet, bail out. The MainViewModel will re-trigger this upon admin restart.
+                        if (!IsRunAsAdmin())
                         {
-                            FileName = "schtasks.exe",
-                            Arguments = $"/create /tn \"{_appName}\" /tr \"\\\"{_exePath}\\\"\" /sc onlogon /rl highest /f",
-                            CreateNoWindow = true,
-                            WindowStyle = ProcessWindowStyle.Hidden
-                        })?.WaitForExit();
+                            _logger.Warn("Cannot create elevated scheduled task - not running as admin");
+                            return;
+                        }
+
+                        CreateAdvancedScheduledTask();
                     }
                     else
                     {
-                        // Standard non-admin startup via Registry
+                        // Standard non-admin startup via the Windows Registry
                         RemoveScheduledTask();
                         key?.SetValue(_appName, $"\"{_exePath}\"");
+                        _logger.Info("Registry startup entry created successfully");
                     }
                 }
                 else
                 {
-                    // Cleanup both startup methods if disabled
+                    // Cleanup both startup methods if auto-start is disabled
                     key?.DeleteValue(_appName, false);
                     RemoveScheduledTask();
+                    _logger.Info("Windows startup configuration removed");
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Likely insufficient permissions to modify Registry or Task Scheduler
+                _logger.Error("Failed to apply Windows startup configuration - likely insufficient permissions", ex);
             }
         }
+
         #endregion
 
         #region Private Helper Methods
+
         /// <summary>
-        /// Removes any existing entries for the application from the Windows Task Scheduler.
+        /// Generates a temporary XML configuration to create a highly-privileged scheduled task.
+        /// This bypasses default Windows restrictions such as "Do not start on batteries" or execution time limits.
+        /// </summary>
+        private void CreateAdvancedScheduledTask()
+        {
+            string tempXmlFile = Path.GetTempFileName();
+
+            try
+            {
+                _logger.Info($"Creating advanced scheduled task for {_appName}");
+
+                // Raw XML schema required by Windows Task Scheduler
+                string xmlConfig = $@"<?xml version=""1.0"" encoding=""UTF-16""?>
+                <Task version=""1.2"" xmlns=""http://schemas.microsoft.com/windows/2004/02/mit/task"">
+                  <Triggers>
+                    <LogonTrigger>
+                      <Enabled>true</Enabled>
+                    </LogonTrigger>
+                  </Triggers>
+                  <Principals>
+                    <Principal>
+                      <RunLevel>HighestAvailable</RunLevel>
+                    </Principal>
+                  </Principals>
+                  <Settings>
+                    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+                    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+                    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+                    <AllowHardTerminate>true</AllowHardTerminate>
+                    <StartWhenAvailable>true</StartWhenAvailable>
+                    <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>
+                    <AllowStartOnDemand>true</AllowStartOnDemand>
+                    <Enabled>true</Enabled>
+                    <Hidden>false</Hidden>
+                    <RunOnlyIfIdle>false</RunOnlyIfIdle>
+                    <WakeToRun>false</WakeToRun>
+                    <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
+                    <Priority>7</Priority>
+                  </Settings>
+                  <Actions>
+                    <Exec>
+                      <Command>""{_exePath}""</Command>
+                    </Exec>
+                  </Actions>
+                </Task>";
+
+                File.WriteAllText(tempXmlFile, xmlConfig);
+
+                using var proc = Process.Start(new ProcessStartInfo
+                {
+                    FileName = "schtasks.exe",
+                    Arguments = $"/create /tn \"{_appName}\" /xml \"{tempXmlFile}\" /f",
+                    CreateNoWindow = true,
+                    WindowStyle = ProcessWindowStyle.Hidden
+                });
+
+                proc?.WaitForExit();
+            }
+            finally
+            {
+                if (File.Exists(tempXmlFile))
+                {
+                    File.Delete(tempXmlFile);
+                }
+            }
+        }
+
+        #region IDisposable
+
+        public void Dispose()
+        {
+            if (_disposed) return;
+            _disposed = true;
+            // Logger jest singletonem i zarządzany przez GC, nie musimy go disposalować tutaj
+        }
+
+        #endregion
+
+        /// <summary>
+        /// Removes any existing auto-start entries for the application from the Windows Task Scheduler.
         /// </summary>
         private void RemoveScheduledTask()
         {
             try
             {
-                Process.Start(new ProcessStartInfo
+                using var proc = Process.Start(new ProcessStartInfo
                 {
                     FileName = "schtasks.exe",
                     Arguments = $"/delete /tn \"{_appName}\" /f",
                     CreateNoWindow = true,
                     WindowStyle = ProcessWindowStyle.Hidden
-                })?.WaitForExit();
+                });
+
+                proc?.WaitForExit();
             }
-            catch { }
+            catch
+            {
+                // Ignore cleanup errors if the task does not exist
+            }
         }
+
         #endregion
     }
 }

@@ -3,11 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Management;
 using LibreHardwareMonitor.Hardware;
+using ProcessCoreOptimizer.WPF.Logging;
 
 namespace ProcessCoreOptimizer.WPF.Services
 {
     /// <summary>
-    /// Service responsible for interfacing with hardware drivers via LibreHardwareMonitor 
+    /// Service responsible for interfacing with hardware drivers via LibreHardwareMonitor
     /// to retrieve temperatures, loads, power consumption, and clock speeds.
     /// </summary>
     public class HardwareMonitorService : IDisposable
@@ -15,6 +16,7 @@ namespace ProcessCoreOptimizer.WPF.Services
         #region Private Fields
 
         private readonly Computer _computer;
+        private readonly ILogger _logger;
 
         #endregion
 
@@ -25,6 +27,7 @@ namespace ProcessCoreOptimizer.WPF.Services
         /// </summary>
         public HardwareMonitorService()
         {
+            _logger = LoggerService.Instance;
             _computer = new Computer
             {
                 IsCpuEnabled = true,
@@ -33,6 +36,7 @@ namespace ProcessCoreOptimizer.WPF.Services
                 IsStorageEnabled = true
             };
             _computer.Open();
+            _logger.Info("HardwareMonitorService initialized");
         }
 
         #endregion
@@ -105,7 +109,7 @@ namespace ProcessCoreOptimizer.WPF.Services
             }
 
             // --- NATIVE RAM FALLBACK ---
-            // If LibreHardwareMonitor fails (e.g., due to Ring0 driver conflicts or missing Admin rights), 
+            // If LibreHardwareMonitor fails (e.g., due to Ring0 driver conflicts or missing Admin rights),
             // securely retrieve RAM data directly from the Windows OS kernel.
             if (metrics.RamUsagePct == 0 || metrics.RamUsedGB == 0)
             {
@@ -151,10 +155,11 @@ namespace ProcessCoreOptimizer.WPF.Services
             try
             {
                 _computer.Close();
+                _logger.Info("HardwareMonitorService disposed");
             }
             catch
             {
-                // Ignore cleanup errors 
+                // Ignore cleanup errors
             }
         }
 

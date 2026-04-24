@@ -2,17 +2,20 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
+using ProcessCoreOptimizer.WPF.Logging;
 using ProcessCoreOptimizer.WPF.Models;
 using System.Text.Json.Serialization;
 
 namespace ProcessCoreOptimizer.WPF.Services
 {
     /// <summary>
-    /// Service responsible for the persistence of process optimization profiles 
+    /// Service responsible for the persistence of process optimization profiles
     /// using JSON serialization for local storage.
     /// </summary>
     public class ProfileService
     {
+        private static readonly ILogger _logger = LoggerService.Instance;
+
         #region Fields
         /// <summary>
         /// The full system path to the profiles configuration file.
@@ -28,7 +31,13 @@ namespace ProcessCoreOptimizer.WPF.Services
         /// <returns>A collection of saved ProcessProfile objects.</returns>
         public List<ProcessProfile> LoadProfiles()
         {
-            if (!File.Exists(_filePath)) return new List<ProcessProfile>();
+            _logger.Info("Loading profiles from JSON file");
+
+            if (!File.Exists(_filePath))
+            {
+                _logger.Debug("Profiles file not found - returning empty list");
+                return new List<ProcessProfile>();
+            }
 
             try
             {
@@ -36,10 +45,13 @@ namespace ProcessCoreOptimizer.WPF.Services
                 var options = new JsonSerializerOptions();
                 options.Converters.Add(new JsonStringEnumConverter()); // POPRAWKA
 
-                return JsonSerializer.Deserialize<List<ProcessProfile>>(jsonContent, options) ?? new List<ProcessProfile>();
+                var profiles = JsonSerializer.Deserialize<List<ProcessProfile>>(jsonContent, options);
+                _logger.Debug($"Profiles loaded successfully: {profiles?.Count ?? 0} profiles");
+                return profiles ?? new List<ProcessProfile>();
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.Error("Failed to deserialize profiles - returning empty list", ex);
                 return new List<ProcessProfile>();
             }
         }
@@ -50,6 +62,8 @@ namespace ProcessCoreOptimizer.WPF.Services
         /// <param name="profiles">The list of profiles to persist.</param>
         public void SaveProfiles(List<ProcessProfile> profiles)
         {
+            _logger.Info("Saving profiles to JSON file");
+
             try
             {
                 var options = new JsonSerializerOptions { WriteIndented = true };
@@ -57,8 +71,12 @@ namespace ProcessCoreOptimizer.WPF.Services
 
                 string jsonContent = JsonSerializer.Serialize(profiles, options);
                 File.WriteAllText(_filePath, jsonContent);
+                _logger.Debug($"Profiles saved successfully: {profiles?.Count ?? 0} profiles");
             }
-            catch { }
+            catch (Exception ex)
+            {
+                _logger.Error("Failed to save profiles", ex);
+            }
         }
         #endregion
     }

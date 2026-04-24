@@ -5,17 +5,20 @@ using System.Linq;
 using System.Management;
 using System.Runtime.InteropServices;
 using ProcessCoreOptimizer.WPF.Helpers;
+using ProcessCoreOptimizer.WPF.Logging;
 using ProcessCoreOptimizer.WPF.Models;
 
 namespace ProcessCoreOptimizer.WPF.Services
 {
     /// <summary>
-    /// Service responsible for analyzing CPU architecture (P/E-Cores, SMT) 
+    /// Service responsible for analyzing CPU architecture (P/E-Cores, SMT)
     /// and retrieving real-time performance telemetry from Windows counters.
     /// </summary>
     public class HardwareService
     {
         #region Private Fields
+
+        private readonly ILogger _logger;
 
         /// <summary>
         /// List of system performance counters, one for each logical processor.
@@ -31,6 +34,7 @@ namespace ProcessCoreOptimizer.WPF.Services
         /// </summary>
         public HardwareService()
         {
+            _logger = LoggerService.Instance;
             InitializeCounters();
         }
 
@@ -58,8 +62,9 @@ namespace ProcessCoreOptimizer.WPF.Services
                     physicalCores += int.Parse(item["NumberOfCores"]?.ToString() ?? "0");
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.Error("Failed to query physical core count via WMI", ex);
                 // Fallback to logical count if WMI access is restricted
                 physicalCores = logicalProcs;
             }
@@ -103,6 +108,7 @@ namespace ProcessCoreOptimizer.WPF.Services
                 cores.Add(new CoreInfo { Index = index++, TypeTag = "[E]", IsThread = false, IsECore = true });
             }
 
+            _logger.Info($"CPU Topology: {pCores} P-Cores, {eCores} E-Cores, SMT={hasSmt}, Total logical cores: {logicalProcs}");
             return cores;
         }
 
@@ -126,13 +132,16 @@ namespace ProcessCoreOptimizer.WPF.Services
                     double val = counter.NextValue();
                     loads.Add(Math.Round(val, 1));
                 }
-                catch
+                catch (Exception ex)
                 {
                     // If a counter fails (e.g., during system sleep), return zero to prevent crash
+                    _logger.Error("Failed to sample CPU load", ex);
                     loads.Add(0);
                 }
             }
 
+            double avgLoad = loads.Average();
+            _logger.Info($"CPU Load: Avg={avgLoad:F1}%, Max={loads.Max():F1}%, Min={loads.Min():F1}%");
             return loads;
         }
 
@@ -152,7 +161,11 @@ namespace ProcessCoreOptimizer.WPF.Services
 
             // Determine the required buffer size
             NativeMethods.GetSystemCpuSetInformation(IntPtr.Zero, 0, out uint length, currentProcessHandle, 0);
-            if (length == 0) return map;
+            if (length == 0)
+            {
+                _logger.Warn("Failed to get CPU Set information - system may not support it");
+                return map;
+            }
 
             IntPtr buffer = Marshal.AllocHGlobal((int)length);
             try
@@ -185,15 +198,45 @@ namespace ProcessCoreOptimizer.WPF.Services
                     }
                 }
             }
+            catch (Exception ex)
+            {
+                _logger.Error("Failed to parse CPU Set information", ex);
+            }
             finally
             {
                 Marshal.FreeHGlobal(buffer);
             }
 
+            _logger.Info($"CPU Set Map: {map.Count} cores mapped");
             return map;
         }
 
         #endregion
+
+        /// <summary>
+        /// Detects the CPU vendor (AMD or Intel) using Windows Management Instrumentation (WMI).
+        /// </summary>
+        /// <returns>"AMD" for AMD CPUs, "Intel" for Intel CPUs, or "Unknown" if detection fails.</returns>
+        public string GetCpuVendor()
+        {
+            try
+            {
+                using var searcher = new ManagementObjectSearcher("Select Manufacturer from Win32_Processor");
+                foreach (var item in searcher.Get())
+                {
+                    var vendor = item["Manufacturer"]?.ToString();
+                    if (!string.IsNullOrEmpty(vendor))
+                    {
+                        return vendor.Contains("AMD", StringComparison.OrdinalIgnoreCase) ? "AMD" : "Intel";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Failed to get CPU vendor via WMI", ex);
+            }
+            return "Unknown";
+        }
 
         #region Private Helper Methods
 
@@ -214,10 +257,11 @@ namespace ProcessCoreOptimizer.WPF.Services
                     counter.NextValue();
                     _cpuCounters.Add(counter);
                 }
+                _logger.Info($"Initialized {coreCount} CPU performance counters");
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Failed to initialize CPU counters: {ex.Message}");
+                _logger.Error("Failed to initialize CPU performance counters", ex);
             }
         }
 

@@ -93,7 +93,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
 
         #region Public Properties & UI State
 
-        public string AppVersion { get; } = "1.1.1";
+        public string AppVersion { get; } = "1.1.2";
         private readonly string _versionRawUrl = "https://raw.githubusercontent.com/9Erza/ProcessCoreOptimizer/refs/heads/main/ProcessCoreOptimizer/version.txt";
         private readonly string _releasesUrl = "https://github.com/9Erza/ProcessCoreOptimizer/releases";
 
@@ -218,6 +218,27 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 {
                     IsPolishLanguage = isPl;
                 }
+            }
+        }
+
+        /// <summary>
+        /// Gets the CPU vendor (AMD or Intel).
+        /// </summary>
+        public string CpuVendor => _hardwareService.GetCpuVendor();
+
+        /// <summary>
+        /// Gets the SMT/HT toggle text based on CPU vendor and language.
+        /// Returns "SMT" for AMD, "HT" for Intel (localized).
+        /// </summary>
+        public string CpuVendorText
+        {
+            get
+            {
+                var vendor = CpuVendor;
+                if (vendor == "AMD")
+                    return IsPolishLanguage ? "Wyłącz SMT" : "Disable SMT";
+                else // Intel
+                    return IsPolishLanguage ? "Wyłącz HT" : "Disable HT";
             }
         }
 
