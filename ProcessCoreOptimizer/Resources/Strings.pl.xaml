@@ -23,6 +23,8 @@
     <system:String x:Key="StrSelectAll">Zaznacz Wszystko</system:String>
     <system:String x:Key="StrClearAll">Odznacz Wszystko</system:String>
     <system:String x:Key="StrDisableSMT">Wyłącz SMT</system:String>
+    <system:String x:Key="StrDisableSMT_AMD">Wyłącz SMT</system:String>
+    <system:String x:Key="StrDisableSMT_Intel">Wyłącz HT</system:String>
     <system:String x:Key="StrDisableECores">Wyłącz E-Cores</system:String>
     <system:String x:Key="StrSetPriority">Ustaw Priorytet</system:String>
     <system:String x:Key="StrSetAffinity">Ustaw Koligację</system:String>

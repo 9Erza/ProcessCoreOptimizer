@@ -4,16 +4,19 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using ProcessCoreOptimizer.WPF.Helpers;
+using ProcessCoreOptimizer.WPF.Logging;
 using ProcessCoreOptimizer.WPF.Models;
 
 namespace ProcessCoreOptimizer.WPF.Services
 {
     /// <summary>
-    /// Service responsible for identifying, filtering, and managing 
+    /// Service responsible for identifying, filtering, and managing
     /// system process attributes such as CPU affinity, CPU Sets, and priority classes.
     /// </summary>
     public class ProcessService
     {
+        private static readonly ILogger _logger = LoggerService.Instance;
+
         #region Process Filtering
 
         /// <summary>
@@ -26,11 +29,21 @@ namespace ProcessCoreOptimizer.WPF.Services
         {
             try
             {
+                _logger.Debug($"Checking if process '{p.ProcessName}' is a user process");
+
                 // Filter out critical kernel processes (Idle, System)
-                if (p.Id <= 4) return false;
+                if (p.Id <= 4)
+                {
+                    _logger.Debug($"Process '{p.ProcessName}' (PID: {p.Id}) filtered - kernel process");
+                    return false;
+                }
 
                 // Hide background services running in Session 0 (non-interactive)
-                if (p.SessionId == 0) return false;
+                if (p.SessionId == 0)
+                {
+                    _logger.Debug($"Process '{p.ProcessName}' (PID: {p.Id}) filtered - Session 0");
+                    return false;
+                }
 
                 string name = p.ProcessName.ToLower();
 
@@ -44,12 +57,18 @@ namespace ProcessCoreOptimizer.WPF.Services
                     "crossdeviceresume", "rtkauduservice64", "taskmgr", "ctfmon"
                 };
 
-                if (systemBlacklist.Contains(name)) return false;
+                if (systemBlacklist.Contains(name))
+                {
+                    _logger.Debug($"Process '{p.ProcessName}' filtered - in system blacklist");
+                    return false;
+                }
 
+                _logger.Debug($"Process '{p.ProcessName}' (PID: {p.Id}) is a user process");
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.Error("Failed to check if process is user process - treating as system process", ex);
                 // If we cannot access process info (Access Denied), treat it as a system process
                 return false;
             }
@@ -69,12 +88,15 @@ namespace ProcessCoreOptimizer.WPF.Services
         {
             try
             {
+                _logger.Debug($"Setting CPU affinity for PID {pid} to mask {mask:X}");
                 using var proc = Process.GetProcessById(pid);
                 proc.ProcessorAffinity = (IntPtr)mask;
+                _logger.Debug($"CPU affinity set successfully for PID {pid}");
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.Error($"Failed to set CPU affinity for PID {pid}", ex);
                 return false;
             }
         }
@@ -89,12 +111,15 @@ namespace ProcessCoreOptimizer.WPF.Services
         {
             try
             {
+                _logger.Debug($"Setting priority for PID {pid} to {priority}");
                 using var proc = Process.GetProcessById(pid);
                 proc.PriorityClass = priority;
+                _logger.Debug($"Priority set successfully for PID {pid}");
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.Error($"Failed to set priority for PID {pid}", ex);
                 return false;
             }
         }
@@ -108,11 +133,15 @@ namespace ProcessCoreOptimizer.WPF.Services
         {
             try
             {
+                _logger.Debug($"Getting priority string for PID {pid}");
                 using var proc = Process.GetProcessById(pid);
-                return proc.PriorityClass.ToString();
+                var priority = proc.PriorityClass.ToString();
+                _logger.Debug($"Current priority for PID {pid}: {priority}");
+                return priority;
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.Error($"Failed to get priority string for PID {pid}", ex);
                 return "Normal";
             }
         }
@@ -128,11 +157,14 @@ namespace ProcessCoreOptimizer.WPF.Services
         {
             try
             {
+                _logger.Info($"Applying core optimization to PID {pid} with mode {mode} and mask {mask:X}");
+
                 switch (mode)
                 {
                     case OptimizationMode.Affinity:
                         {
-                            // Standard hard affinity method. May be blocked by modern Anti-Cheats, 
+                            _logger.Debug("Using Affinity mode - standard hard affinity");
+                            // Standard hard affinity method. May be blocked by modern Anti-Cheats,
                             // but works flawlessly for standard applications and older games.
                             using var proc = Process.GetProcessById(pid);
                             proc.ProcessorAffinity = (IntPtr)mask;
@@ -144,16 +176,19 @@ namespace ProcessCoreOptimizer.WPF.Services
                                 NativeMethods.SetProcessDefaultCpuSets(hProcClean, new uint[0], 0);
                                 NativeMethods.CloseHandle(hProcClean);
                             }
+                            _logger.Debug($"Affinity mode applied successfully to PID {pid}");
                             return "OK_AFFINITY";
                         }
 
                     case OptimizationMode.CpuSets:
                         {
-                            // Bypass Anti-Cheat restrictions by opening the process with limited rights 
+                            _logger.Debug("Using CPU Sets mode - bypassing Anti-Cheat restrictions");
+                            // Bypass Anti-Cheat restrictions by opening the process with limited rights
                             // (PROCESS_SET_LIMITED_INFORMATION) instead of requesting full execution access.
                             IntPtr hProc = NativeMethods.OpenProcess(NativeMethods.PROCESS_SET_LIMITED_INFORMATION, false, pid);
                             if (hProc == IntPtr.Zero)
                             {
+                                _logger.Error($"Failed to open process with limited info: error {Marshal.GetLastWin32Error()}");
                                 return $"ERR_OPENPROCESS_{Marshal.GetLastWin32Error()}";
                             }
 
@@ -161,6 +196,7 @@ namespace ProcessCoreOptimizer.WPF.Services
                             if (selectedSetIds.Length == 0)
                             {
                                 NativeMethods.CloseHandle(hProc);
+                                _logger.Error("No CPU sets mapped for the selected cores");
                                 return "ERR_NO_CPUSETS_MAPPED";
                             }
 
@@ -171,24 +207,33 @@ namespace ProcessCoreOptimizer.WPF.Services
                             // Always close the unmanaged handle to prevent memory leaks
                             NativeMethods.CloseHandle(hProc);
 
-                            if (!success) return $"ERR_API_{win32Error}";
+                            if (!success)
+                            {
+                                _logger.Error($"Failed to set CPU sets: error {win32Error}");
+                                return $"ERR_API_{win32Error}";
+                            }
+                            _logger.Debug($"CPU Sets mode applied successfully to PID {pid}");
                             return "OK_CPUSETS";
                         }
 
                     case OptimizationMode.Exclusive:
                         {
+                            _logger.Info("Using Exclusive mode - evicting other processes");
                             using var proc = Process.GetProcessById(pid);
                             proc.ProcessorAffinity = (IntPtr)mask;
 
                             // Trigger the eviction protocol for all other processes
                             ApplyExclusiveIsolation(pid, mask);
+                            _logger.Debug($"Exclusive mode applied successfully to PID {pid}");
                             return "OK_EXCLUSIVE";
                         }
                 }
+                _logger.Error("Unknown optimization mode specified");
                 return "ERR_UNKNOWN_MODE";
             }
             catch (Exception ex)
             {
+                _logger.Error($"Failed to apply core optimization to PID {pid}", ex);
                 return $"ERR_EXC: {ex.Message}";
             }
         }

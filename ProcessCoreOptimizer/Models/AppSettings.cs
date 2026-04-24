@@ -40,5 +40,33 @@
         public bool CloseToTray { get; set; } = true;
         public string Language { get; set; } = "en";
         #endregion
+
+        #region Logging Settings
+        /// <summary>
+        /// Gets or sets a value indicating whether logging is enabled.
+        /// </summary>
+        public bool LogEnabled { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets the minimum log level for messages to be logged.
+        /// Lower values (Debug=0) mean more verbose logging.
+        /// </summary>
+        public int LogLevelValue { get; set; } = 1; // Default: Info
+
+        /// <summary>
+        /// Gets or sets the file path for log output.
+        /// </summary>
+        public string LogFilePath { get; set; } = "ProcessCoreOptimizer.log";
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to output logs to console.
+        /// </summary>
+        public bool EnableConsoleOutput { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets the source name prefix for log messages.
+        /// </summary>
+        public string LogSourceName { get; set; } = "ProcessCoreOptimizer";
+        #endregion
     }
 }

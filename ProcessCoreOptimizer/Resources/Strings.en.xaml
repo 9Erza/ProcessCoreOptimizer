@@ -23,6 +23,8 @@
     <system:String x:Key="StrSelectAll">Select All</system:String>
     <system:String x:Key="StrClearAll">Clear All</system:String>
     <system:String x:Key="StrDisableSMT">Disable SMT</system:String>
+    <system:String x:Key="StrDisableSMT_AMD">Disable SMT</system:String>
+    <system:String x:Key="StrDisableSMT_Intel">Disable HT</system:String>
     <system:String x:Key="StrDisableECores">Disable E-Cores</system:String>
     <system:String x:Key="StrSetPriority">Set Priority</system:String>
     <system:String x:Key="StrSetAffinity">Set Affinity</system:String>
