@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -18,12 +18,12 @@ namespace ProcessCoreOptimizer.WPF.Services
         private const int MaxAffinityMaskLogicalProcessors = 64;
         private readonly ILogger _logger;
         private readonly List<PerformanceCounter> _cpuCounters = new();
+        private bool _countersInitialized;
         private bool _disposed;
 
         public HardwareService()
         {
             _logger = LoggerService.Instance;
-            InitializeCounters();
         }
 
         public List<CoreInfo> GetCoreTopology()
@@ -60,6 +60,7 @@ namespace ProcessCoreOptimizer.WPF.Services
 
         public List<double> GetCurrentLoads()
         {
+            EnsureCountersInitialized();
             var loads = new List<double>();
 
             foreach (var counter in _cpuCounters)
@@ -263,8 +264,11 @@ namespace ProcessCoreOptimizer.WPF.Services
             return results;
         }
 
-        private void InitializeCounters()
+        private void EnsureCountersInitialized()
         {
+            if (_countersInitialized || _disposed) return;
+            _countersInitialized = true;
+
             try
             {
                 int coreCount = Math.Min(Environment.ProcessorCount, MaxAffinityMaskLogicalProcessors);
@@ -283,17 +287,27 @@ namespace ProcessCoreOptimizer.WPF.Services
             }
         }
 
-        public void Dispose()
+        public void ReleaseCpuLoadCounters()
         {
-            if (_disposed) return;
-            _disposed = true;
-
             foreach (var counter in _cpuCounters)
             {
                 counter.Dispose();
             }
 
+            if (_cpuCounters.Count > 0)
+            {
+                _logger.Debug($"Released {_cpuCounters.Count} CPU performance counters");
+            }
+
             _cpuCounters.Clear();
+            _countersInitialized = false;
+        }
+
+        public void Dispose()
+        {
+            if (_disposed) return;
+            _disposed = true;
+            ReleaseCpuLoadCounters();
         }
 
         private sealed class CpuSetInfo

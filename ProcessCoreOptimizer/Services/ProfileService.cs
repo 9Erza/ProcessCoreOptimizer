@@ -10,7 +10,7 @@ using System.Text.Json.Serialization;
 namespace ProcessCoreOptimizer.WPF.Services
 {
     /// <summary>
-    /// Loads, validates, deduplicates and saves process optimization profiles.
+    /// Loads, validates, deduplicates, migrates and safely saves process optimization profiles.
     /// </summary>
     public class ProfileService
     {
@@ -43,7 +43,9 @@ namespace ProcessCoreOptimizer.WPF.Services
 
             try
             {
-                string jsonContent = File.ReadAllText(_filePath);
+                string? jsonContent = AtomicFileService.ReadAllTextWithBackup(_filePath);
+                if (string.IsNullOrWhiteSpace(jsonContent)) return new List<ProcessProfile>();
+
                 var loadedProfiles = JsonSerializer.Deserialize<List<ProcessProfile>>(jsonContent, JsonOptions) ?? new List<ProcessProfile>();
                 var sanitized = SanitizeProfiles(loadedProfiles).ToList();
 
@@ -68,7 +70,11 @@ namespace ProcessCoreOptimizer.WPF.Services
             {
                 var sanitized = SanitizeProfiles(profiles).ToList();
                 string jsonContent = JsonSerializer.Serialize(sanitized, JsonOptions);
-                File.WriteAllText(_filePath, jsonContent);
+
+                // Validate the serialized JSON before replacing the live file.
+                _ = JsonSerializer.Deserialize<List<ProcessProfile>>(jsonContent, JsonOptions);
+
+                AtomicFileService.WriteAllTextAtomic(_filePath, jsonContent);
                 _logger.Info($"Profiles saved: {sanitized.Count}");
             }
             catch (Exception ex)
@@ -84,15 +90,26 @@ namespace ProcessCoreOptimizer.WPF.Services
                 .Select(SanitizeProfile)
                 .Where(p => !string.IsNullOrWhiteSpace(p.ProcessName))
                 .Where(p => p.AffinityMask != 0)
+                .Where(p => p.ApplyPriority || p.ApplyCoreOptimization)
                 .GroupBy(p => p.ProcessName, StringComparer.OrdinalIgnoreCase)
-                .Select(g => g.Last())
+                .Select(g => g.OrderBy(p => p.UpdatedAt).Last())
                 .OrderBy(p => p.ProcessName, StringComparer.OrdinalIgnoreCase);
         }
 
         private static ProcessProfile SanitizeProfile(ProcessProfile profile)
         {
+            profile.SchemaVersion = 2;
+            profile.Id = string.IsNullOrWhiteSpace(profile.Id) ? Guid.NewGuid().ToString("N") : profile.Id;
             profile.ProcessName = NormalizeProcessName(profile.ProcessName);
+            profile.DisplayName = string.IsNullOrWhiteSpace(profile.DisplayName) ? profile.ProcessName : profile.DisplayName;
+            profile.ExecutablePath = string.IsNullOrWhiteSpace(profile.ExecutablePath) ? null : profile.ExecutablePath.Trim();
             profile.Priority = PriorityService.Normalize(profile.Priority, allowRealtime: true);
+            profile.CreatedAt = profile.CreatedAt == default ? DateTime.UtcNow : profile.CreatedAt;
+            profile.UpdatedAt = profile.UpdatedAt == default ? DateTime.UtcNow : profile.UpdatedAt;
+
+            // Preserve old profile behavior: legacy profiles without these fields apply both parts.
+            profile.ApplyPriority = profile.ApplyPriority;
+            profile.ApplyCoreOptimization = profile.ApplyCoreOptimization;
 
 #pragma warning disable CS0618
             if (profile.OptimizationMode == OptimizationMode.Exclusive)
@@ -123,6 +140,8 @@ namespace ProcessCoreOptimizer.WPF.Services
                 if (left[i].Priority != PriorityService.Normalize(right[i].Priority, allowRealtime: true)) return false;
                 if (left[i].OptimizationMode != right[i].OptimizationMode) return false;
                 if (left[i].IsEnabled != right[i].IsEnabled) return false;
+                if (left[i].ApplyPriority != right[i].ApplyPriority) return false;
+                if (left[i].ApplyCoreOptimization != right[i].ApplyCoreOptimization) return false;
             }
 
             return true;

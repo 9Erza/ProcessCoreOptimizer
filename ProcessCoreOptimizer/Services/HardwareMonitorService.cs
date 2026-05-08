@@ -8,59 +8,77 @@ using ProcessCoreOptimizer.WPF.Logging;
 namespace ProcessCoreOptimizer.WPF.Services
 {
     /// <summary>
-    /// Service responsible for interfacing with hardware drivers via LibreHardwareMonitor
-    /// to retrieve temperatures, loads, power consumption, and clock speeds.
+    /// Lazy hardware monitor. LibreHardwareMonitor is opened only when metrics are actually requested.
     /// </summary>
     public class HardwareMonitorService : IDisposable
     {
-        #region Private Fields
-
-        private readonly Computer _computer;
+        private Computer? _computer;
         private readonly ILogger _logger;
+        private bool _disposed;
+        private bool _enableStorageSensors;
 
-        #endregion
-
-        #region Constructor
-
-        /// <summary>
-        /// Initializes a new instance of the HardwareMonitorService and opens driver connections.
-        /// </summary>
-        public HardwareMonitorService()
+        public HardwareMonitorService(bool enableStorageSensors = false)
         {
             _logger = LoggerService.Instance;
+            _enableStorageSensors = enableStorageSensors;
+        }
+
+        public bool IsInitialized => _computer != null;
+
+        public void Configure(bool enableStorageSensors)
+        {
+            if (_enableStorageSensors == enableStorageSensors) return;
+            _enableStorageSensors = enableStorageSensors;
+
+            if (_computer != null)
+            {
+                DisposeComputer();
+            }
+        }
+
+        public void Start()
+        {
+            EnsureInitialized();
+        }
+
+        public void Stop(bool closeSensors = false)
+        {
+            if (closeSensors)
+            {
+                DisposeComputer();
+            }
+        }
+
+        private void EnsureInitialized()
+        {
+            if (_computer != null || _disposed) return;
+
             _computer = new Computer
             {
                 IsCpuEnabled = true,
                 IsGpuEnabled = true,
                 IsMemoryEnabled = true,
-                IsStorageEnabled = true
+                IsStorageEnabled = _enableStorageSensors
             };
+
             _computer.Open();
-            _logger.Info("HardwareMonitorService initialized");
+            _logger.Info($"HardwareMonitorService initialized. Storage sensors: {_enableStorageSensors}");
         }
 
-        #endregion
-
-        #region Metric Retrieval
-
-        /// <summary>
-        /// Scans all hardware components and returns a snapshot of current performance metrics.
-        /// </summary>
-        /// <returns>A HardwareMetrics object containing current sensor data.</returns>
         public HardwareMetrics GetAllMetrics()
         {
+            EnsureInitialized();
             var metrics = new HardwareMetrics();
+            if (_computer == null) return metrics;
 
             foreach (var hardware in _computer.Hardware)
             {
                 hardware.Update();
 
-                // --- CPU MONITORING ---
                 if (hardware.HardwareType == HardwareType.Cpu)
                 {
                     metrics.CpuLoad = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Load && s.Name.Contains("Total"))?.Value ?? 0;
 
-                    // Fallback logic for CPU Temperature: Prioritize "Package" sensor, then any available temp sensor
                     var pkgTemp = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Temperature && s.Name.Contains("Package"));
                     metrics.CpuTemp = pkgTemp?.Value ?? hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Temperature)?.Value ?? 0;
 
@@ -75,7 +93,6 @@ namespace ProcessCoreOptimizer.WPF.Services
                     }
                 }
 
-                // --- GPU MONITORING (Nvidia & AMD) ---
                 if (hardware.HardwareType == HardwareType.GpuNvidia || hardware.HardwareType == HardwareType.GpuAmd)
                 {
                     metrics.GpuLoad = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Load && s.Name.Contains("Core"))?.Value ?? 0;
@@ -90,17 +107,14 @@ namespace ProcessCoreOptimizer.WPF.Services
                     metrics.VramUsagePct = vramLoad?.Value ?? 0;
                 }
 
-                // --- RAM MONITORING ---
                 if (hardware.HardwareType == HardwareType.Memory)
                 {
-                    // Use exact "==" match to avoid confusion with "Virtual Memory Used" from the paging file
                     metrics.RamUsagePct = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Load && s.Name == "Memory")?.Value ?? 0;
                     metrics.RamUsedGB = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Data && s.Name == "Memory Used")?.Value ?? 0;
                     metrics.RamAvailableGB = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Data && s.Name == "Memory Available")?.Value ?? 0;
                 }
 
-                // --- STORAGE MONITORING ---
-                if (hardware.HardwareType == HardwareType.Storage)
+                if (_enableStorageSensors && hardware.HardwareType == HardwareType.Storage)
                 {
                     var temp = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Temperature);
                     if (temp != null)
@@ -108,80 +122,69 @@ namespace ProcessCoreOptimizer.WPF.Services
                 }
             }
 
-            // --- NATIVE RAM FALLBACK ---
-            // If LibreHardwareMonitor fails (e.g., due to Ring0 driver conflicts or missing Admin rights),
-            // securely retrieve RAM data directly from the Windows OS kernel.
-            if (metrics.RamUsagePct == 0 || metrics.RamUsedGB == 0)
-            {
-                try
-                {
-                    using var availableCounter = new System.Diagnostics.PerformanceCounter("Memory", "Available MBytes");
-                    double availableMB = availableCounter.NextValue();
-
-                    // Windows Management Instrumentation (WMI) to fetch total visible memory
-                    using var searcher = new System.Management.ManagementObjectSearcher("SELECT TotalVisibleMemorySize FROM Win32_OperatingSystem");
-                    double totalMB = 0;
-                    foreach (var item in searcher.Get())
-                    {
-                        totalMB = Convert.ToDouble(item["TotalVisibleMemorySize"]) / 1024; // KB to MB
-                    }
-
-                    if (totalMB > 0)
-                    {
-                        double usedMB = totalMB - availableMB;
-                        metrics.RamAvailableGB = Math.Round(availableMB / 1024.0, 1);
-                        metrics.RamUsedGB = Math.Round(usedMB / 1024.0, 1);
-                        metrics.RamUsagePct = Math.Round((usedMB / totalMB) * 100, 1);
-                    }
-                }
-                catch
-                {
-                    // Ignore fallback errors to prevent application crashes
-                }
-            }
-
+            FillRamFallback(metrics);
             return metrics;
         }
 
-        #endregion
-
-        #region Cleanup
-
-        /// <summary>
-        /// Safely closes the hardware driver connections and releases resources.
-        /// </summary>
-        public void Dispose()
+        private static void FillRamFallback(HardwareMetrics metrics)
         {
+            if (metrics.RamUsagePct != 0 && metrics.RamUsedGB != 0) return;
+
             try
             {
-                _computer.Close();
-                _logger.Info("HardwareMonitorService disposed");
+                using var availableCounter = new System.Diagnostics.PerformanceCounter("Memory", "Available MBytes");
+                double availableMB = availableCounter.NextValue();
+
+                using var searcher = new ManagementObjectSearcher("SELECT TotalVisibleMemorySize FROM Win32_OperatingSystem");
+                double totalMB = 0;
+                foreach (var item in searcher.Get())
+                {
+                    totalMB = Convert.ToDouble(item["TotalVisibleMemorySize"]) / 1024;
+                }
+
+                if (totalMB > 0)
+                {
+                    double usedMB = totalMB - availableMB;
+                    metrics.RamAvailableGB = Math.Round(availableMB / 1024.0, 1);
+                    metrics.RamUsedGB = Math.Round(usedMB / 1024.0, 1);
+                    metrics.RamUsagePct = Math.Round((usedMB / totalMB) * 100, 1);
+                }
             }
             catch
             {
-                // Ignore cleanup errors
+                // Ignore fallback errors to prevent application crashes.
             }
         }
 
-        #endregion
+        private void DisposeComputer()
+        {
+            try
+            {
+                _computer?.Close();
+                _computer = null;
+                _logger.Info("HardwareMonitorService sensors closed");
+            }
+            catch
+            {
+                // Ignore cleanup errors.
+            }
+        }
+
+        public void Dispose()
+        {
+            if (_disposed) return;
+            _disposed = true;
+            DisposeComputer();
+        }
     }
 
-    /// <summary>
-    /// Data Transfer Object (DTO) containing a snapshot of all hardware sensor readings.
-    /// </summary>
     public class HardwareMetrics
     {
-        #region CPU Metrics
-
         public double CpuLoad { get; set; }
         public double CpuTemp { get; set; }
         public double CpuPower { get; set; }
         public double CpuClock { get; set; }
         public List<string> CoreTemps { get; set; } = new List<string>();
-
-        #endregion
-
-        #region GPU Metrics
 
         public double GpuLoad { get; set; }
         public double GpuTemp { get; set; }
@@ -192,15 +195,9 @@ namespace ProcessCoreOptimizer.WPF.Services
         public double GpuPower { get; set; }
         public double VramUsagePct { get; set; }
 
-        #endregion
-
-        #region RAM & Storage Metrics
-
         public double RamUsagePct { get; set; }
         public double RamUsedGB { get; set; }
         public double RamAvailableGB { get; set; }
         public string StorageInfo { get; set; } = "No data";
-
-        #endregion
     }
 }

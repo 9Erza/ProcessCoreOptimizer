@@ -28,12 +28,15 @@ The previous **Exclusive** mode has been removed because moving unrelated backgr
 ## Key features
 
 - **Persistent profiles:** Save affinity / CPU Sets / priority settings per process name and apply them automatically when the process starts.
+- **Lightweight profile watcher:** In the background, PCO watches only enabled profile process names instead of constantly scanning the entire process table.
 - **Priority management:** Change priority from Idle to High. RealTime priority is hidden by default and must be explicitly enabled in settings.
 - **P/E-core awareness:** Uses Windows CPU Sets topology data where available to label Performance cores, Efficiency cores and SMT/HT threads more accurately.
 - **Per-core selection:** Select all cores, clear all cores, disable SMT/HT threads or disable E-cores.
-- **Real-time telemetry:** CPU, GPU and RAM metrics through LibreHardwareMonitor.
+- **On-demand telemetry:** CPU, GPU and RAM metrics through LibreHardwareMonitor, initialized only when the Hardware tab is opened.
 - **Bilingual UI:** English and Polish.
 - **User-data safe storage:** Profiles, settings and logs are stored under `%APPDATA%\ProcessCoreOptimizer`.
+- **Safer persistence:** Profiles and settings are written atomically with backup fallback to reduce JSON corruption risk.
+- **Single-instance guard:** Prevents multiple app instances from fighting over process profiles.
 
 ---
 
@@ -88,6 +91,14 @@ If older versions stored `settings.json` or `profiles.json` next to the `.exe`, 
     </tr>
   </table>
 </details>
+
+---
+
+## v1.3.0 foundation changes
+
+Version 1.3.0 focuses on making PCO a stable foundation for the future ERZA Performance Hub. It introduces a separated process scanner, a central optimization service, lazy hardware monitoring, atomic JSON persistence, log rotation and startup argument parsing.
+
+See `CHANGELOG.md` for details.
 
 ---
 
