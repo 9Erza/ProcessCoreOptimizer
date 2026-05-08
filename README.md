@@ -10,82 +10,80 @@
   <img src="https://img.shields.io/badge/platform-Windows-blue?style=flat-square" alt="Platform">
 </p>
 
-**Process Core Optimizer (PCO)** is a professional-grade system utility built on the WPF framework, engineered to grant you absolute control over Windows thread scheduling and CPU resource allocation. Whether you are a competitive gamer or a power user, PCO ensures your critical applications get the performance they deserve.
+**Process Core Optimizer (PCO)** is a Windows utility for advanced users who want to manage process priority, classic CPU affinity and Windows CPU Sets from a clean WPF interface.
+
+PCO is intended for experimentation, troubleshooting and personal performance tuning. Performance gains are workload-dependent and are not guaranteed.
 
 ---
 
-The latest version introduces a sophisticated 3-tier optimization logic, allowing you to choose how the Windows Scheduler treats your processes:
+## Optimization modes
 
-- **🔵 Affinity (Standard):** Strict hard-binding of threads to specific cores. Ideal for legacy software and standard applications.
-- **🟢 CPU Sets (Smart):** A modern "soft-affinity" approach. It prioritizes selected cores for your game, providing superior frame pacing and reduced micro-stutters without starving the OS.
-- **🟡 Exclusive (Hardcore):** Pure core isolation. PCO actively evicts background processes (browsers, Discord, system bloat) from your game's assigned cores, creating a high-performance "Clean Core Environment."
+- **Affinity:** Strictly binds selected processes to selected logical processors by using classic Windows process affinity.
+- **CPU Sets:** Uses documented Windows CPU Sets as a softer scheduling hint. This is usually safer than hard affinity for modern Windows scheduling.
 
----
-
-## 🛡️ Anti-Cheat Stealth Integration
-
-* **Smart Optimization:** By utilizing **CPU Sets** instead of traditional affinity locking, PCO avoids compatibility issues with aggressive anti-cheats (FaceitAC (CS2), Vanguard (Valorant)) while still delivering performance benefits.
-* **Stealth Integration:** v1.1.1 uses low-level Windows API calls (`PROCESS_SET_LIMITED_INFORMATION`) to seamlessly apply CPU Sets to protected processes without triggering anti-cheat alarms, "Access Denied" errors, or system crashes.
+The previous **Exclusive** mode has been removed because moving unrelated background processes away from selected cores can reduce system stability and is not worth the risk for a normal desktop utility. Old profiles containing `Exclusive` are automatically migrated to `Affinity`.
 
 ---
 
-## 🌟 Key Features
+## Key features
 
-### 🛠️ Strategic Process Control
-- **P/E-Core Management:** Force your games onto high-frequency Performance cores and away from Efficiency cores (E-Cores) to eliminate latency spikes.
-- **Dynamic Priority Adjustments:** Switch process priorities on the fly (from Idle to Real-Time) to ensure your active tasks are never bottlenecked.
-- **Persistent Profiles:** Save custom configurations that are automatically applied whenever your game is detected in the background.
-
-### 🎨 Intelligent UX/UI
-- **Color-Coded Feedback:** The process list features dynamic tags: **[Affinity]**, **[CPU Sets]**, and **[Exclusive]** to provide instant visual confirmation of active optimizations.
-- **Modern Dark Interface:** A sleek, high-DPI aware WPF design with smooth transitions and organized layouts.
-- **System Tray Integration:** Minimize the app to the tray for silent, automated background management.
-- **Bilingual Support:** Fully localized in **English** and **Polish**.
-
-### 📊 Real-Time Hardware Telemetry
-Track your system's vital signs with built-in monitoring (powered by LibreHardwareMonitor):
-- **CPU:** Usage per core, Temperature, Average Clock Speed, and Power Draw (TDP).
-- **GPU:** Load, Core/Memory Clocks, Hot Spot, VRAM Temperature, and Power Draw.
-- **RAM:** Total utilization % and detailed breakdown of Used vs. Available memory in GB.
+- **Persistent profiles:** Save affinity / CPU Sets / priority settings per process name and apply them automatically when the process starts.
+- **Priority management:** Change priority from Idle to High. RealTime priority is hidden by default and must be explicitly enabled in settings.
+- **P/E-core awareness:** Uses Windows CPU Sets topology data where available to label Performance cores, Efficiency cores and SMT/HT threads more accurately.
+- **Per-core selection:** Select all cores, clear all cores, disable SMT/HT threads or disable E-cores.
+- **Real-time telemetry:** CPU, GPU and RAM metrics through LibreHardwareMonitor.
+- **Bilingual UI:** English and Polish.
+- **User-data safe storage:** Profiles, settings and logs are stored under `%APPDATA%\ProcessCoreOptimizer`.
 
 ---
 
-## ⚠️ Important: Version Compatibility
-Version 1.1.1 uses a new, more secure method for saving profiles. If you are upgrading from an older version and your profiles do not appear correctly, please delete `profiles.json` in the application folder and recreate them to take full advantage of the new engine.
+## Important limitations
+
+- The UI currently targets the first Windows processor group / first 64 logical processors. Very large workstation CPUs may require future multi-group support.
+- Some protected processes or games may reject external priority, affinity or CPU Set changes.
+- Compatibility with anti-cheat systems is not guaranteed. Use with online games at your own risk.
+- RealTime priority can make the system unresponsive. It is disabled in the UI unless explicitly enabled in settings.
 
 ---
 
-## 📸 Screenshots
+## Data files
+
+PCO stores user data here:
+
+```text
+%APPDATA%\ProcessCoreOptimizer\settings.json
+%APPDATA%\ProcessCoreOptimizer\profiles.json
+%APPDATA%\ProcessCoreOptimizer\ProcessCoreOptimizer.log
+```
+
+If older versions stored `settings.json` or `profiles.json` next to the `.exe`, PCO migrates them automatically on first launch.
+
+---
+
+## Screenshots
 
 <details>
-  <summary><b>📷 Click to expand / hide gallery</b></summary>
+  <summary><b>Click to expand / hide gallery</b></summary>
   <br>
   <table align="center">
     <tr>
       <td align="center" width="50%">
-        <b>🖥️ System Processes (with Color Tags)</b><br>
+        <b>System Processes</b><br>
         <img src="https://raw.githubusercontent.com/9Erza/ProcessCoreOptimizer/main/ProcessCoreOptimizer/Screenshots/screen_system-processes.png" width="100%" alt="System Processes" />
       </td>
       <td align="center" width="50%">
-        <b>💾 Enhanced Profiles Manager</b><br>
+        <b>Profiles Manager</b><br>
         <img src="https://raw.githubusercontent.com/9Erza/ProcessCoreOptimizer/main/ProcessCoreOptimizer/Screenshots/screen_saved-profiles.png" width="100%" alt="Saved Profiles" />
       </td>
     </tr>
     <tr>
       <td align="center">
-        <b>📊 Hardware Monitor (CPU/GPU)</b><br>
+        <b>Hardware Monitor</b><br>
         <img src="https://raw.githubusercontent.com/9Erza/ProcessCoreOptimizer/main/ProcessCoreOptimizer/Screenshots/screen_hardware-monitor-1.png" width="100%" alt="Hardware Monitor 1" />
       </td>
       <td align="center">
-        <b>📊 Detailed Telemetry</b><br>
+        <b>Detailed Telemetry</b><br>
         <img src="https://raw.githubusercontent.com/9Erza/ProcessCoreOptimizer/main/ProcessCoreOptimizer/Screenshots/screen_hardware-monitor-2.png" width="100%" alt="Hardware Monitor 2" />
-      </td>
-    </tr>
-    <tr>
-      <td align="center" colspan="2">
-        <br>
-        <b>⚙️ Application Settings</b><br>
-        <img src="https://raw.githubusercontent.com/9Erza/ProcessCoreOptimizer/main/ProcessCoreOptimizer/Screenshots/screen_settings.png" width="49.5%" alt="Settings" />
       </td>
     </tr>
   </table>
@@ -93,24 +91,31 @@ Version 1.1.1 uses a new, more secure method for saving profiles. If you are upg
 
 ---
 
-## 📥 Installation
+## Build
 
-1. Navigate to the [**Releases**](https://github.com/9Erza/ProcessCoreOptimizer/releases) section.
-2. Download `ProcessCoreOptimizer_Setup.exe`.
-3. Run the installer.
-4. **Note:** Enable the **"Run as Administrator"** option in the app settings to allow the bypass of system-level restrictions for protected games.
+Open the solution in Visual Studio Community and run:
 
----
+```text
+Build > Rebuild Solution
+```
 
-## 🛠️ Tech Stack
-- **Language:** C#
-- **Framework:** .NET 10
-- **UI Engine:** WPF (Windows Presentation Foundation)
+The project targets Windows WPF on .NET.
 
 ---
 
-## 👤 Author
+## Tech stack
+
+- C#
+- WPF
+- Windows CPU Sets API
+- LibreHardwareMonitor
+
+---
+
+## Author
+
 Developed by **[Eryk / 9Erza](https://github.com/9Erza)**.
 
-## 📄 License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## License
+
+MIT License. See [LICENSE](LICENSE).

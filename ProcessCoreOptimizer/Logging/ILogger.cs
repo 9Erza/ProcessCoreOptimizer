@@ -38,11 +38,6 @@ namespace ProcessCoreOptimizer.WPF.Logging
         void Fatal(string message, Exception? ex = null);
 
         /// <summary>
-        /// Loguje wiadomość na określonym poziomie z opcjonalnym wyjątkiem.
-        /// </summary>
-        void Log<TLevel>(string message, Exception? ex = null) where TLevel : ILogLevel;
-
-        /// <summary>
         /// Loguje wyjątek z domyślnym komunikatem.
         /// </summary>
         void LogException(Exception ex);

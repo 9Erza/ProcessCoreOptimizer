@@ -1,4 +1,4 @@
-﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:system="clr-namespace:System;assembly=mscorlib">
 
@@ -35,12 +35,16 @@
     <system:String x:Key="StrOptimizationMode">Tryb Optymalizacji:</system:String>
     <system:String x:Key="ModeAffinity">Koligacja (Standardowy)</system:String>
     <system:String x:Key="ModeCpuSets">Zestawy CPU (Inteligentny)</system:String>
-    <system:String x:Key="ModeExclusive">Wyłączność (Hardcore)</system:String>
+    <system:String x:Key="ModeExclusive">Zestawy CPU (Inteligentny)</system:String>
 
     <system:String x:Key="StrColName">NAZWA</system:String>
     <system:String x:Key="StrColPriority">PRIORYTET</system:String>
     <system:String x:Key="StrColRam">RAM</system:String>
     <system:String x:Key="StrColCpu">CPU</system:String>
+    <system:String x:Key="StrColInstances">INST.</system:String>
+    <system:String x:Key="StrAllowRealtime">Pokaż priorytet RealTime (zaawansowane)</system:String>
+    <system:String x:Key="StrRealtimeWarn">Może spowodować przycięcia systemu. Używaj tylko świadomie.</system:String>
+    <system:String x:Key="StrLogEnabled">Włącz logowanie do pliku</system:String>
     <system:String x:Key="StrColMode">TRYB</system:String>
 
     <system:String x:Key="StrCpuUsage">UŻYCIE CPU</system:String>

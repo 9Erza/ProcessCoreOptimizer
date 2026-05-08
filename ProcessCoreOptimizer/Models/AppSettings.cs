@@ -1,72 +1,27 @@
-﻿namespace ProcessCoreOptimizer.WPF.Models
+namespace ProcessCoreOptimizer.WPF.Models
 {
     /// <summary>
-    /// Represents the application configuration settings, 
-    /// primarily focused on behavior and system integration.
+    /// Represents persistent user configuration.
     /// </summary>
     public class AppSettings
     {
-        #region Startup Settings
-        /// <summary>
-        /// Gets or sets a value indicating whether the application 
-        /// should start automatically when Windows logs in.
-        /// </summary>
         public bool StartWithWindows { get; set; } = false;
-
-        /// <summary>
-        /// Gets or sets a value indicating whether the application 
-        /// should start in a minimized state.
-        /// </summary>
         public bool StartMinimized { get; set; } = false;
-
-        /// <summary>
-        /// Gets or sets a value indicating whether the application 
-        /// requires elevated administrator privileges at startup.
-        /// </summary>
         public bool RunAsAdministrator { get; set; } = false;
-        #endregion
 
-        #region Window Behavior Settings
-        /// <summary>
-        /// Gets or sets a value indicating whether the application 
-        /// should hide to the system tray when minimized.
-        /// </summary>
         public bool MinimizeToTray { get; set; } = true;
-
-        /// <summary>
-        /// Gets or sets a value indicating whether clicking the 'X' button 
-        /// should minimize to the tray instead of closing the application.
-        /// </summary>
         public bool CloseToTray { get; set; } = true;
         public string Language { get; set; } = "en";
-        #endregion
 
-        #region Logging Settings
         /// <summary>
-        /// Gets or sets a value indicating whether logging is enabled.
+        /// RealTime priority can make Windows feel frozen. It is hidden unless the user explicitly enables it.
         /// </summary>
+        public bool AllowRealtimePriority { get; set; } = false;
+
         public bool LogEnabled { get; set; } = true;
-
-        /// <summary>
-        /// Gets or sets the minimum log level for messages to be logged.
-        /// Lower values (Debug=0) mean more verbose logging.
-        /// </summary>
-        public int LogLevelValue { get; set; } = 1; // Default: Info
-
-        /// <summary>
-        /// Gets or sets the file path for log output.
-        /// </summary>
+        public int LogLevelValue { get; set; } = 1; // Debug=0, Info=1, Warn=2, Error=3, Fatal=4
         public string LogFilePath { get; set; } = "ProcessCoreOptimizer.log";
-
-        /// <summary>
-        /// Gets or sets a value indicating whether to output logs to console.
-        /// </summary>
-        public bool EnableConsoleOutput { get; set; } = true;
-
-        /// <summary>
-        /// Gets or sets the source name prefix for log messages.
-        /// </summary>
+        public bool EnableConsoleOutput { get; set; } = false;
         public string LogSourceName { get; set; } = "ProcessCoreOptimizer";
-        #endregion
     }
 }
