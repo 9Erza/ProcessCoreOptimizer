@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
-using System.Net.Http;
+using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows;
 using WpfApplication = System.Windows.Application;
@@ -22,22 +22,24 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
     /// </summary>
     public class MainViewModel : ViewModelBase, IDisposable
     {
-        private readonly HardwareMonitorService _hwService = new();
+        private HardwareMonitorService? _hwService;
         private readonly SettingsService _settingsService = new();
         private readonly ProcessService _processService = new();
         private readonly HardwareService _hardwareService = new();
         private readonly ProfileService _profileService = new();
+        private readonly ProcessScannerService _processScannerService;
+        private readonly OptimizationService _optimizationService;
+        private readonly LocalizationService _localizationService = new();
+        private readonly UpdateService _updateService = new();
 
         private readonly DispatcherTimer _hwTimer;
         private readonly DispatcherTimer _refreshTimer;
 
         private AppSettings _appSettings;
         private Dictionary<int, uint> _cpuSetMap = new();
-        private readonly Dictionary<int, TimeSpan> _lastCpuTime = new();
-        private readonly Dictionary<int, string> _appliedProfileSignatures = new();
         private List<ProcessProfile> _profiles = new();
+        private readonly Dictionary<string, DateTime> _lastOptimizationDiagnosticLogUtc = new();
 
-        private DateTime _lastSampleTime = DateTime.Now;
         private bool _isRefreshing;
         private bool _disposed;
 
@@ -83,9 +85,9 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         public ICommand DisableECoresCommand { get; }
         public ICommand ToggleSettingCommand { get; }
 
-        public string AppVersion { get; } = "1.2.0";
-        private readonly string _versionRawUrl = "https://raw.githubusercontent.com/9Erza/ProcessCoreOptimizer/refs/heads/main/version.txt";
-        private readonly string _releasesUrl = "https://github.com/9Erza/ProcessCoreOptimizer/releases";
+        public string AppVersion { get; } = Assembly.GetExecutingAssembly()
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+            .InformationalVersion ?? "1.3.0";
 
         public AppSettings AppSettings
         {
@@ -109,6 +111,30 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         public Visibility ViewProfiles { get => _viewProfiles; set => SetProperty(ref _viewProfiles, value); }
         public Visibility ViewHardwareMonitor { get => _viewHardwareMonitor; set => SetProperty(ref _viewHardwareMonitor, value); }
         public Visibility ViewSettings { get => _viewSettings; set => SetProperty(ref _viewSettings, value); }
+
+        public bool IsHardwareMonitorEnabled
+        {
+            get => AppSettings.HardwareMonitorEnabled;
+            set
+            {
+                if (AppSettings.HardwareMonitorEnabled == value) return;
+
+                AppSettings.HardwareMonitorEnabled = value;
+                OnPropertyChanged();
+                _settingsService.SaveSettings(AppSettings);
+
+                if (value)
+                {
+                    StartHardwareMonitorIfVisible();
+                }
+                else
+                {
+                    StopHardwareMonitor(closeSensors: true, resetMetrics: true);
+                }
+            }
+        }
+
+        public bool IsHardwareMonitorRunning => _hwService?.IsInitialized == true && _hwTimer.IsEnabled;
 
         public bool HasECores => Cores.Any(c => c.IsECore);
 
@@ -226,6 +252,9 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             _appSettings = _settingsService.LoadSettings();
             ConfigureLoggerFromSettings();
 
+            _processScannerService = new ProcessScannerService(_processService);
+            _optimizationService = new OptimizationService(_processService, () => _cpuSetMap);
+
             _cpuSetMap = _hardwareService.GetLogicalCoreToCpuSetIdMap();
             foreach (var core in _hardwareService.GetCoreTopology())
             {
@@ -235,11 +264,12 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
 
             _profiles = _profileService.LoadProfiles();
             RefreshSavedProfilesView();
+            LogProfileWatcherStartupSummary();
 
-            _hwTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+            _hwTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(AppSettings.HardwareRefreshSeconds) };
             _hwTimer.Tick += (s, e) => UpdateHardwareMetrics();
 
-            _refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+            _refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(AppSettings.ProcessListRefreshSeconds) };
             _refreshTimer.Tick += async (s, e) => await RefreshStatisticsAsync();
 
             SwitchTabCommand = new RelayCommand(tab => SwitchTab(tab?.ToString()));
@@ -256,59 +286,49 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             ApplyLanguage(_appSettings.Language);
             _refreshTimer.Start();
             AddLog($"System initialized. App Version v{AppVersion}");
-            _ = CheckForUpdatesAsync();
+            if (AppSettings.CheckForUpdates && !ProcessCoreOptimizer.WPF.App.StartupOptions.DisableUpdateCheck)
+            {
+                _ = CheckForUpdatesAsync();
+            }
+        }
+
+        private bool IsProcessListUiActive()
+        {
+            var window = WpfApplication.Current.MainWindow;
+            return ActiveTab == "Processes"
+                && window?.IsVisible == true
+                && window.WindowState != WindowState.Minimized;
         }
 
         private async Task RefreshStatisticsAsync()
         {
             if (_isRefreshing || _disposed) return;
             _isRefreshing = true;
-            Process[] systemProcesses = Array.Empty<Process>();
 
             try
             {
-                systemProcesses = await Task.Run(Process.GetProcesses);
-                double elapsedSeconds = Math.Max((DateTime.Now - _lastSampleTime).TotalSeconds, 0.1);
-                _lastSampleTime = DateTime.Now;
+                bool fullUiScan = IsProcessListUiActive();
+                _refreshTimer.Interval = TimeSpan.FromSeconds(fullUiScan ? AppSettings.ProcessListRefreshSeconds : AppSettings.ProfileWatcherSeconds);
 
-                UpdateCoreLoads();
-
-                var userProcs = systemProcesses.Where(p => _processService.IsUserProcess(p)).ToList();
-                CleanupProcessCaches(userProcs.Select(p => p.Id).ToHashSet());
-
-                var groupedProcs = userProcs
-                    .GroupBy(p => p.ProcessName, StringComparer.OrdinalIgnoreCase)
-                    .ToList();
-
-                foreach (var group in groupedProcs)
+                if (!fullUiScan)
                 {
-                    var profile = _profiles.FirstOrDefault(x => x.IsEnabled && x.ProcessName.Equals(group.Key, StringComparison.OrdinalIgnoreCase));
-                    if (profile != null)
-                    {
-                        ApplyProfileToProcessGroup(profile, group, force: false);
-                    }
-
-                    if (Processes.All(x => !x.Name.Equals(group.Key, StringComparison.OrdinalIgnoreCase)))
-                    {
-                        string rawPrio = profile?.Priority ?? _processService.GetPriorityString(group.First().Id);
-                        string tag = profile != null ? GetModeTag(profile.OptimizationMode) : string.Empty;
-
-                        WpfApplication.Current.Dispatcher.Invoke(() =>
-                        {
-                            Processes.Add(new ProcessItem
-                            {
-                                Id = group.First().Id,
-                                Name = group.Key,
-                                InstanceCount = group.Count(),
-                                Priority = TranslatePriority(rawPrio),
-                                IsOptimized = profile != null,
-                                ModeTag = tag
-                            });
-                        });
-                    }
+                    _hardwareService.ReleaseCpuLoadCounters();
                 }
 
-                UpdateProcessRows(userProcs, elapsedSeconds);
+                ProcessScanResult scan = fullUiScan
+                    ? await _processScannerService.ScanUserProcessesAsync()
+                    : await _processScannerService.ScanProfileProcessesAsync(_profiles);
+
+                _optimizationService.CleanupStaleCache(scan.ActiveInstances);
+                CleanupOptimizationDiagnosticLogCache();
+                var batch = _optimizationService.ApplyProfilesForSnapshots(_profiles, scan.Groups, AppSettings.AllowRealtimePriority, force: false);
+                LogOptimizationBatch(batch, fullUiScan ? "process list refresh" : "background profile watcher");
+
+                if (!fullUiScan) return;
+
+                UpdateCoreLoads();
+                AddMissingProcessRows(scan.Groups);
+                UpdateProcessRows(scan.Groups);
             }
             catch (Exception ex)
             {
@@ -316,11 +336,6 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             }
             finally
             {
-                foreach (var process in systemProcesses)
-                {
-                    process.Dispose();
-                }
-
                 _isRefreshing = false;
             }
         }
@@ -337,83 +352,73 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             });
         }
 
-        private void CleanupProcessCaches(HashSet<int> activePids)
+        private void AddMissingProcessRows(IReadOnlyList<ProcessGroupSnapshot> groups)
         {
-            foreach (var stalePid in _appliedProfileSignatures.Keys.Where(pid => !activePids.Contains(pid)).ToList())
+            WpfApplication.Current.Dispatcher.Invoke(() =>
             {
-                _appliedProfileSignatures.Remove(stalePid);
-            }
+                foreach (var group in groups)
+                {
+                    if (Processes.Any(x => x.Name.Equals(group.Name, StringComparison.OrdinalIgnoreCase))) continue;
 
-            foreach (var stalePid in _lastCpuTime.Keys.Where(pid => !activePids.Contains(pid)).ToList())
-            {
-                _lastCpuTime.Remove(stalePid);
-            }
+                    var profile = _profiles.FirstOrDefault(x => x.IsEnabled && x.ProcessName.Equals(group.Name, StringComparison.OrdinalIgnoreCase));
+                    string rawPrio = profile?.Priority ?? group.Priority.ToString();
+                    string tag = profile != null ? GetModeTag(profile.OptimizationMode) : string.Empty;
+
+                    Processes.Add(new ProcessItem
+                    {
+                        Id = group.FirstProcessId,
+                        Name = group.Name,
+                        InstanceCount = group.InstanceCount,
+                        Priority = TranslatePriority(rawPrio),
+                        IsOptimized = profile != null,
+                        ModeTag = tag,
+                        RamUsageMB = $"{group.TotalMemoryBytes / 1024 / 1024} MB",
+                        CpuUsage = $"{Math.Round(group.CpuUsagePercent, 1)}%"
+                    });
+                }
+            });
         }
 
-        private void UpdateProcessRows(List<Process> userProcs, double elapsedSeconds)
+        private void UpdateProcessRows(IReadOnlyList<ProcessGroupSnapshot> groups)
         {
-            for (int i = Processes.Count - 1; i >= 0; i--)
+            WpfApplication.Current.Dispatcher.Invoke(() =>
             {
-                var item = Processes[i];
-                var procsInGroup = userProcs.Where(p => p.ProcessName.Equals(item.Name, StringComparison.OrdinalIgnoreCase)).ToList();
-
-                if (!procsInGroup.Any())
+                for (int i = Processes.Count - 1; i >= 0; i--)
                 {
-                    WpfApplication.Current.Dispatcher.Invoke(() => Processes.RemoveAt(i));
-                    continue;
-                }
+                    var item = Processes[i];
+                    var snapshot = groups.FirstOrDefault(p => p.Name.Equals(item.Name, StringComparison.OrdinalIgnoreCase));
 
-                long totalMem = 0;
-                double totalCpuPct = 0;
-                string currentPrio = "Normal";
-
-                foreach (var p in procsInGroup)
-                {
-                    try
+                    if (snapshot == null)
                     {
-                        totalMem += p.WorkingSet64;
-                        TimeSpan currentCpu = p.TotalProcessorTime;
-
-                        if (_lastCpuTime.TryGetValue(p.Id, out TimeSpan lastTime))
-                        {
-                            double usageMs = (currentCpu - lastTime).TotalMilliseconds;
-                            totalCpuPct += (usageMs / (elapsedSeconds * 1000 * Math.Max(Environment.ProcessorCount, 1))) * 100;
-                        }
-
-                        _lastCpuTime[p.Id] = currentCpu;
-                        currentPrio = p.PriorityClass.ToString();
+                        Processes.RemoveAt(i);
+                        continue;
                     }
-                    catch (Exception ex)
-                    {
-                        _lastCpuTime.Remove(p.Id);
-                        _appliedProfileSignatures.Remove(p.Id);
-                        LoggerService.Instance.Debug($"Failed to update process row for {item.Name}: {ex.Message}");
-                    }
-                }
 
-                var profile = _profiles.FirstOrDefault(x => x.IsEnabled && x.ProcessName.Equals(item.Name, StringComparison.OrdinalIgnoreCase));
-                string currentTag = profile != null ? GetModeTag(profile.OptimizationMode) : string.Empty;
+                    var profile = _profiles.FirstOrDefault(x => x.IsEnabled && x.ProcessName.Equals(item.Name, StringComparison.OrdinalIgnoreCase));
+                    string currentTag = profile != null ? GetModeTag(profile.OptimizationMode) : string.Empty;
 
-                WpfApplication.Current.Dispatcher.Invoke(() =>
-                {
-                    item.Id = procsInGroup.First().Id;
-                    item.InstanceCount = procsInGroup.Count;
-                    item.RamUsageMB = $"{totalMem / 1024 / 1024} MB";
-                    item.CpuUsage = $"{Math.Round(totalCpuPct, 1)}%";
-                    item.Priority = TranslatePriority(currentPrio);
+                    item.Id = snapshot.FirstProcessId;
+                    item.InstanceCount = snapshot.InstanceCount;
+                    item.RamUsageMB = $"{snapshot.TotalMemoryBytes / 1024 / 1024} MB";
+                    item.CpuUsage = $"{Math.Round(snapshot.CpuUsagePercent, 1)}%";
+                    item.Priority = TranslatePriority(profile?.Priority ?? snapshot.Priority.ToString());
                     item.IsOptimized = profile != null;
                     item.ModeTag = currentTag;
-                });
-            }
+                }
+            });
         }
 
         private void UpdateHardwareMetrics()
         {
-            if (WpfApplication.Current.MainWindow?.IsVisible != true) return;
+            if (!AppSettings.HardwareMonitorEnabled || ActiveTab != "Hardware" || WpfApplication.Current.MainWindow?.IsVisible != true)
+            {
+                return;
+            }
 
             try
             {
-                var metrics = _hwService.GetAllMetrics();
+                var service = EnsureHardwareMonitorService();
+                var metrics = service.GetAllMetrics();
                 FullMetrics = metrics;
                 MonCpuTemp = Math.Round(metrics.CpuTemp, 1);
                 MonGpuTemp = Math.Round(metrics.GpuTemp, 1);
@@ -423,7 +428,58 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             catch (Exception ex)
             {
                 AddLog($"Hardware monitor failed: {ex.Message}");
+                StopHardwareMonitor(closeSensors: true, resetMetrics: false);
             }
+        }
+
+        private HardwareMonitorService EnsureHardwareMonitorService()
+        {
+            _hwService ??= new HardwareMonitorService(AppSettings.EnableStorageSensors);
+            _hwService.Configure(AppSettings.EnableStorageSensors);
+            return _hwService;
+        }
+
+        private void StartHardwareMonitorIfVisible()
+        {
+            if (ActiveTab != "Hardware" || !AppSettings.HardwareMonitorEnabled)
+            {
+                return;
+            }
+
+            var service = EnsureHardwareMonitorService();
+            service.Start();
+            _hwTimer.Interval = TimeSpan.FromSeconds(AppSettings.HardwareRefreshSeconds);
+            if (!_hwTimer.IsEnabled)
+            {
+                _hwTimer.Start();
+            }
+
+            OnPropertyChanged(nameof(IsHardwareMonitorRunning));
+            UpdateHardwareMetrics();
+        }
+
+        private void StopHardwareMonitor(bool closeSensors, bool resetMetrics)
+        {
+            _hwTimer.Stop();
+            _hwService?.Stop(closeSensors);
+
+            if (closeSensors)
+            {
+                _hwService?.Dispose();
+                _hwService = null;
+            }
+
+
+            if (resetMetrics)
+            {
+                FullMetrics = new HardwareMetrics();
+                MonCpuTemp = 0;
+                MonGpuTemp = 0;
+                MonGpuLoad = 0;
+                MonRamUsage = 0;
+            }
+
+            OnPropertyChanged(nameof(IsHardwareMonitorRunning));
         }
 
         private void SwitchTab(string? tabName)
@@ -439,8 +495,19 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             SelectedProcess = null;
             SelectedSavedProfile = null;
 
-            if (tabName == "Hardware") _hwTimer.Start();
-            else _hwTimer.Stop();
+            if (tabName == "Hardware")
+            {
+                StartHardwareMonitorIfVisible();
+            }
+            else
+            {
+                StopHardwareMonitor(closeSensors: true, resetMetrics: false);
+            }
+
+            if (tabName != "Processes")
+            {
+                _hardwareService.ReleaseCpuLoadCounters();
+            }
         }
 
         private void ApplyOptimization()
@@ -464,7 +531,11 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 AffinityMask = mask,
                 Priority = priority,
                 OptimizationMode = mode,
-                IsEnabled = true
+                IsEnabled = true,
+                ApplyPriority = true,
+                ApplyCoreOptimization = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
             };
 
             int affected = ApplyProfileToRunningProcesses(temporaryProfile, force: true);
@@ -498,7 +569,11 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 AffinityMask = mask,
                 Priority = rawPriority,
                 OptimizationMode = mode,
-                IsEnabled = true
+                IsEnabled = true,
+                ApplyPriority = true,
+                ApplyCoreOptimization = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
             };
 
             _profiles.Add(newProfile);
@@ -536,6 +611,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             SelectedSavedProfile.DisplayPriority = TranslatePriority(rawPriority);
             SelectedSavedProfile.OptimizationMode = mode;
             SelectedSavedProfile.IsEnabled = true;
+            SelectedSavedProfile.UpdatedAt = DateTime.UtcNow;
 
             _profiles = SavedProfiles.ToList();
             _profileService.SaveProfiles(_profiles);
@@ -662,87 +738,14 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
 
         private int ApplyProfileToRunningProcesses(ProcessProfile profile, bool force)
         {
-            int affected = 0;
-            Process[] processes = Array.Empty<Process>();
-
-            try
-            {
-                processes = Process.GetProcessesByName(profile.ProcessName);
-                foreach (var process in processes)
-                {
-                    if (ApplyProfileToPid(process.Id, profile, force)) affected++;
-                }
-            }
-            finally
-            {
-                foreach (var process in processes) process.Dispose();
-            }
-
-            return affected;
-        }
-
-        private int ApplyProfileToProcessGroup(ProcessProfile profile, IEnumerable<Process> processes, bool force)
-        {
-            int affected = 0;
-            foreach (var process in processes)
-            {
-                if (ApplyProfileToPid(process.Id, profile, force)) affected++;
-            }
-            return affected;
-        }
-
-        private bool ApplyProfileToPid(int pid, ProcessProfile profile, bool force)
-        {
-            if (!profile.IsEnabled) return false;
-
-            string priority = NormalizePriority(profile.Priority);
-            var mode = NormalizeOptimizationMode(profile.OptimizationMode);
-            string signature = BuildProfileSignature(profile.ProcessName, profile.AffinityMask, priority, mode, profile.IsEnabled);
-
-            if (!force && _appliedProfileSignatures.TryGetValue(pid, out string? existingSignature) && existingSignature == signature)
-            {
-                return false;
-            }
-
-            string result = _processService.ApplyCoreOptimization(pid, profile.AffinityMask, mode, _cpuSetMap);
-            bool coreApplied = result.StartsWith("OK", StringComparison.OrdinalIgnoreCase);
-            bool priorityApplied = true;
-
-            if (PriorityService.TryParse(priority, AppSettings.AllowRealtimePriority, out ProcessPriorityClass parsedPriority))
-            {
-                priorityApplied = _processService.SetPriority(pid, parsedPriority);
-            }
-
-            if (coreApplied || priorityApplied)
-            {
-                _appliedProfileSignatures[pid] = signature;
-                return true;
-            }
-
-            LoggerService.Instance.Debug($"Profile apply failed for PID {pid}: {result}");
-            return false;
-        }
-
-        private string BuildProfileSignature(string processName, long affinityMask, string priority, OptimizationMode mode, bool isEnabled)
-        {
-            return $"{processName}|{affinityMask:X}|{NormalizePriority(priority)}|{NormalizeOptimizationMode(mode)}|{isEnabled}|RT:{AppSettings.AllowRealtimePriority}";
+            var result = _optimizationService.ApplyProfileToRunningProcesses(profile, AppSettings.AllowRealtimePriority, force);
+            LogOptimizationBatch(result, force ? "manual profile action" : "background profile watcher");
+            return result.Successful;
         }
 
         private void ClearAppliedProfileCache(string processName)
         {
-            Process[] processes = Array.Empty<Process>();
-            try
-            {
-                processes = Process.GetProcessesByName(processName);
-                foreach (var process in processes)
-                {
-                    _appliedProfileSignatures.Remove(process.Id);
-                }
-            }
-            finally
-            {
-                foreach (var process in processes) process.Dispose();
-            }
+            _optimizationService.ClearProfileCacheForProcess(processName);
         }
 
         private OptimizationMode NormalizeOptimizationMode(OptimizationMode mode)
@@ -781,6 +784,96 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             }
         }
 
+        private void CleanupOptimizationDiagnosticLogCache()
+        {
+            if (_lastOptimizationDiagnosticLogUtc.Count == 0) return;
+
+            DateTime cutoff = DateTime.UtcNow.AddMinutes(-10);
+            foreach (var key in _lastOptimizationDiagnosticLogUtc
+                         .Where(pair => pair.Value < cutoff)
+                         .Select(pair => pair.Key)
+                         .ToList())
+            {
+                _lastOptimizationDiagnosticLogUtc.Remove(key);
+            }
+        }
+
+        private void LogProfileWatcherStartupSummary()
+        {
+            var enabledProfiles = _profiles
+                .Where(p => p.IsEnabled && !string.IsNullOrWhiteSpace(p.ProcessName))
+                .Select(p => p.ProcessName)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            string fileMessage = enabledProfiles.Count == 0
+                ? "Background profile watcher active. No enabled profiles configured."
+                : $"Background profile watcher active for {enabledProfiles.Count} enabled profile(s): {string.Join(", ", enabledProfiles)}";
+
+            LoggerService.Instance.Info(fileMessage);
+            AddLog(enabledProfiles.Count == 0
+                ? "Background profile watcher active. No enabled profiles configured."
+                : $"Background profile watcher active: {enabledProfiles.Count} enabled profile(s).");
+        }
+
+        private void LogOptimizationBatch(OptimizationBatchResult batch, string source)
+        {
+            if (batch.Total == 0) return;
+
+            foreach (var result in batch.Results.Where(r => r.Success))
+            {
+                string message = BuildOptimizationLogMessage(result, source, success: true);
+                LoggerService.Instance.Info(message);
+                AddLog(message);
+            }
+
+            foreach (var result in batch.Results.Where(IsActionableOptimizationFailure))
+            {
+                if (!ShouldLogOptimizationDiagnostic(result, TimeSpan.FromSeconds(60))) continue;
+
+                string message = BuildOptimizationLogMessage(result, source, success: false);
+                LoggerService.Instance.Warn(message);
+                AddLog(message);
+            }
+        }
+
+        private static bool IsActionableOptimizationFailure(OptimizationResult result)
+        {
+            if (result.Success) return false;
+            if (string.Equals(result.Message, "SKIPPED_ALREADY_APPLIED", StringComparison.OrdinalIgnoreCase)) return false;
+            return true;
+        }
+
+        private bool ShouldLogOptimizationDiagnostic(OptimizationResult result, TimeSpan throttleWindow)
+        {
+            string key = $"{result.ProcessName}|{result.ProcessId}|{result.Mode}|{result.Priority}|{result.Message}";
+            DateTime now = DateTime.UtcNow;
+
+            if (_lastOptimizationDiagnosticLogUtc.TryGetValue(key, out DateTime lastLogged) && now - lastLogged < throttleWindow)
+            {
+                return false;
+            }
+
+            _lastOptimizationDiagnosticLogUtc[key] = now;
+            return true;
+        }
+
+        private string BuildOptimizationLogMessage(OptimizationResult result, string source, bool success)
+        {
+            string profileName = string.IsNullOrWhiteSpace(result.ProcessName) ? "unknown" : result.ProcessName;
+            string coreStatus = result.CoreApplied ? "core=applied" : "core=not-applied";
+            string priorityStatus = result.PriorityApplied ? "priority=applied" : "priority=not-applied";
+            string adminHint = result.RequiresAdmin ? " Requires administrator rights or a protected process denied access." : string.Empty;
+
+            if (success)
+            {
+                return $"Applied profile '{profileName}' via {source}: PID={result.ProcessId}, mode={GetModeTag(result.Mode)}, priority={TranslatePriority(result.Priority)}, {coreStatus}, {priorityStatus}.";
+            }
+
+            return $"Failed to apply profile '{profileName}' via {source}: PID={result.ProcessId}, mode={GetModeTag(result.Mode)}, priority={TranslatePriority(result.Priority)}, reason={result.Message}.{adminHint}";
+        }
+
         private void AddLog(string message)
         {
             WpfApplication.Current.Dispatcher.Invoke(() =>
@@ -795,32 +888,26 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             try
             {
                 await Task.Delay(2000);
-                using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
-                string latestVersionStr = (await client.GetStringAsync($"{_versionRawUrl}?t={Guid.NewGuid()}"))
-                    .Trim()
-                    .TrimStart('v', 'V');
-
-                if (Version.TryParse(latestVersionStr, out Version? latestVersion) &&
-                    Version.TryParse(AppVersion, out Version? currentVersion) &&
-                    latestVersion > currentVersion)
+                var update = await _updateService.CheckForUpdatesAsync(AppVersion);
+                if (update.IsUpdateAvailable)
                 {
-                    AddLog($"Update available: v{latestVersionStr}");
+                    AddLog($"Update available: v{update.LatestVersion}");
 
                     WpfApplication.Current.Dispatcher.Invoke(() =>
                     {
                         var result = WpfMessageBox.Show(
-                            $"A new version (v{latestVersionStr}) is available. Open download page?",
+                            $"A new version (v{update.LatestVersion}) is available. Open download page?",
                             "Update Available",
                             MessageBoxButton.YesNo,
                             MessageBoxImage.Information);
 
                         if (result == MessageBoxResult.Yes)
                         {
-                            Process.Start(new ProcessStartInfo { FileName = _releasesUrl, UseShellExecute = true });
+                            UpdateService.OpenReleasePage(update.ReleaseUrl);
                         }
                     });
                 }
-                else
+                else if (string.IsNullOrWhiteSpace(update.Error))
                 {
                     AddLog("App is up to date.");
                 }
@@ -833,63 +920,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
 
         private void ApplyLanguage(string langCode)
         {
-            var res = WpfApplication.Current.Resources;
-            bool isPl = langCode == "pl";
-
-            res["StrSystemProcesses"] = isPl ? "Procesy Systemowe" : "System Processes";
-            res["StrSavedProfiles"] = isPl ? "Zapisane Profile" : "Saved Profiles";
-            res["StrHardwareMonitor"] = isPl ? "Monitor Sprzętu" : "Hardware Monitor";
-            res["StrSettings"] = isPl ? "Ustawienia" : "Settings";
-            res["StrConsoleLog"] = isPl ? "LOGI KONSOLI" : "CONSOLE LOG";
-            res["StrProcessList"] = isPl ? "Lista Procesów" : "Process List";
-            res["StrYourProfiles"] = isPl ? "Twoje Profile" : "Your Profiles";
-            res["StrCpuUsage"] = isPl ? "UŻYCIE CPU" : "CPU USAGE";
-            res["StrCpuTemp"] = isPl ? "TEMPERATURA CPU" : "CPU TEMPERATURE";
-            res["StrGpuUsage"] = isPl ? "UŻYCIE GPU" : "GPU USAGE";
-            res["StrGpuTemp"] = isPl ? "TEMPERATURA GPU" : "GPU TEMPERATURE";
-            res["StrRamUsage"] = isPl ? "UŻYCIE RAM (%)" : "RAM USAGE (%)";
-            res["StrRamUsedAvail"] = isPl ? "RAM ZAJĘTY / DOSTĘPNY" : "RAM USED / AVAILABLE";
-            res["StrExpandHardware"] = isPl ? "Rozwiń Szczegóły Sprzętu" : "Detailed Hardware Data";
-            res["StrGpuDetails"] = isPl ? "SZCZEGÓŁY GPU" : "GPU DETAILS";
-            res["StrCpuDetails"] = isPl ? "SZCZEGÓŁY CPU" : "CPU DETAILS";
-            res["StrAppSettings"] = isPl ? "Ustawienia Aplikacji" : "Application Settings";
-            res["StrStartWindows"] = isPl ? "Uruchamiaj z systemem Windows" : "Start with Windows";
-            res["StrStartMinimized"] = isPl ? "Uruchom zminimalizowany" : "Start Minimized";
-            res["StrMinToTray"] = isPl ? "Minimalizuj do zasobnika" : "Minimize to Tray";
-            res["StrCloseToTray"] = isPl ? "Zamykaj do zasobnika" : "Close to Tray";
-            res["StrStartAdmin"] = isPl ? "Uruchom jako Administrator" : "Start as Administrator";
-            res["StrAdminReq"] = isPl ? "Wymaga restartu. Pozwala na optymalizację w tle." : "Requires restart. Allows background optimization.";
-            res["StrAllowRealtime"] = isPl ? "Pokaż priorytet RealTime (zaawansowane)" : "Show RealTime priority (advanced)";
-            res["StrRealtimeWarn"] = isPl ? "Może spowodować przycięcia systemu. Używaj tylko świadomie." : "Can make the system unresponsive. Use only if you know what you are doing.";
-            res["StrLogEnabled"] = isPl ? "Włącz logowanie do pliku" : "Enable file logging";
-            res["StrLanguage"] = isPl ? "Język aplikacji" : "Language";
-            res["StrCpuCores"] = isPl ? "Rdzenie CPU" : "CPU Cores";
-            res["StrSelectAll"] = isPl ? "Zaznacz Wszystko" : "Select All";
-            res["StrClearAll"] = isPl ? "Odznacz Wszystko" : "Clear All";
-            res["StrDisableECores"] = isPl ? "Wyłącz E-Cores" : "Disable E-Cores";
-            res["StrSetPriority"] = isPl ? "Ustaw Priorytet" : "Set Priority";
-            res["StrSetAffinity"] = isPl ? "Zastosuj Optymalizację" : "Apply Optimization";
-            res["StrSaveProfile"] = isPl ? "Zapisz Profil" : "Save Profile";
-            res["StrUpdateProfile"] = isPl ? "Aktualizuj Profil" : "Update Profile";
-            res["StrDeleteProfile"] = isPl ? "Usuń Profil" : "Delete Profile";
-            res["StrColName"] = isPl ? "NAZWA" : "NAME";
-            res["StrColInstances"] = isPl ? "INST." : "INST.";
-            res["StrColPriority"] = isPl ? "PRIORYTET" : "PRIORITY";
-            res["StrColRam"] = "RAM";
-            res["StrColCpu"] = "CPU";
-            res["StrColMode"] = isPl ? "TRYB" : "MODE";
-            res["StrVramUsage"] = isPl ? "Zużycie VRAM:" : "VRAM Usage:";
-            res["StrCoreClock"] = isPl ? "Takt. Rdzenia:" : "Core Clock:";
-            res["StrMemClock"] = isPl ? "Takt. Pamięci:" : "Mem Clock:";
-            res["StrHotSpot"] = "Hot Spot:";
-            res["StrVramTemp"] = isPl ? "Temp. VRAM:" : "VRAM Temp:";
-            res["StrPowerDraw"] = isPl ? "Pobór Mocy:" : "Power Draw:";
-            res["StrAvgClock"] = isPl ? "Średnie Takt.:" : "Avg Clock:";
-            res["StrCoreTemps"] = isPl ? "Temperatury Rdzeni:" : "Core Temperatures:";
-            res["StrOptimizationMode"] = isPl ? "Tryb Optymalizacji:" : "Optimization Mode:";
-            res["ModeAffinity"] = isPl ? "Koligacja (Affinity)" : "Affinity (Standard)";
-            res["ModeCpuSets"] = isPl ? "Zestawy (CPU Sets)" : "CPU Sets (Smart)";
-
+            _localizationService.ApplyLanguage(langCode);
             RefreshAvailablePriorities();
             RefreshDisplayedPriorities();
             OnPropertyChanged(nameof(CpuVendorText));
@@ -949,10 +980,18 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         private void SaveAndApplySettings(bool restartAsAdminIfNeeded)
         {
             ConfigureLoggerFromSettings();
+            _hwService?.Configure(AppSettings.EnableStorageSensors);
             _settingsService.SaveSettings(AppSettings);
+            OnPropertyChanged(nameof(IsHardwareMonitorEnabled));
             RefreshAvailablePriorities();
             RefreshDisplayedPriorities();
             ClearAllAppliedProfileCache();
+
+            if (ActiveTab == "Hardware")
+            {
+                if (AppSettings.HardwareMonitorEnabled) StartHardwareMonitorIfVisible();
+                else StopHardwareMonitor(closeSensors: true, resetMetrics: true);
+            }
 
             if (restartAsAdminIfNeeded && AppSettings.RunAsAdministrator && !_settingsService.IsRunAsAdmin())
             {
@@ -972,7 +1011,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
 
         private void ClearAllAppliedProfileCache()
         {
-            _appliedProfileSignatures.Clear();
+            _optimizationService.ClearAllCache();
         }
 
         private bool ConfirmRealTimePriority()
@@ -996,8 +1035,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             _disposed = true;
 
             _refreshTimer.Stop();
-            _hwTimer.Stop();
-            _hwService.Dispose();
+            StopHardwareMonitor(closeSensors: true, resetMetrics: false);
             _hardwareService.Dispose();
             _settingsService.Dispose();
         }

@@ -1,4 +1,4 @@
-namespace ProcessCoreOptimizer.WPF.Models
+﻿namespace ProcessCoreOptimizer.WPF.Models
 {
     /// <summary>
     /// Represents persistent user configuration.
@@ -23,5 +23,15 @@ namespace ProcessCoreOptimizer.WPF.Models
         public string LogFilePath { get; set; } = "ProcessCoreOptimizer.log";
         public bool EnableConsoleOutput { get; set; } = false;
         public string LogSourceName { get; set; } = "ProcessCoreOptimizer";
+
+        public int ProcessListRefreshSeconds { get; set; } = 2;
+        public int ProfileWatcherSeconds { get; set; } = 2;
+        public int HardwareRefreshSeconds { get; set; } = 1;
+        /// <summary>
+        /// Hardware sensors are opt-in. The background profile watcher does not depend on this.
+        /// </summary>
+        public bool HardwareMonitorEnabled { get; set; } = false;
+        public bool EnableStorageSensors { get; set; } = false;
+        public bool CheckForUpdates { get; set; } = true;
     }
 }

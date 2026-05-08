@@ -1,4 +1,4 @@
-using Microsoft.Win32;
+﻿using Microsoft.Win32;
 using ProcessCoreOptimizer.WPF.Logging;
 using ProcessCoreOptimizer.WPF.Models;
 using System;
@@ -32,7 +32,8 @@ namespace ProcessCoreOptimizer.WPF.Services
 
             try
             {
-                string jsonContent = File.ReadAllText(_filePath);
+                string? jsonContent = AtomicFileService.ReadAllTextWithBackup(_filePath);
+                if (string.IsNullOrWhiteSpace(jsonContent)) return new AppSettings();
                 var settings = JsonSerializer.Deserialize<AppSettings>(jsonContent) ?? new AppSettings();
                 return SanitizeSettings(settings);
             }
@@ -49,7 +50,7 @@ namespace ProcessCoreOptimizer.WPF.Services
             {
                 settings = SanitizeSettings(settings);
                 string jsonContent = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(_filePath, jsonContent);
+                AtomicFileService.WriteAllTextAtomic(_filePath, jsonContent);
             }
             catch (Exception ex)
             {
@@ -116,7 +117,7 @@ namespace ProcessCoreOptimizer.WPF.Services
                 }
 
                 RemoveScheduledTask();
-                key?.SetValue(_appName, Quote(_exePath));
+                key?.SetValue(_appName, $"{Quote(_exePath)} {BuildStartupArguments(settings.StartMinimized, settings.MinimizeToTray)}".Trim());
             }
             catch (Exception ex)
             {
@@ -134,6 +135,9 @@ namespace ProcessCoreOptimizer.WPF.Services
             settings.LogSourceName = string.IsNullOrWhiteSpace(settings.LogSourceName)
                 ? "ProcessCoreOptimizer"
                 : settings.LogSourceName.Trim();
+            settings.ProcessListRefreshSeconds = Math.Clamp(settings.ProcessListRefreshSeconds, 1, 10);
+            settings.ProfileWatcherSeconds = Math.Clamp(settings.ProfileWatcherSeconds, 1, 30);
+            settings.HardwareRefreshSeconds = Math.Clamp(settings.HardwareRefreshSeconds, 1, 10);
             return settings;
         }
 
@@ -143,7 +147,7 @@ namespace ProcessCoreOptimizer.WPF.Services
 
             try
             {
-                string arguments = startMinimized ? "--minimized" : string.Empty;
+                string arguments = BuildStartupArguments(startMinimized, startMinimized);
                 string xmlConfig = $@"<?xml version=""1.0"" encoding=""UTF-16""?>
 <Task version=""1.2"" xmlns=""http://schemas.microsoft.com/windows/2004/02/mit/task"">
   <Triggers>
@@ -231,6 +235,12 @@ namespace ProcessCoreOptimizer.WPF.Services
         }
 
         private static string Quote(string value) => $"\"{value}\"";
+
+        private static string BuildStartupArguments(bool startMinimized, bool startToTray)
+        {
+            if (startToTray) return "--tray";
+            return startMinimized ? "--minimized" : string.Empty;
+        }
 
         private static string EscapeXml(string value)
         {

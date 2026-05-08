@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Text;
 using ProcessCoreOptimizer.WPF.Services;
@@ -36,6 +36,9 @@ namespace ProcessCoreOptimizer.WPF.Logging
 
     public class FileWriter : IDisposable
     {
+        private const long MaxLogFileBytes = 5 * 1024 * 1024;
+        private const int MaxRolledFiles = 3;
+
         private readonly LoggerConfiguration _config;
         private StreamWriter? _streamWriter;
         private bool _disposed;
@@ -54,10 +57,39 @@ namespace ProcessCoreOptimizer.WPF.Logging
                 Directory.CreateDirectory(directory);
             }
 
+            RollIfNeeded();
+
             _streamWriter = new StreamWriter(_config.LogFilePath, append: true, Encoding.UTF8)
             {
                 AutoFlush = true
             };
+        }
+
+        private void RollIfNeeded()
+        {
+            try
+            {
+                if (!File.Exists(_config.LogFilePath)) return;
+                var info = new FileInfo(_config.LogFilePath);
+                if (info.Length < MaxLogFileBytes) return;
+
+                for (int i = MaxRolledFiles - 1; i >= 1; i--)
+                {
+                    string source = $"{_config.LogFilePath}.{i}";
+                    string target = $"{_config.LogFilePath}.{i + 1}";
+                    if (File.Exists(source))
+                    {
+                        File.Copy(source, target, overwrite: true);
+                    }
+                }
+
+                File.Copy(_config.LogFilePath, $"{_config.LogFilePath}.1", overwrite: true);
+                File.WriteAllText(_config.LogFilePath, string.Empty, Encoding.UTF8);
+            }
+            catch
+            {
+                // Never let log rotation break the application.
+            }
         }
 
         public void Write(ILogLevel level, string message, Exception? ex = null)

@@ -1,4 +1,5 @@
 ﻿using ProcessCoreOptimizer.WPF.Helpers;
+using System;
 using System.Text.Json.Serialization;
 
 namespace ProcessCoreOptimizer.WPF.Models
@@ -12,12 +13,37 @@ namespace ProcessCoreOptimizer.WPF.Models
     {
         #region Private Backing Fields
 
+        private string _id = Guid.NewGuid().ToString("N");
+        private int _schemaVersion = 2;
         private OptimizationMode _optimizationMode = OptimizationMode.Affinity;
         private string _processName = string.Empty;
+        private string _displayName = string.Empty;
+        private string? _executablePath;
         private long _affinityMask;
         private string _priority = "Normal";
+        private bool _applyPriority = true;
+        private bool _applyCoreOptimization = true;
         private bool _isEnabled = true;
+        private string _notes = string.Empty;
+        private DateTime _createdAt = DateTime.UtcNow;
+        private DateTime _updatedAt = DateTime.UtcNow;
         private string _displayPriority = "Normal";
+
+        #endregion
+
+        #region Identity & Migration
+
+        public string Id
+        {
+            get => _id;
+            set => SetProperty(ref _id, string.IsNullOrWhiteSpace(value) ? Guid.NewGuid().ToString("N") : value.Trim());
+        }
+
+        public int SchemaVersion
+        {
+            get => _schemaVersion;
+            set => SetProperty(ref _schemaVersion, value <= 0 ? 2 : value);
+        }
 
         #endregion
 
@@ -32,54 +58,86 @@ namespace ProcessCoreOptimizer.WPF.Models
             set => SetProperty(ref _processName, value?.Trim() ?? string.Empty);
         }
 
+        /// <summary>
+        /// User-friendly name reserved for future game/application profiles.
+        /// </summary>
+        public string DisplayName
+        {
+            get => string.IsNullOrWhiteSpace(_displayName) ? ProcessName : _displayName;
+            set => SetProperty(ref _displayName, value?.Trim() ?? string.Empty);
+        }
+
+        /// <summary>
+        /// Optional executable path reserved for future path-bound profiles.
+        /// </summary>
+        public string? ExecutablePath
+        {
+            get => _executablePath;
+            set => SetProperty(ref _executablePath, string.IsNullOrWhiteSpace(value) ? null : value.Trim());
+        }
+
         #endregion
 
         #region Optimization Settings
 
-        /// <summary>
-        /// Gets or sets the optimization method applied to this profile.
-        /// </summary>
         public OptimizationMode OptimizationMode
         {
             get => _optimizationMode;
             set => SetProperty(ref _optimizationMode, value);
         }
 
-        /// <summary>
-        /// Gets or sets the bitmask representing the CPU cores assigned to this process.
-        /// </summary>
         public long AffinityMask
         {
             get => _affinityMask;
             set => SetProperty(ref _affinityMask, value);
         }
 
-        /// <summary>
-        /// Gets or sets the canonical process priority class name, for example High or AboveNormal.
-        /// This value should never be localized before saving.
-        /// </summary>
         public string Priority
         {
             get => _priority;
             set => SetProperty(ref _priority, value?.Trim() ?? "Normal");
         }
 
-        /// <summary>
-        /// Gets or sets a value indicating whether this profile should be automatically applied.
-        /// </summary>
+        public bool ApplyPriority
+        {
+            get => _applyPriority;
+            set => SetProperty(ref _applyPriority, value);
+        }
+
+        public bool ApplyCoreOptimization
+        {
+            get => _applyCoreOptimization;
+            set => SetProperty(ref _applyCoreOptimization, value);
+        }
+
         public bool IsEnabled
         {
             get => _isEnabled;
             set => SetProperty(ref _isEnabled, value);
         }
 
+        public string Notes
+        {
+            get => _notes;
+            set => SetProperty(ref _notes, value?.Trim() ?? string.Empty);
+        }
+
+        public DateTime CreatedAt
+        {
+            get => _createdAt;
+            set => SetProperty(ref _createdAt, value == default ? DateTime.UtcNow : value);
+        }
+
+        public DateTime UpdatedAt
+        {
+            get => _updatedAt;
+            set => SetProperty(ref _updatedAt, value == default ? DateTime.UtcNow : value);
+        }
+
         #endregion
 
         #region UI-only values
 
-        /// <summary>
-        /// Localized priority shown in the profiles grid. Not persisted to JSON.
-        /// </summary>
         [JsonIgnore]
         public string DisplayPriority
         {

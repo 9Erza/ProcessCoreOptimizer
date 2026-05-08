@@ -1,7 +1,6 @@
-using System;
+﻿using System;
 using System.ComponentModel;
 using System.Windows;
-using System.Linq;
 using System.Windows.Input;
 using ProcessCoreOptimizer.WPF.ViewModels;
 
@@ -114,10 +113,12 @@ namespace ProcessCoreOptimizer.WPF.Views
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            if (_viewModel.AppSettings.StartMinimized || Environment.GetCommandLineArgs().Any(a => a.Equals("--minimized", StringComparison.OrdinalIgnoreCase)))
+            bool startHidden = _viewModel.AppSettings.StartMinimized || ProcessCoreOptimizer.WPF.App.StartupOptions.StartMinimized || ProcessCoreOptimizer.WPF.App.StartupOptions.StartToTray;
+
+            if (startHidden)
             {
                 this.WindowState = WindowState.Minimized;
-                if (_viewModel.AppSettings.MinimizeToTray)
+                if (_viewModel.AppSettings.MinimizeToTray || ProcessCoreOptimizer.WPF.App.StartupOptions.StartToTray)
                 {
                     this.Hide();
                 }
