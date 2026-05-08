@@ -1,10 +1,12 @@
 ﻿using ProcessCoreOptimizer.WPF.Helpers;
+using System.Text.Json.Serialization;
 
 namespace ProcessCoreOptimizer.WPF.Models
 {
     /// <summary>
-    /// Represents a saved optimization profile for a specific process, 
-    /// storing its desired CPU affinity, priority levels, and optimization mode.
+    /// Represents a saved optimization profile for a specific process.
+    /// The persisted values are kept canonical and language-independent.
+    /// UI-only display values are marked with JsonIgnore.
     /// </summary>
     public class ProcessProfile : ViewModelBase
     {
@@ -15,18 +17,19 @@ namespace ProcessCoreOptimizer.WPF.Models
         private long _affinityMask;
         private string _priority = "Normal";
         private bool _isEnabled = true;
+        private string _displayPriority = "Normal";
 
         #endregion
 
         #region Process Identification
 
         /// <summary>
-        /// Gets or sets the target process name (without the .exe extension).
+        /// Gets or sets the target process name without the .exe extension.
         /// </summary>
         public string ProcessName
         {
             get => _processName;
-            set => SetProperty(ref _processName, value);
+            set => SetProperty(ref _processName, value?.Trim() ?? string.Empty);
         }
 
         #endregion
@@ -34,7 +37,7 @@ namespace ProcessCoreOptimizer.WPF.Models
         #region Optimization Settings
 
         /// <summary>
-        /// Gets or sets the optimization method applied to this profile (e.g., Affinity, CpuSets, Exclusive).
+        /// Gets or sets the optimization method applied to this profile.
         /// </summary>
         public OptimizationMode OptimizationMode
         {
@@ -43,7 +46,7 @@ namespace ProcessCoreOptimizer.WPF.Models
         }
 
         /// <summary>
-        /// Gets or sets the bitmask representing the CPU cores explicitly assigned to this process.
+        /// Gets or sets the bitmask representing the CPU cores assigned to this process.
         /// </summary>
         public long AffinityMask
         {
@@ -52,21 +55,36 @@ namespace ProcessCoreOptimizer.WPF.Models
         }
 
         /// <summary>
-        /// Gets or sets the desired process priority class (e.g., "High", "RealTime", "AboveNormal").
+        /// Gets or sets the canonical process priority class name, for example High or AboveNormal.
+        /// This value should never be localized before saving.
         /// </summary>
         public string Priority
         {
             get => _priority;
-            set => SetProperty(ref _priority, value);
+            set => SetProperty(ref _priority, value?.Trim() ?? "Normal");
         }
 
         /// <summary>
-        /// Gets or sets a value indicating whether this profile should be automatically applied in the background.
+        /// Gets or sets a value indicating whether this profile should be automatically applied.
         /// </summary>
         public bool IsEnabled
         {
             get => _isEnabled;
             set => SetProperty(ref _isEnabled, value);
+        }
+
+        #endregion
+
+        #region UI-only values
+
+        /// <summary>
+        /// Localized priority shown in the profiles grid. Not persisted to JSON.
+        /// </summary>
+        [JsonIgnore]
+        public string DisplayPriority
+        {
+            get => _displayPriority;
+            set => SetProperty(ref _displayPriority, value);
         }
 
         #endregion

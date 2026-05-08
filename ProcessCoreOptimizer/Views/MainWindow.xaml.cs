@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.Windows;
+using System.Linq;
 using System.Windows.Input;
 using ProcessCoreOptimizer.WPF.ViewModels;
 
@@ -113,7 +114,7 @@ namespace ProcessCoreOptimizer.WPF.Views
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            if (_viewModel.AppSettings.StartMinimized)
+            if (_viewModel.AppSettings.StartMinimized || Environment.GetCommandLineArgs().Any(a => a.Equals("--minimized", StringComparison.OrdinalIgnoreCase)))
             {
                 this.WindowState = WindowState.Minimized;
                 if (_viewModel.AppSettings.MinimizeToTray)
@@ -157,6 +158,7 @@ namespace ProcessCoreOptimizer.WPF.Views
             {
                 _notifyIcon.Visible = false;
                 _notifyIcon.Dispose();
+                _viewModel.Dispose();
                 base.OnClosing(e);
             }
         }

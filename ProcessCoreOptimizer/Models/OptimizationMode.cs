@@ -1,30 +1,30 @@
-﻿namespace ProcessCoreOptimizer.WPF.Models
+﻿using System;
+
+namespace ProcessCoreOptimizer.WPF.Models
 {
     #region Optimization Modes
 
     /// <summary>
-    /// Defines the level and method of CPU core optimization applied to a specific process.
+    /// Defines the supported CPU core optimization method.
     /// </summary>
     public enum OptimizationMode
     {
         /// <summary>
-        /// Hard binding to specific CPU cores. 
-        /// This represents the classic, strict thread affinity method.
+        /// Hard binding to specific CPU cores using classic process affinity.
         /// </summary>
         Affinity,
 
         /// <summary>
-        /// Soft binding via CPU Sets. 
-        /// The Windows OS scheduler prioritizes selected cores for the target application, 
-        /// but does not strictly restrict other threads during heavy system load.
+        /// Soft binding via Windows CPU Sets. The scheduler prefers selected cores,
+        /// but may still make scheduling decisions under system load.
         /// </summary>
         CpuSets,
 
         /// <summary>
-        /// Strict core isolation. 
-        /// The target application receives exclusive access to the selected cores, 
-        /// actively evicting background system processes and other applications from them.
+        /// Legacy value kept only so old profiles containing "Exclusive" can be loaded
+        /// and migrated safely. It is no longer exposed in the UI.
         /// </summary>
+        [Obsolete("Exclusive mode is no longer supported. Existing profiles are migrated to Affinity.")]
         Exclusive
     }
 
