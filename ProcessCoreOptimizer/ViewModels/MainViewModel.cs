@@ -54,9 +54,13 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
 
         private ProcessItem? _selectedProcess;
         private ProcessProfile? _selectedSavedProfile;
+        private ProcessDetails? _selectedProcessDetails;
         private string _selectedPriority = "Normal";
         private OptimizationMode _selectedOptimizationMode = OptimizationMode.Affinity;
         private string _activeTab = "Processes";
+        private string _processFilterText = string.Empty;
+        private string _profileFilterText = string.Empty;
+        private string? _topologyLimitation;
 
         private Visibility _viewProcesses = Visibility.Visible;
         private Visibility _viewProfiles = Visibility.Collapsed;
@@ -69,6 +73,9 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         public ObservableCollection<string> ActionLogs { get; } = new();
         public ObservableCollection<ProcessProfile> SavedProfiles { get; } = new();
         public ObservableCollection<string> AvailablePriorities { get; } = new();
+        public ObservableCollection<CorePreset> CorePresets { get; } = new();
+        public ObservableCollection<ProfileConflict> ProfileConflicts { get; } = new();
+        public ObservableCollection<AppliedOperation> RecentOperations { get; } = new();
 
         public ObservableCollection<OptimizationMode> AvailableOptimizationModes { get; } = new()
         {
@@ -88,6 +95,11 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         public ICommand DisableSmtCommand { get; }
         public ICommand DisableECoresCommand { get; }
         public ICommand ToggleSettingCommand { get; }
+        public ICommand ApplyCorePresetCommand { get; }
+        public ICommand DuplicateProfileCommand { get; }
+        public ICommand ExportProfilesCommand { get; }
+        public ICommand ImportProfilesCommand { get; }
+        public ICommand CaptureLiveSettingsCommand { get; }
 
         public string AppVersion { get; } = Assembly.GetExecutingAssembly()
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
@@ -162,12 +174,45 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             }
         }
 
+        public ProcessDetails? SelectedProcessDetails
+        {
+            get => _selectedProcessDetails;
+            private set => SetProperty(ref _selectedProcessDetails, value);
+        }
+
+        public string ProcessFilterText
+        {
+            get => _processFilterText;
+            set
+            {
+                if (!SetProperty(ref _processFilterText, value ?? string.Empty)) return;
+                RefreshProcessFilter();
+            }
+        }
+
+        public string ProfileFilterText
+        {
+            get => _profileFilterText;
+            set
+            {
+                if (!SetProperty(ref _profileFilterText, value ?? string.Empty)) return;
+                RefreshSavedProfilesView();
+            }
+        }
+
+        public string? TopologyLimitation
+        {
+            get => _topologyLimitation;
+            private set => SetProperty(ref _topologyLimitation, value);
+        }
+
         public ProcessItem? SelectedProcess
         {
             get => _selectedProcess;
             set
             {
                 if (!SetProperty(ref _selectedProcess, value) || value == null) return;
+                SelectedProcessDetails = BuildProcessDetails(value.Name);
 
                 var savedProfile = _profiles.FirstOrDefault(p => p.ProcessName.Equals(value.Name, StringComparison.OrdinalIgnoreCase));
                 if (savedProfile != null)
@@ -265,9 +310,13 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 Cores.Add(core);
             }
             OnPropertyChanged(nameof(HasECores));
+            RefreshCorePresets();
+            RefreshTopologyLimitation();
 
             _profiles = _profileService.LoadProfiles();
             RefreshSavedProfilesView();
+            RefreshProfileConflicts();
+            RefreshRecentOperations();
             LogProfileWatcherStartupSummary();
 
             _hwTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(AppSettings.HardwareRefreshSeconds) };
@@ -286,6 +335,11 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             DisableSmtCommand = new RelayCommand(_ => DisableSmtThreads());
             DisableECoresCommand = new RelayCommand(_ => DisableEfficiencyCores());
             ToggleSettingCommand = new RelayCommand(_ => SaveAndApplySettings(restartAsAdminIfNeeded: true));
+            ApplyCorePresetCommand = new RelayCommand(preset => ApplyCorePreset(preset?.ToString()));
+            DuplicateProfileCommand = new RelayCommand(_ => DuplicateSelectedProfile());
+            ExportProfilesCommand = new RelayCommand(_ => ExportProfilesToFile());
+            ImportProfilesCommand = new RelayCommand(_ => ImportProfilesFromFile());
+            CaptureLiveSettingsCommand = new RelayCommand(_ => CaptureLiveSettings());
 
             ApplyLanguage(_appSettings.Language);
             _refreshTimer.Start();
@@ -377,6 +431,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             {
                 foreach (var group in groups)
                 {
+                    if (!MatchesProcessFilter(group.Name)) continue;
                     if (Processes.Any(x => x.Name.Equals(group.Name, StringComparison.OrdinalIgnoreCase))) continue;
 
                     var profile = _profiles.FirstOrDefault(x => x.IsEnabled && x.ProcessName.Equals(group.Name, StringComparison.OrdinalIgnoreCase));
@@ -822,6 +877,249 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             }
         }
 
+        private void RefreshCorePresets()
+        {
+            CorePresets.Clear();
+            var dtos = Cores.Select(c => new CoreInfoDto
+            {
+                Index = c.Index,
+                CoreIndex = c.CoreIndex,
+                IsThread = c.IsThread,
+                IsECore = c.IsECore,
+                IsClassificationUnknown = c.IsClassificationUnknown
+            }).ToList();
+
+            foreach (var preset in Services.CorePresets.Build(dtos))
+            {
+                CorePresets.Add(preset);
+            }
+        }
+
+        private void RefreshTopologyLimitation()
+        {
+            try
+            {
+                var report = _hardwareService.GetTopologyReport(Cores.ToList());
+                TopologyLimitation = report.LimitedToGroup0 ? report.LimitationMessage : null;
+            }
+            catch
+            {
+                TopologyLimitation = null;
+            }
+        }
+
+        private void ApplyCorePreset(string? presetId)
+        {
+            if (string.IsNullOrWhiteSpace(presetId)) return;
+            var preset = CorePresets.FirstOrDefault(p => p.Id == presetId);
+            if (preset == null || !preset.IsAvailable)
+            {
+                AddLog($"Core preset '{presetId}' is not available on this CPU.");
+                return;
+            }
+
+            var wanted = new HashSet<int>(preset.LogicalProcessors);
+            foreach (var core in Cores)
+            {
+                core.IsChecked = wanted.Contains(core.Index);
+            }
+
+            AddLog($"Core preset '{preset.DisplayName}' applied: {wanted.Count} logical processor(s) selected.");
+        }
+
+        private void DuplicateSelectedProfile()
+        {
+            if (SelectedSavedProfile == null) return;
+            var copy = ProfileService.DuplicateProfile(SelectedSavedProfile);
+            _profiles.Add(copy);
+            _profileService.SaveProfiles(_profiles);
+            _profiles = _profileService.LoadProfiles();
+            RefreshSavedProfilesView();
+            RefreshProfileConflicts();
+            SelectedSavedProfile = SavedProfiles.FirstOrDefault(p => p.Id == copy.Id);
+            AddLog($"Duplicated profile '{copy.ProcessName}' (starts disabled).");
+        }
+
+        private void ExportProfilesToFile()
+        {
+            try
+            {
+                using var dialog = new System.Windows.Forms.SaveFileDialog
+                {
+                    Filter = "JSON files (*.json)|*.json",
+                    FileName = "processcoreoptimizer-profiles.json",
+                    Title = "Export profiles"
+                };
+
+                if (dialog.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
+                ProfileService.ExportProfiles(dialog.FileName, _profiles);
+                AddLog($"Exported {_profiles.Count} profile(s) to '{dialog.FileName}'.");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Profile export failed: {ex.Message}");
+            }
+        }
+
+        private void ImportProfilesFromFile()
+        {
+            try
+            {
+                using var dialog = new System.Windows.Forms.OpenFileDialog
+                {
+                    Filter = "JSON files (*.json)|*.json",
+                    Title = "Import profiles"
+                };
+
+                if (dialog.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
+                var result = _profileService.ImportProfiles(dialog.FileName);
+                _profiles = _profileService.LoadProfiles();
+                RefreshSavedProfilesView();
+                RefreshProfileConflicts();
+                ClearAllAppliedProfileCache();
+
+                if (result.Success) AddLog($"Imported {result.Imported} profile(s).");
+                else AddLog($"Profile import: {result.Imported} imported, {result.SkippedInvalid} invalid. {string.Join("; ", result.Errors)}");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Profile import failed: {ex.Message}");
+            }
+        }
+
+        private void CaptureLiveSettings()
+        {
+            if (SelectedProcess == null) return;
+            try
+            {
+                Process[] candidates = Process.GetProcessesByName(ProfileService.NormalizeProcessName(SelectedProcess.Name));
+                try
+                {
+                    var live = candidates.FirstOrDefault();
+                    if (live == null)
+                    {
+                        AddLog($"Capture failed: '{SelectedProcess.Name}' is no longer running.");
+                        return;
+                    }
+
+                    var draft = ProfilePreviewService.CaptureFromLive(live.Id, _cpuSetMap, _processService);
+                    if (draft == null)
+                    {
+                        AddLog($"Capture failed: the OS refused to read '{SelectedProcess.Name}'.");
+                        return;
+                    }
+
+                    _profiles.RemoveAll(x => x.ProcessName.Equals(draft.ProcessName, StringComparison.OrdinalIgnoreCase)
+                        && string.IsNullOrWhiteSpace(x.ExecutablePath) && string.IsNullOrWhiteSpace(draft.ExecutablePath));
+                    _profiles.Add(draft);
+                    _profileService.SaveProfiles(_profiles);
+                    _profiles = _profileService.LoadProfiles();
+                    RefreshSavedProfilesView();
+                    RefreshProfileConflicts();
+                    AddLog($"Captured live settings of '{draft.ProcessName}' as a new disabled profile.");
+                }
+                finally
+                {
+                    foreach (var p in candidates) p.Dispose();
+                }
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Capture failed: {ex.Message}");
+            }
+        }
+
+        private void RefreshProfileConflicts()
+        {
+            ProfileConflicts.Clear();
+            foreach (var conflict in Services.ProfileConflicts.FindConflicts(_profiles))
+            {
+                ProfileConflicts.Add(conflict);
+            }
+        }
+
+        private void RefreshRecentOperations()
+        {
+            RecentOperations.Clear();
+            foreach (var entry in _operationHistory.Recent(50))
+            {
+                RecentOperations.Add(entry);
+            }
+        }
+
+        private bool MatchesProcessFilter(string name)
+        {
+            if (string.IsNullOrWhiteSpace(_processFilterText)) return true;
+            return name.Contains(_processFilterText.Trim(), StringComparison.OrdinalIgnoreCase);
+        }
+
+        private bool MatchesProfileFilter(ProcessProfile profile)
+        {
+            if (string.IsNullOrWhiteSpace(_profileFilterText)) return true;
+            string filter = _profileFilterText.Trim();
+            return profile.ProcessName.Contains(filter, StringComparison.OrdinalIgnoreCase)
+                || (profile.DisplayName?.Contains(filter, StringComparison.OrdinalIgnoreCase) == true)
+                || (profile.ExecutablePath?.Contains(filter, StringComparison.OrdinalIgnoreCase) == true);
+        }
+
+        private void RefreshProcessFilter()
+        {
+            WpfApplication.Current.Dispatcher.Invoke(() =>
+            {
+                for (int i = Processes.Count - 1; i >= 0; i--)
+                {
+                    if (!MatchesProcessFilter(Processes[i].Name)) Processes.RemoveAt(i);
+                }
+            });
+        }
+
+        private ProcessDetails BuildProcessDetails(string processName)
+        {
+            var details = new ProcessDetails { Name = processName };
+            try
+            {
+                string normalized = ProfileService.NormalizeProcessName(processName);
+                Process[] candidates = Process.GetProcessesByName(normalized);
+                try
+                {
+                    var live = candidates.FirstOrDefault(p => { try { return !p.HasExited; } catch { return false; } });
+                    if (live == null) return details;
+
+                    details.RepresentativePid = live.Id;
+                    details.InstanceCount = candidates.Length;
+                    try { details.StartTimeUtc = live.StartTime.ToUniversalTime(); } catch { }
+                    details.ExecutablePath = ProcessIdentityValidator.TryGetProcessPath(live);
+                    try { details.Priority = live.PriorityClass.ToString(); } catch { }
+
+                    var selection = _processService.GetCurrentCoreSelection(live.Id, _cpuSetMap);
+                    if (selection.Success)
+                    {
+                        details.AffinityMask = selection.Mask;
+                        details.AffinitySource = selection.Source;
+                    }
+
+                    var profile = _profiles.FirstOrDefault(p => p.IsEnabled && p.ProcessName.Equals(normalized, StringComparison.OrdinalIgnoreCase));
+                    details.AssignedProfileName = profile?.ProcessName;
+                    var last = _operationHistory.Recent(200).FirstOrDefault(e => e.ProcessName.Equals(normalized, StringComparison.OrdinalIgnoreCase));
+                    if (last != null)
+                    {
+                        details.LastStatus = last.Status;
+                        details.LastMessage = last.Message;
+                    }
+                }
+                finally
+                {
+                    foreach (var p in candidates) p.Dispose();
+                }
+            }
+            catch
+            {
+                // Best-effort diagnostics: never break selection.
+            }
+
+            return details;
+        }
+
         private void CleanupOptimizationDiagnosticLogCache()
         {
             if (_lastOptimizationDiagnosticLogUtc.Count == 0) return;
@@ -1020,7 +1318,9 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             }
 
             SavedProfiles.Clear();
-            foreach (var profile in _profiles.OrderBy(p => p.ProcessName, StringComparer.OrdinalIgnoreCase))
+            foreach (var profile in _profiles
+                         .Where(MatchesProfileFilter)
+                         .OrderBy(p => p.ProcessName, StringComparer.OrdinalIgnoreCase))
             {
                 SavedProfiles.Add(profile);
             }
