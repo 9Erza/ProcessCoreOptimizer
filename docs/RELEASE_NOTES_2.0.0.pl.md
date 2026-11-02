@@ -41,25 +41,35 @@ oraz rejestracja autostartu tylko przy zmianie ustawień startu.
 ## Weryfikacja
 
 - Release build: 0 ostrzeżeń, 0 błędów.
-- Testy: 97 przypadków MSTest, wszystkie zielone —
-  logika na fake backend, read-only self-PID, negatywne testy tożsamości P0,
-  macierz restore/suspension CPU Sets, bramki aktualizatora, parzystość lokalizacji
-  oraz prawdziwe Windows API na izolowanych własnych kopiach testowych w `%TEMP%`
-  (round-tripy affinity/CPU Sets/priorytetu z prawdziwymi kodami Win32, odmowa
-  dla zakończonego procesu, watcher + restore + suspension, path-bound mismatch).
-  Żaden proces użytkownika, usługi ani agenta nie jest dotykany.
-- GUI: 11/11 kontroli UI Automation na Windows 11 (sesja 1, 1920×1080, 100% DPI):
+- Testy: 137 przypadków MSTest — 134 zielone, 3 integracyjne testy prawdziwego
+  startupu pominięte bez `PCO_REAL_STARTUP_TESTS=1`
+  (fałszywy backend, read-only, negatywne testy tożsamości P0, macierz restore/
+  suspension CPU Sets, planner/koordynator/backend startupu, bezpieczeństwo
+  resetu, onboarding, protokół helpera, bramki aktualizatora, parzystość
+  lokalizacji oraz prawdziwe Windows API na izolowanych własnych kopiach
+  testowych w `%TEMP%`). Ręcznie włączone lokalnie: 3 prawdziwe testy startupu
+  zielone, zero pozostałości w rejestrze/harmonogramie. Żaden proces użytkownika,
+  usługi ani agenta nie jest dotykany.
+- Architektura startup: plan → wykonaj → zweryfikuj z kolejnością
+  create-before-delete; ścieżki anulowania UAC i nieudanego tworzenia
+  udowodnione testami.
+- GUI: 16/16 kontroli UI Automation na Windows 11 (sesja 1, 1920×1080, 100% DPI):
   sześć zakładek prawdziwymi kliknięciami, maximize/minimize/restore,
-  tray-intercept close, linia safe-mode. Harness: `tools/Run-GuiVerification.ps1`
-  (backup i restore `%APPDATA%`, start z `--safe-mode`).
+  close świadomy tray, tekst statusu startupu, przewinięta sekcja startup,
+  przełącznik PL ze screenshotami, linia safe-mode, strony kreatora + Finish
+  + stempel ustawień. Harness: `tools/Run-GuiVerification.ps1` (backup i restore
+  `%APPDATA%`, start z `--safe-mode`).
 - Defekty GUI wykryte na żywo i naprawione: crash zakresu theme przy starcie
   (teraz poziom App), wersja z `+sha`, ucięte nazwy procesów, ucięte logi,
-  przepełnienie przycisków profili, prawa uchwytów CPU Sets (wykryły to prawdziwe testy).
-- Baseline wydajności (Win11, i5-10210U, 8 LP, 100% DPI): start 1,5–1,6 s;
-  idle 60 s ≈ 180 MB WS / 85 MB Private / 0,5% CPU / ~740 uchwytów / 21 wątków;
-  100 syntetycznych profili ≈ +5 MB WS, bez delty CPU; monitor HW ON ≈ +10 MB WS,
-  +80 uchwytów; zminimalizowany ≈ idle. Harness: `tools/Measure-Performance.ps1`,
-  `tools/Measure-Cpu.ps1`; surowe CSV w ignorowanym `.evidence/perf`.
+  przepełnienie przycisków profili, prawa uchwytów CPU Sets (wykryły to prawdziwe testy),
+  modal kreatora niewidoczny dla drzewa UIA (fallback Win32), sekwencjonowanie
+  minimize/restore vs tray w harnessach.
+- Baseline wydajności (Win11, i5-10210U, 8 LP, 100% DPI, opublikowany Release):
+  start 1,5–1,6 s; idle 60 s ≈ 190 MB WS / 90 MB Private / 0,55% CPU /
+  ~786 uchwytów / 23 wątki; 100 syntetycznych profili ≈ brak delty CPU, +2 MB WS;
+  monitor HW ON ≈ +14 MB WS, +60 uchwytów; zminimalizowany ≈ 0,27% CPU.
+  Harness: `tools/Measure-Performance.ps1`, `tools/Measure-Cpu.ps1`;
+  surowe CSV w ignorowanym `.evidence/perf`.
 - CI: restore → Release build → testy → `git diff --check`, zielone.
 - Artefakty lokalne: samowystarczalny jednoplikowy `ProcessCoreOptimizer.exe` 2.0.0
   oraz `installer/Output/ProcessCoreOptimizer_Setup_2.0.0.exe` (50 784 844 bajtów,

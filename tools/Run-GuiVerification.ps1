@@ -16,6 +16,11 @@ param(
 $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes, System.Drawing, System.Windows.Forms
 
+# No zombies: a lingering instance holds the single-instance mutex and every
+# new launch would only show the "already running" dialog (which breaks UIA).
+Get-Process -Name ProcessCoreOptimizer -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+Start-Sleep -Seconds 2
+
 $root = Split-Path -Parent $PSScriptRoot
 $exe = Join-Path $root $ExePath
 if (!(Test-Path $exe)) { throw "Build output not found: $exe. Run dotnet publish first." }
