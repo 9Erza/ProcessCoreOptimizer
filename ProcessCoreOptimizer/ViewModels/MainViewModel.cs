@@ -329,28 +329,13 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
 
         private void ResolveOnboardingState(bool hadSettings, bool hadProfiles)
         {
-            if (!hadSettings && !hadProfiles)
+            var (needsWizard, newMarker, save) = OnboardingResolver.Resolve(hadSettings, hadProfiles, _appSettings.OnboardingCompletedVersion);
+            NeedsFirstRunWizard = needsWizard;
+            if (save && newMarker.HasValue)
             {
-                // Fresh install (or post-factory-reset): stamp "in progress" so an
-                // interrupted wizard resumes instead of vanishing.
-                if (_appSettings.OnboardingCompletedVersion < 0)
-                {
-                    _appSettings.OnboardingCompletedVersion = 0;
-                    _settingsService.SaveSettings(_appSettings);
-                }
-
-                NeedsFirstRunWizard = _appSettings.OnboardingCompletedVersion < 1;
-                return;
-            }
-
-            if (_appSettings.OnboardingCompletedVersion < 0)
-            {
-                // Legacy 1.3/2.0 data without a marker: silent upgrade, keep everything.
-                _appSettings.OnboardingCompletedVersion = 1;
+                _appSettings.OnboardingCompletedVersion = newMarker.Value;
                 _settingsService.SaveSettings(_appSettings);
             }
-
-            NeedsFirstRunWizard = _appSettings.OnboardingCompletedVersion < 1;
         }
 
         public void ReloadSettingsFromDisk()
@@ -439,7 +424,63 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         }
 
         public bool IsFactoryResetArmed =>
-            string.Equals(_factoryResetConfirmationText?.Trim(), "RESET", StringComparison.Ordinal);
+            !_resetInProgress && string.Equals(_factoryResetConfirmationText?.Trim(), "RESET", StringComparison.Ordinal);
+
+        private bool _resetInProgress;
+
+        private Task RestoreDefaultSettingsAsync() => Task.Run(() => RestoreDefaultSettingsCore());
+
+        private void RestoreDefaultSettingsCore()
+        {
+            try
+            {
+                var defaults = UserDataResetService.BuildDefaultSettings(AppSettings);
+
+                // Startup preferences reset to off: reconcile the real registration
+                // first; on failure keep the previous startup trio instead of
+                // pretending autostart is gone.
+                var off = new DesiredStartupConfiguration(false, StartupWindowMode.Normal, false);
+                var reconcile = _startupCoordinator
+                    .ApplyLatestAsync(off).GetAwaiter().GetResult();
+                if (reconcile.Success)
+                {
+                    defaults.StartWithWindows = false;
+                    defaults.StartupWindowMode = StartupWindowMode.Normal;
+                    defaults.StartupRunElevated = false;
+                    DataResetStatusText = IsPolishLanguage
+                        ? "Przywrócono ustawienia domyślne (profile nietknięte)."
+                        : "Default settings restored (profiles untouched).";
+                }
+                else
+                {
+                    defaults.StartWithWindows = AppSettings.StartWithWindows;
+                    defaults.StartupWindowMode = AppSettings.StartupWindowMode;
+                    defaults.StartupRunElevated = AppSettings.StartupRunElevated;
+                    DataResetStatusText = (IsPolishLanguage
+                        ? "Ustawienia przywrócono, ale autostartu nie udało się usunąć: "
+                        : "Settings restored, but startup could not be removed: ")
+                        + (reconcile.Error ?? reconcile.FinalEvaluation.State.ToString());
+                }
+
+                defaults.StartupSettingsVersion = Math.Max(AppSettings.StartupSettingsVersion, 1);
+                _settingsService.SaveSettings(defaults);
+                OnPropertyChanged(nameof(SelectedLanguageName));
+                OnPropertyChanged(nameof(CpuVendorText));
+                WpfApplication.Current.Dispatcher.Invoke(() =>
+                {
+                    AppSettings = defaults;
+                    RefreshAvailablePriorities();
+                    RefreshDisplayedPriorities();
+                    _lastStartupSignature = StartupSignature(AppSettings);
+                    _ = RefreshStartupStatusAsync();
+                });
+                AddLog(DataResetStatusText);
+            }
+            catch (Exception ex)
+            {
+                DataResetStatusText = ex.Message;
+            }
+        }
 
         private void OpenFirstRunWizard()
         {
@@ -451,41 +492,142 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             ReloadSettingsFromDisk();
         }
 
-        private Task RestoreDefaultSettingsAsync() => Task.Run(() => RestoreDefaultSettingsCore());
+        private Task RunFactoryResetAsync() => Task.Run(async () => await RunFactoryResetCore().ConfigureAwait(false));
 
-        private void RestoreDefaultSettingsCore()
+        private async Task RunFactoryResetCore()
         {
+            if (!IsFactoryResetArmed || _resetInProgress) return;
+            _resetInProgress = true;
+            OnPropertyChanged(nameof(IsFactoryResetArmed));
+
             try
             {
-                var defaults = UserDataResetService.BuildDefaultSettings(AppSettings);
-                defaults.StartWithWindows = AppSettings.StartWithWindows;
-                defaults.StartupWindowMode = AppSettings.StartupWindowMode;
-                defaults.StartupRunElevated = AppSettings.StartupRunElevated;
-                defaults.StartupSettingsVersion = AppSettings.StartupSettingsVersion;
+                // Quiesce the engine: no scans, no applies, no hardware polling.
+                _refreshTimer.Stop();
+                var idleDeadline = DateTime.UtcNow.AddSeconds(5);
+                while (_isRefreshing && DateTime.UtcNow < idleDeadline)
+                {
+                    await Task.Delay(100).ConfigureAwait(false);
+                }
 
-                _settingsService.SaveSettings(defaults);
-                AppSettings = defaults;
-                RefreshAvailablePriorities();
-                RefreshDisplayedPriorities();
-                OnPropertyChanged(nameof(SelectedLanguageName));
-                OnPropertyChanged(nameof(CpuVendorText));
-                DataResetStatusText = IsPolishLanguage
-                    ? "Przywrócono ustawienia domyślne (profile nietknięte)."
-                    : "Default settings restored (profiles untouched).";
+                if (_isRefreshing)
+                {
+                    SetResetStatus(IsPolishLanguage
+                        ? "Reset zablokowany: operacja w tle nadal trwa. Spróbuj ponownie."
+                        : "Reset blocked: a background operation is still running. Retry.");
+                    return;
+                }
+
+                var service = UserDataResetService.ForCurrentUser();
+                DataResetResult result = await service.FactoryResetAsync(
+                    isBusy: () => _isRefreshing,
+                    prepareForWipeAsync: () =>
+                    {
+                        StopHardwareMonitor(closeSensors: true, resetMetrics: true);
+                        _operationHistory.Clear();
+                        _sessionRestore.Clear();
+                        _optimizationService.ClearAllCache();
+                        _optimizationService.CleanupStaleCache(new HashSet<ProcessInstanceKey>());
+                        return Task.CompletedTask;
+                    },
+                    removeStartupAsync: async () =>
+                    {
+                        var apply = await _startupCoordinator
+                            .ApplyLatestAsync(new DesiredStartupConfiguration(false, StartupWindowMode.Normal, false))
+                            .ConfigureAwait(false);
+                        if (apply.Success) return null;
+                        return apply.Error ?? apply.FinalEvaluation.State.ToString();
+                    }).ConfigureAwait(false);
+
+                if (result.Blocked)
+                {
+                    SetResetStatus(IsPolishLanguage ? "Reset zablokowany: trwająca operacja." : "Reset blocked: operation in flight.");
+                    return;
+                }
+
+                TruncateActiveLog(result.ActiveLogPath);
+
+                // Drop all in-memory user state; nothing is re-read from disk.
+                WpfApplication.Current.Dispatcher.Invoke(() =>
+                {
+                    _profiles = new List<ProcessProfile>();
+                    SavedProfiles.Clear();
+                    Processes.Clear();
+                    RecentOperations.Clear();
+                    ProfileConflicts.Clear();
+                    OnPropertyChanged(nameof(HasProfileConflicts));
+                    ConflictSummaryText = string.Empty;
+                    SelectedSavedProfile = null;
+                    SelectedProcess = null;
+                    FactoryResetConfirmationText = string.Empty;
+                });
+
+                if (result.Success && string.IsNullOrWhiteSpace(result.StartupRemovalError))
+                {
+                    SetResetStatus(IsPolishLanguage
+                        ? $"Usunięto dane ({result.DeletedFiles.Count} plików). Aplikacja zostanie zamknięta — ponowne uruchomienie pokaże kreator."
+                        : $"Erased {result.DeletedFiles.Count} file(s). The app will close — relaunch shows the wizard.");
+                    AddLog(DataResetStatusText);
+                    await Task.Delay(1200).ConfigureAwait(false);
+                    WpfApplication.Current.Dispatcher.Invoke(() => WpfApplication.Current.Shutdown());
+                    return;
+                }
+
+                if (result.Success)
+                {
+                    SetResetStatus((IsPolishLanguage
+                        ? "Dane usunięte, ale autostart pozostał: "
+                        : "Data erased, but startup remains: ") + result.StartupRemovalError);
+                }
+                else
+                {
+                    SetResetStatus((IsPolishLanguage
+                        ? "Reset niepełny: "
+                        : "Incomplete reset: ") + string.Join("; ", result.Errors.Take(3)));
+                }
+
                 AddLog(DataResetStatusText);
             }
             catch (Exception ex)
             {
-                DataResetStatusText = ex.Message;
+                SetResetStatus(ex.Message);
+            }
+            finally
+            {
+                _resetInProgress = false;
+                OnPropertyChanged(nameof(IsFactoryResetArmed));
+                if (!_disposed && !_refreshTimer.IsEnabled)
+                {
+                    _refreshTimer.Start();
+                }
             }
         }
 
-        private Task RunFactoryResetAsync() => Task.Run(() => RunFactoryResetCore());
-
-        private void RunFactoryResetCore()
+        private void SetResetStatus(string message)
         {
-            // Full wiring lands with the shutdown-coordination pass (S4).
-            DataResetStatusText = IsPolishLanguage ? "Reset w przygotowaniu." : "Reset pending.";
+            DataResetStatusText = message;
+        }
+
+        private void TruncateActiveLog(string? activeLogPath)
+        {
+            try
+            {
+                string current = AppPaths.ResolveUserLogFilePath(AppSettings.LogFilePath);
+                string target = activeLogPath ?? current;
+                if (!File.Exists(target)) return;
+
+                // Move the writer to a temp path, truncate, move back.
+                string tempLog = Path.Combine(Path.GetTempPath(), $"pco_log_{Guid.NewGuid():N}.log");
+                LoggerService.Shared.Configure(AppSettings.LogEnabled, LogLevel.FromValue(AppSettings.LogLevelValue), tempLog, AppSettings.EnableConsoleOutput, AppSettings.LogSourceName);
+                try { File.WriteAllText(target, $"[{DateTime.Now:HH:mm:ss}] Factory reset completed; previous log truncated.{Environment.NewLine}"); }
+                catch { }
+                LoggerService.Shared.Configure(AppSettings.LogEnabled, LogLevel.FromValue(AppSettings.LogLevelValue), AppSettings.LogFilePath, AppSettings.EnableConsoleOutput, AppSettings.LogSourceName);
+                try { if (File.Exists(tempLog)) File.Delete(tempLog); } catch { }
+            }
+            catch
+            {
+                // Log truncation is best-effort; the audit line above already landed.
+            }
         }
 
         public MainViewModel()
