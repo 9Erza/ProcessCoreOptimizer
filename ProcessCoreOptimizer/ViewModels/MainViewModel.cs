@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -45,6 +46,12 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         private string? _cachedCpuVendor;
         private bool _realtimeCacheFlag;
         private string _lastStartupSignature = string.Empty;
+        private readonly StartupService _startupService = new();
+        private readonly StartupApplyCoordinator _startupCoordinator;
+        private string _startupStatusText = string.Empty;
+        private string _startupDetailText = string.Empty;
+        private bool _startupBusy;
+        private bool _isElevated;
 
         private bool _isRefreshing;
         private bool _disposed;
@@ -101,6 +108,14 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         public ICommand DisableSmtCommand { get; }
         public ICommand DisableECoresCommand { get; }
         public ICommand ToggleSettingCommand { get; }
+        public ICommand RestartAsAdministratorCommand { get; }
+        public ICommand RefreshStartupStatusCommand { get; }
+        public ICommand OpenWizardCommand { get; }
+        public ICommand RestoreDefaultsCommand { get; }
+        public ICommand FactoryResetCommand { get; }
+
+        private string _dataResetStatusText = string.Empty;
+        private string _factoryResetConfirmationText = string.Empty;
         public ICommand ApplyCorePresetCommand { get; }
         public ICommand DuplicateProfileCommand { get; }
         public ICommand ExportProfilesCommand { get; }
@@ -310,6 +325,31 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             set => IsPolishLanguage = value == "Polski";
         }
 
+        public bool NeedsFirstRunWizard { get; private set; }
+
+        private void ResolveOnboardingState(bool hadSettings, bool hadProfiles)
+        {
+            var (needsWizard, newMarker, save) = OnboardingResolver.Resolve(hadSettings, hadProfiles, _appSettings.OnboardingCompletedVersion);
+            NeedsFirstRunWizard = needsWizard;
+            if (save && newMarker.HasValue)
+            {
+                _appSettings.OnboardingCompletedVersion = newMarker.Value;
+                _settingsService.SaveSettings(_appSettings);
+            }
+        }
+
+        public void ReloadSettingsFromDisk()
+        {
+            _appSettings = _settingsService.LoadSettings();
+            ConfigureLoggerFromSettings();
+            NeedsFirstRunWizard = false;
+            ApplyLanguage(_appSettings.Language);
+            RefreshSavedProfilesView();
+            OnPropertyChanged(nameof(SelectedLanguageName));
+            OnPropertyChanged(nameof(CpuVendorText));
+            _ = RefreshStartupStatusAsync();
+        }
+
         public string CpuVendor => _cachedCpuVendor ??= _hardwareService.GetCpuVendor();
 
         public string CpuVendorText
@@ -323,10 +363,280 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             }
         }
 
+        public IReadOnlyList<StartupWindowMode> StartupWindowModes { get; } = new[]
+        {
+            StartupWindowMode.Normal,
+            StartupWindowMode.Minimized,
+            StartupWindowMode.Tray
+        };
+
+        public StartupWindowMode SelectedStartupWindowMode
+        {
+            get => AppSettings.StartupWindowMode;
+            set
+            {
+                if (AppSettings.StartupWindowMode == value) return;
+                AppSettings.StartupWindowMode = value;
+                OnPropertyChanged();
+                _settingsService.SaveSettings(AppSettings);
+                TriggerStartupApply();
+            }
+        }
+
+        public bool IsStartupBusy
+        {
+            get => _startupBusy;
+            private set => SetProperty(ref _startupBusy, value);
+        }
+
+        public string StartupStatusText
+        {
+            get => _startupStatusText;
+            private set => SetProperty(ref _startupStatusText, value);
+        }
+
+        public string StartupDetailText
+        {
+            get => _startupDetailText;
+            private set => SetProperty(ref _startupDetailText, value);
+        }
+
+        public bool IsRunningAsAdministrator => _isElevated;
+
+        public string CurrentPrivilegesText => _isElevated
+            ? "Administrator"
+            : (IsPolishLanguage ? "Użytkownik standardowy" : "Standard user");
+
+        public string DataResetStatusText
+        {
+            get => _dataResetStatusText;
+            private set => SetProperty(ref _dataResetStatusText, value);
+        }
+
+        public string FactoryResetConfirmationText
+        {
+            get => _factoryResetConfirmationText;
+            set
+            {
+                if (!SetProperty(ref _factoryResetConfirmationText, value ?? string.Empty)) return;
+                OnPropertyChanged(nameof(IsFactoryResetArmed));
+            }
+        }
+
+        public bool IsFactoryResetArmed =>
+            !_resetInProgress && string.Equals(_factoryResetConfirmationText?.Trim(), "RESET", StringComparison.Ordinal);
+
+        private bool _resetInProgress;
+
+        private Task RestoreDefaultSettingsAsync() => Task.Run(() => RestoreDefaultSettingsCore());
+
+        private void RestoreDefaultSettingsCore()
+        {
+            try
+            {
+                var defaults = UserDataResetService.BuildDefaultSettings(AppSettings);
+
+                // Startup preferences reset to off: reconcile the real registration
+                // first; on failure keep the previous startup trio instead of
+                // pretending autostart is gone.
+                var off = new DesiredStartupConfiguration(false, StartupWindowMode.Normal, false);
+                var reconcile = _startupCoordinator
+                    .ApplyLatestAsync(off).GetAwaiter().GetResult();
+                if (reconcile.Success)
+                {
+                    defaults.StartWithWindows = false;
+                    defaults.StartupWindowMode = StartupWindowMode.Normal;
+                    defaults.StartupRunElevated = false;
+                    DataResetStatusText = IsPolishLanguage
+                        ? "Przywrócono ustawienia domyślne (profile nietknięte)."
+                        : "Default settings restored (profiles untouched).";
+                }
+                else
+                {
+                    defaults.StartWithWindows = AppSettings.StartWithWindows;
+                    defaults.StartupWindowMode = AppSettings.StartupWindowMode;
+                    defaults.StartupRunElevated = AppSettings.StartupRunElevated;
+                    DataResetStatusText = (IsPolishLanguage
+                        ? "Ustawienia przywrócono, ale autostartu nie udało się usunąć: "
+                        : "Settings restored, but startup could not be removed: ")
+                        + (reconcile.Error ?? reconcile.FinalEvaluation.State.ToString());
+                }
+
+                defaults.StartupSettingsVersion = Math.Max(AppSettings.StartupSettingsVersion, 1);
+                _settingsService.SaveSettings(defaults);
+                OnPropertyChanged(nameof(SelectedLanguageName));
+                OnPropertyChanged(nameof(CpuVendorText));
+                WpfApplication.Current.Dispatcher.Invoke(() =>
+                {
+                    AppSettings = defaults;
+                    RefreshAvailablePriorities();
+                    RefreshDisplayedPriorities();
+                    _lastStartupSignature = StartupSignature(AppSettings);
+                    _ = RefreshStartupStatusAsync();
+                });
+                AddLog(DataResetStatusText);
+            }
+            catch (Exception ex)
+            {
+                DataResetStatusText = ex.Message;
+            }
+        }
+
+        private void OpenFirstRunWizard()
+        {
+            var window = new Views.FirstRunWindow
+            {
+                Owner = WpfApplication.Current.MainWindow
+            };
+            window.ShowDialog();
+            ReloadSettingsFromDisk();
+        }
+
+        private Task RunFactoryResetAsync() => Task.Run(async () => await RunFactoryResetCore().ConfigureAwait(false));
+
+        private async Task RunFactoryResetCore()
+        {
+            if (!IsFactoryResetArmed || _resetInProgress) return;
+            _resetInProgress = true;
+            OnPropertyChanged(nameof(IsFactoryResetArmed));
+
+            try
+            {
+                // Quiesce the engine: no scans, no applies, no hardware polling.
+                _refreshTimer.Stop();
+                var idleDeadline = DateTime.UtcNow.AddSeconds(5);
+                while (_isRefreshing && DateTime.UtcNow < idleDeadline)
+                {
+                    await Task.Delay(100).ConfigureAwait(false);
+                }
+
+                if (_isRefreshing)
+                {
+                    SetResetStatus(IsPolishLanguage
+                        ? "Reset zablokowany: operacja w tle nadal trwa. Spróbuj ponownie."
+                        : "Reset blocked: a background operation is still running. Retry.");
+                    return;
+                }
+
+                var service = UserDataResetService.ForCurrentUser();
+                DataResetResult result = await service.FactoryResetAsync(
+                    isBusy: () => _isRefreshing,
+                    prepareForWipeAsync: () =>
+                    {
+                        StopHardwareMonitor(closeSensors: true, resetMetrics: true);
+                        _operationHistory.Clear();
+                        _sessionRestore.Clear();
+                        _optimizationService.ClearAllCache();
+                        _optimizationService.CleanupStaleCache(new HashSet<ProcessInstanceKey>());
+                        return Task.CompletedTask;
+                    },
+                    removeStartupAsync: async () =>
+                    {
+                        var apply = await _startupCoordinator
+                            .ApplyLatestAsync(new DesiredStartupConfiguration(false, StartupWindowMode.Normal, false))
+                            .ConfigureAwait(false);
+                        if (apply.Success) return null;
+                        return apply.Error ?? apply.FinalEvaluation.State.ToString();
+                    }).ConfigureAwait(false);
+
+                if (result.Blocked)
+                {
+                    SetResetStatus(IsPolishLanguage ? "Reset zablokowany: trwająca operacja." : "Reset blocked: operation in flight.");
+                    return;
+                }
+
+                TruncateActiveLog(result.ActiveLogPath);
+
+                // Drop all in-memory user state; nothing is re-read from disk.
+                WpfApplication.Current.Dispatcher.Invoke(() =>
+                {
+                    _profiles = new List<ProcessProfile>();
+                    SavedProfiles.Clear();
+                    Processes.Clear();
+                    RecentOperations.Clear();
+                    ProfileConflicts.Clear();
+                    OnPropertyChanged(nameof(HasProfileConflicts));
+                    ConflictSummaryText = string.Empty;
+                    SelectedSavedProfile = null;
+                    SelectedProcess = null;
+                    FactoryResetConfirmationText = string.Empty;
+                });
+
+                if (result.Success && string.IsNullOrWhiteSpace(result.StartupRemovalError))
+                {
+                    SetResetStatus(IsPolishLanguage
+                        ? $"Usunięto dane ({result.DeletedFiles.Count} plików). Aplikacja zostanie zamknięta — ponowne uruchomienie pokaże kreator."
+                        : $"Erased {result.DeletedFiles.Count} file(s). The app will close — relaunch shows the wizard.");
+                    AddLog(DataResetStatusText);
+                    await Task.Delay(1200).ConfigureAwait(false);
+                    WpfApplication.Current.Dispatcher.Invoke(() => WpfApplication.Current.Shutdown());
+                    return;
+                }
+
+                if (result.Success)
+                {
+                    SetResetStatus((IsPolishLanguage
+                        ? "Dane usunięte, ale autostart pozostał: "
+                        : "Data erased, but startup remains: ") + result.StartupRemovalError);
+                }
+                else
+                {
+                    SetResetStatus((IsPolishLanguage
+                        ? "Reset niepełny: "
+                        : "Incomplete reset: ") + string.Join("; ", result.Errors.Take(3)));
+                }
+
+                AddLog(DataResetStatusText);
+            }
+            catch (Exception ex)
+            {
+                SetResetStatus(ex.Message);
+            }
+            finally
+            {
+                _resetInProgress = false;
+                OnPropertyChanged(nameof(IsFactoryResetArmed));
+                if (!_disposed && !_refreshTimer.IsEnabled)
+                {
+                    _refreshTimer.Start();
+                }
+            }
+        }
+
+        private void SetResetStatus(string message)
+        {
+            DataResetStatusText = message;
+        }
+
+        private void TruncateActiveLog(string? activeLogPath)
+        {
+            try
+            {
+                string current = AppPaths.ResolveUserLogFilePath(AppSettings.LogFilePath);
+                string target = activeLogPath ?? current;
+                if (!File.Exists(target)) return;
+
+                // Move the writer to a temp path, truncate, move back.
+                string tempLog = Path.Combine(Path.GetTempPath(), $"pco_log_{Guid.NewGuid():N}.log");
+                LoggerService.Shared.Configure(AppSettings.LogEnabled, LogLevel.FromValue(AppSettings.LogLevelValue), tempLog, AppSettings.EnableConsoleOutput, AppSettings.LogSourceName);
+                try { File.WriteAllText(target, $"[{DateTime.Now:HH:mm:ss}] Factory reset completed; previous log truncated.{Environment.NewLine}"); }
+                catch { }
+                LoggerService.Shared.Configure(AppSettings.LogEnabled, LogLevel.FromValue(AppSettings.LogLevelValue), AppSettings.LogFilePath, AppSettings.EnableConsoleOutput, AppSettings.LogSourceName);
+                try { if (File.Exists(tempLog)) File.Delete(tempLog); } catch { }
+            }
+            catch
+            {
+                // Log truncation is best-effort; the audit line above already landed.
+            }
+        }
+
         public MainViewModel()
         {
+            bool hadSettings = _settingsService.HadExistingSettings();
+            bool hadProfiles = File.Exists(AppPaths.GetUserDataFilePath("profiles.json"));
             _appSettings = _settingsService.LoadSettings();
             ConfigureLoggerFromSettings();
+            ResolveOnboardingState(hadSettings, hadProfiles);
 
             _processScannerService = new ProcessScannerService(_processService);
             _optimizationService = new OptimizationService(_processService, () => _cpuSetMap, _sessionRestore);
@@ -338,6 +648,11 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 () => AppSettings.AllowRealtimePriority);
             _realtimeCacheFlag = _appSettings.AllowRealtimePriority;
             _lastStartupSignature = StartupSignature(_appSettings);
+            _startupCoordinator = new StartupApplyCoordinator(new StartupConfigurationExecutor(_startupService));
+            _isElevated = _startupService.IsRunAsAdmin();
+            OnPropertyChanged(nameof(IsRunningAsAdministrator));
+            OnPropertyChanged(nameof(CurrentPrivilegesText));
+            _ = RefreshStartupStatusAsync();
 
             _cpuSetMap = _hardwareService.GetLogicalCoreToCpuSetIdMap();
             foreach (var core in _hardwareService.GetCoreTopology())
@@ -369,7 +684,12 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             ClearAllCommand = new RelayCommand(_ => SetAllCores(false));
             DisableSmtCommand = new RelayCommand(_ => DisableSmtThreads());
             DisableECoresCommand = new RelayCommand(_ => DisableEfficiencyCores());
-            ToggleSettingCommand = new RelayCommand(_ => SaveAndApplySettings(restartAsAdminIfNeeded: true));
+            ToggleSettingCommand = new RelayCommand(_ => SaveAndApplySettings(restartAsAdminIfNeeded: false));
+            RestartAsAdministratorCommand = new RelayCommand(_ => RestartElevated());
+            RefreshStartupStatusCommand = new RelayCommand(_ => { _ = RefreshStartupStatusAsync(); });
+            OpenWizardCommand = new RelayCommand(_ => OpenFirstRunWizard());
+            RestoreDefaultsCommand = new RelayCommand(_ => { _ = RestoreDefaultSettingsAsync(); });
+            FactoryResetCommand = new RelayCommand(_ => { _ = RunFactoryResetAsync(); });
             ApplyCorePresetCommand = new RelayCommand(preset => ApplyCorePreset(preset?.ToString()));
             DuplicateProfileCommand = new RelayCommand(_ => DuplicateSelectedProfile());
             ExportProfilesCommand = new RelayCommand(_ => ExportProfilesToFile());
@@ -1403,6 +1723,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
 
         private void SaveAndApplySettings(bool restartAsAdminIfNeeded)
         {
+            _ = restartAsAdminIfNeeded;
             bool realtimeBefore = _realtimeCacheFlag;
             bool realtimeNow = AppSettings.AllowRealtimePriority;
 
@@ -1410,14 +1731,13 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             _hwService?.Configure(AppSettings.EnableStorageSensors);
             _settingsService.SaveSettings(AppSettings);
 
-            // Startup registration touches the registry / scheduled tasks: apply it
-            // only when startup-related settings actually changed, never as a side
-            // effect of language/log/monitoring toggles.
+            // Startup registration is reconciled by the coordinator (plan → execute
+            // → verify), only when startup-related settings actually changed.
             string startupSignature = StartupSignature(AppSettings);
             if (!string.Equals(startupSignature, _lastStartupSignature, StringComparison.Ordinal))
             {
                 _lastStartupSignature = startupSignature;
-                _settingsService.ApplyWindowsStartup(AppSettings);
+                TriggerStartupApply();
             }
             OnPropertyChanged(nameof(IsHardwareMonitorEnabled));
             RefreshAvailablePriorities();
@@ -1437,11 +1757,96 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 if (AppSettings.HardwareMonitorEnabled) StartHardwareMonitorIfVisible();
                 else StopHardwareMonitor(closeSensors: true, resetMetrics: true);
             }
+        }
 
-            if (restartAsAdminIfNeeded && AppSettings.RunAsAdministrator && !_settingsService.IsRunAsAdmin())
+        private void TriggerStartupApply()
+        {
+            _ = ApplyStartupAsync();
+        }
+
+        private async Task ApplyStartupAsync()
+        {
+            if (IsStartupBusy) return;
+            IsStartupBusy = true;
+            try
             {
-                _settingsService.RestartAsAdmin();
+                var result = await _startupCoordinator.ApplyLatestAsync(AppSettings.DesiredStartup).ConfigureAwait(true);
+                UpdateStartupStatus(result.FinalEvaluation, result.Error ?? (result.WasElevationCancelled ? StartupUacCancelledText() : null));
+                if (!string.IsNullOrWhiteSpace(result.Error) || result.WasElevationCancelled)
+                {
+                    AddLog($"Startup apply: {result.Error ?? StartupUacCancelledText()}");
+                }
+                else if (result.Success)
+                {
+                    AddLog($"Startup configured: {result.FinalEvaluation.State}.");
+                }
             }
+            catch (Exception ex)
+            {
+                UpdateStartupStatus(null, ex.Message);
+            }
+            finally
+            {
+                IsStartupBusy = false;
+            }
+        }
+
+        private async Task RefreshStartupStatusAsync()
+        {
+            try
+            {
+                var desired = AppSettings.DesiredStartup;
+                var actual = await _startupService.ReadActualAsync(desired).ConfigureAwait(true);
+                var evaluation = StartupConfigurationPlanner.Evaluate(desired, actual);
+                UpdateStartupStatus(evaluation, null);
+            }
+            catch (Exception ex)
+            {
+                UpdateStartupStatus(null, ex.Message);
+            }
+        }
+
+        private void UpdateStartupStatus(StartupConfigurationEvaluation? evaluation, string? error)
+        {
+            if (evaluation == null)
+            {
+                StartupStatusText = StartupStateText(StartupState.Broken);
+                StartupDetailText = error ?? string.Empty;
+                return;
+            }
+
+            StartupStatusText = StartupStateText(evaluation.State);
+            var parts = evaluation.Reasons.Select(StartupReasonText).Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
+            if (!string.IsNullOrWhiteSpace(error)) parts.Add(error);
+            if (evaluation.State == StartupState.Registry || evaluation.State == StartupState.ElevatedTask || evaluation.State == StartupState.Disabled)
+            {
+                if (parts.Count == 0) parts.Add(StartupHealthyText());
+            }
+
+            StartupDetailText = string.Join(" ", parts);
+        }
+
+        private void RestartElevated()
+        {
+            string[] forward = StartupHelperCommand.ForwardedRestartArguments(
+                Environment.GetCommandLineArgs().Skip(1).ToArray());
+            // Preserve the configured window behavior across the restart.
+            string modeArg = AppSettings.StartupWindowMode switch
+            {
+                StartupWindowMode.Minimized => "--minimized",
+                StartupWindowMode.Tray => "--tray",
+                _ => string.Empty
+            };
+            var args = forward.Concat(string.IsNullOrEmpty(modeArg) ? Enumerable.Empty<string>() : new[] { modeArg })
+                .Distinct().ToArray();
+
+            var outcome = App.RequestElevatedRestart(_startupService, args);
+            AddLog(outcome switch
+            {
+                RestartElevatedResult.Started => "Restarting with administrator rights...",
+                RestartElevatedResult.Cancelled => "Administrator restart cancelled (UAC dismissed). Still running with current privileges.",
+                _ => "Administrator restart failed to start."
+            });
         }
 
         private void ConfigureLoggerFromSettings()
@@ -1460,7 +1865,38 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         }
 
         private static string StartupSignature(AppSettings settings) =>
-            $"{settings.StartWithWindows}|{settings.StartMinimized}|{settings.MinimizeToTray}|{settings.RunAsAdministrator}";
+            $"{settings.StartWithWindows}|{settings.StartupWindowMode}|{settings.StartupRunElevated}";
+
+        private string StartupStateText(StartupState state) => state switch
+        {
+            StartupState.Disabled => IsPolishLanguage ? "Autostart: wyłączony" : "Startup: disabled",
+            StartupState.Registry => IsPolishLanguage ? "Autostart: zwykły (rejestr)" : "Startup: normal (registry)",
+            StartupState.ElevatedTask => IsPolishLanguage ? "Autostart: elevated (harmonogram)" : "Startup: elevated (scheduler)",
+            StartupState.Conflict => IsPolishLanguage ? "Autostart: KONFLIKT — wymaga naprawy" : "Startup: CONFLICT — repair needed",
+            _ => IsPolishLanguage ? "Autostart: wymaga uwagi" : "Startup: needs attention"
+        };
+
+        private string StartupReasonText(StartupReason reason) => reason switch
+        {
+            StartupReason.MissingRegistry => IsPolishLanguage ? "Brak wpisu rejestru." : "Registry entry missing.",
+            StartupReason.MissingScheduledTask => IsPolishLanguage ? "Brak zadania harmonogramu." : "Scheduled task missing.",
+            StartupReason.WrongExecutable => IsPolishLanguage ? "Wpis wskazuje inny plik EXE." : "Entry points to a different EXE.",
+            StartupReason.WrongArguments => IsPolishLanguage ? "Niezgodne argumenty startu." : "Startup arguments differ.",
+            StartupReason.ExecutableMissing => IsPolishLanguage ? "Plik EXE nie istnieje." : "Executable file is missing.",
+            StartupReason.TaskDisabled => IsPolishLanguage ? "Zadanie jest wyłączone." : "Task is disabled.",
+            StartupReason.MissingLogonTrigger => IsPolishLanguage ? "Brak wyzwalacza logowania." : "Logon trigger missing.",
+            StartupReason.MissingElevatedRunLevel => IsPolishLanguage ? "Brak poziomu HighestAvailable." : "HighestAvailable run level missing.",
+            StartupReason.UnexpectedRegistryEntry => IsPolishLanguage ? "Nieoczekiwany wpis rejestru." : "Unexpected registry entry.",
+            StartupReason.UnexpectedScheduledTask => IsPolishLanguage ? "Nieoczekiwane zadanie harmonogramu." : "Unexpected scheduled task.",
+            StartupReason.ReadFailed => IsPolishLanguage ? "Odczyt stanu niemożliwy." : "State could not be read.",
+            _ => string.Empty
+        };
+
+        private string StartupHealthyText() =>
+            IsPolishLanguage ? "Stan zgodny z konfiguracją." : "State matches configuration.";
+
+        private string StartupUacCancelledText() =>
+            IsPolishLanguage ? "Monit UAC anulowany — zachowano poprzedni stan." : "UAC prompt cancelled — previous state kept.";
 
         private bool ConfirmRealTimePriority()
         {

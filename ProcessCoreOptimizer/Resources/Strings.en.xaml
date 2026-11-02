@@ -14,11 +14,43 @@
 
     <system:String x:Key="StrLanguage">Language / Język</system:String>
     <system:String x:Key="StrStartWindows">Start with Windows</system:String>
-    <system:String x:Key="StrStartMinimized">Start Minimized</system:String>
     <system:String x:Key="StrMinToTray">Minimize to Tray</system:String>
     <system:String x:Key="StrCloseToTray">Close to Tray</system:String>
-    <system:String x:Key="StrStartAdmin">Start as Administrator</system:String>
-    <system:String x:Key="StrAdminReq">Requires restart. Allows silent background optimization.</system:String>
+
+    <system:String x:Key="StrSetGroupGeneral">General</system:String>
+    <system:String x:Key="StrSetGroupStartup">Startup &amp; Privileges</system:String>
+    <system:String x:Key="StrSetGroupMonitoring">Process Monitoring</system:String>
+    <system:String x:Key="StrSetGroupHardware">Hardware Monitoring</system:String>
+    <system:String x:Key="StrSetGroupDiagnostics">Diagnostics</system:String>
+    <system:String x:Key="StrSetGroupUpdates">Updates</system:String>
+    <system:String x:Key="StrSetGroupData">Application Data &amp; Reset</system:String>
+    <system:String x:Key="StrSetGroupAbout">About</system:String>
+    <system:String x:Key="StrStartupWindowBehavior">Window behavior on logon</system:String>
+    <system:String x:Key="StrStartupRunElevated">Run with administrator rights at startup</system:String>
+    <system:String x:Key="StrStartupElevatedHint">Elevated startup uses a Task Scheduler logon task with HighestAvailable. Normal startup uses a registry Run entry. Only one channel is active at a time.</system:String>
+    <system:String x:Key="StrStartupStatus">Actual startup state</system:String>
+    <system:String x:Key="StrStartupRefresh">Refresh</system:String>
+    <system:String x:Key="StrStartupWorking">Applying…</system:String>
+    <system:String x:Key="StrCurrentPrivileges">Current privileges</system:String>
+    <system:String x:Key="StrRestartAsAdmin">Restart as Administrator…</system:String>
+    <system:String x:Key="StrTrayHint">Tray behavior applies to manual minimize/close buttons.</system:String>
+    <system:String x:Key="StrOpenWizard">Open First-Run Wizard…</system:String>
+    <system:String x:Key="StrRestoreDefaults">Restore Default Settings</system:String>
+    <system:String x:Key="StrFactoryResetTitle">Factory Reset — erase all application data</system:String>
+    <system:String x:Key="StrFactoryResetWarning">Deletes settings, profiles, backups, logs and caches owned by PCO. Exported files outside the data folder are kept. Type RESET to arm.</system:String>
+    <system:String x:Key="StrFactoryReset">Erase All Application Data</system:String>
+    <system:String x:Key="StrAboutLine">Standalone CPU &amp; process control utility. No drivers, no services, no hidden tweaks.</system:String>
+    <system:String x:Key="StrWizardWelcome">Welcome to Process Core Optimizer</system:String>
+    <system:String x:Key="StrWizardWelcomeBody">A focused tool for process CPU control: affinity, CPU Sets, priorities and profiles. Nothing runs in the background without your explicit profiles.</system:String>
+    <system:String x:Key="StrWizardModesTitle">Affinity vs CPU Sets</system:String>
+    <system:String x:Key="StrWizardModesBody">Affinity pins a process to selected cores (strict). CPU Sets only prefer selected cores and let Windows schedule more freely (usually friendlier on hybrid CPUs).</system:String>
+    <system:String x:Key="StrWizardModesNote">Hardware monitoring stays OFF and no aggressive optimization is enabled by default. You apply everything explicitly.</system:String>
+    <system:String x:Key="StrWizardStartupTitle">Startup behavior</system:String>
+    <system:String x:Key="StrWizardNoAdminNote">Administrator rights are optional. The app works without elevation; elevation is only offered where Windows requires it (for example, elevated autostart or protected processes).</system:String>
+    <system:String x:Key="StrWizardSkip">Skip</system:String>
+    <system:String x:Key="StrWizardBack">Back</system:String>
+    <system:String x:Key="StrWizardNext">Next</system:String>
+    <system:String x:Key="StrWizardFinish">Finish</system:String>
 
     <system:String x:Key="StrSelectAll">Select All</system:String>
     <system:String x:Key="StrClearAll">Clear All</system:String>

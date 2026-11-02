@@ -14,11 +14,43 @@
 
     <system:String x:Key="StrLanguage">Język / Language</system:String>
     <system:String x:Key="StrStartWindows">Uruchamiaj z systemem Windows</system:String>
-    <system:String x:Key="StrStartMinimized">Uruchom zminimalizowany</system:String>
     <system:String x:Key="StrMinToTray">Minimalizuj do zasobnika</system:String>
     <system:String x:Key="StrCloseToTray">Zamykaj do zasobnika</system:String>
-    <system:String x:Key="StrStartAdmin">Uruchom jako Administrator</system:String>
-    <system:String x:Key="StrAdminReq">Wymaga restartu. Pozwala na optymalizację w tle.</system:String>
+
+    <system:String x:Key="StrSetGroupGeneral">Ogólne</system:String>
+    <system:String x:Key="StrSetGroupStartup">Uruchamianie i uprawnienia</system:String>
+    <system:String x:Key="StrSetGroupMonitoring">Monitorowanie procesów</system:String>
+    <system:String x:Key="StrSetGroupHardware">Monitor sprzętu</system:String>
+    <system:String x:Key="StrSetGroupDiagnostics">Diagnostyka</system:String>
+    <system:String x:Key="StrSetGroupUpdates">Aktualizacje</system:String>
+    <system:String x:Key="StrSetGroupData">Dane aplikacji i reset</system:String>
+    <system:String x:Key="StrSetGroupAbout">O programie</system:String>
+    <system:String x:Key="StrStartupWindowBehavior">Zachowanie okna przy logowaniu</system:String>
+    <system:String x:Key="StrStartupRunElevated">Uruchamiaj z prawami administratora przy starcie</system:String>
+    <system:String x:Key="StrStartupElevatedHint">Elevated startup używa zadania harmonogramu (HighestAvailable). Zwykły autostart używa wpisu rejestru Run. Aktywny jest zawsze tylko jeden kanał.</system:String>
+    <system:String x:Key="StrStartupStatus">Rzeczywisty stan autostartu</system:String>
+    <system:String x:Key="StrStartupRefresh">Odśwież</system:String>
+    <system:String x:Key="StrStartupWorking">Stosowanie…</system:String>
+    <system:String x:Key="StrCurrentPrivileges">Aktualne uprawnienia</system:String>
+    <system:String x:Key="StrRestartAsAdmin">Uruchom ponownie jako Administrator…</system:String>
+    <system:String x:Key="StrTrayHint">Zachowanie tray dotyczy ręcznych przycisków minimalizacji/zamykania.</system:String>
+    <system:String x:Key="StrOpenWizard">Otwórz kreator pierwszego uruchomienia…</system:String>
+    <system:String x:Key="StrRestoreDefaults">Przywróć ustawienia domyślne</system:String>
+    <system:String x:Key="StrFactoryResetTitle">Factory Reset — usuń wszystkie dane aplikacji</system:String>
+    <system:String x:Key="StrFactoryResetWarning">Usuwa ustawienia, profile, kopie, logi i cache PCO. Ręczne eksporty poza katalogiem danych zostają. Wpisz RESET, aby uzbroić.</system:String>
+    <system:String x:Key="StrFactoryReset">Usuń wszystkie dane aplikacji</system:String>
+    <system:String x:Key="StrAboutLine">Samodzielne narzędzie do CPU i procesów. Bez sterowników, usług i ukrytych zmian.</system:String>
+    <system:String x:Key="StrWizardWelcome">Witaj w Process Core Optimizer</system:String>
+    <system:String x:Key="StrWizardWelcomeBody">Skupione narzędzie do kontroli CPU procesów: affinity, CPU Sets, priorytety i profile. Nic nie działa w tle bez Twoich jawnych profili.</system:String>
+    <system:String x:Key="StrWizardModesTitle">Affinity vs CPU Sets</system:String>
+    <system:String x:Key="StrWizardModesBody">Affinity przypina proces do wybranych rdzeni (sztywno). CPU Sets jedynie preferują wybrane rdzenie, zostawiając schedulerowi Windows więcej swobody (zwykle łagodniej na CPU hybrydowych).</system:String>
+    <system:String x:Key="StrWizardModesNote">Monitor sprzętu pozostaje WYŁĄCZONY i domyślnie nie włączamy żadnych agresywnych optymalizacji. Wszystko stosujesz jawnie.</system:String>
+    <system:String x:Key="StrWizardStartupTitle">Zachowanie przy starcie</system:String>
+    <system:String x:Key="StrWizardNoAdminNote">Prawa administratora są opcjonalne. Aplikacja działa bez eskalacji; podwyższenie proponujemy tylko tam, gdzie wymaga go Windows (np. elevated autostart albo chronione procesy).</system:String>
+    <system:String x:Key="StrWizardSkip">Pomiń</system:String>
+    <system:String x:Key="StrWizardBack">Wstecz</system:String>
+    <system:String x:Key="StrWizardNext">Dalej</system:String>
+    <system:String x:Key="StrWizardFinish">Zakończ</system:String>
 
     <system:String x:Key="StrSelectAll">Zaznacz Wszystko</system:String>
     <system:String x:Key="StrClearAll">Odznacz Wszystko</system:String>

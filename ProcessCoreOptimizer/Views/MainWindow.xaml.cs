@@ -2,6 +2,8 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
+using ProcessCoreOptimizer.WPF.Logging;
+using ProcessCoreOptimizer.WPF.Models;
 using ProcessCoreOptimizer.WPF.ViewModels;
 
 namespace ProcessCoreOptimizer.WPF.Views
@@ -42,6 +44,7 @@ namespace ProcessCoreOptimizer.WPF.Views
             };
 
             this.Loaded += MainWindow_Loaded;
+            this.ContentRendered += MainWindow_ContentRendered;
         }
 
         /// <summary>
@@ -117,7 +120,9 @@ namespace ProcessCoreOptimizer.WPF.Views
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            bool startHidden = _viewModel.AppSettings.StartMinimized || ProcessCoreOptimizer.WPF.App.StartupOptions.StartMinimized || ProcessCoreOptimizer.WPF.App.StartupOptions.StartToTray;
+            bool startHidden = _viewModel.AppSettings.StartupWindowMode != Models.StartupWindowMode.Normal
+                || ProcessCoreOptimizer.WPF.App.StartupOptions.StartMinimized
+                || ProcessCoreOptimizer.WPF.App.StartupOptions.StartToTray;
 
             if (startHidden)
             {
@@ -126,6 +131,26 @@ namespace ProcessCoreOptimizer.WPF.Views
                 {
                     this.Hide();
                 }
+            }
+        }
+
+        private void MainWindow_ContentRendered(object? sender, EventArgs e)
+        {
+            LoggerService.Instance.Info($"First-run check: NeedsWizard={_viewModel.NeedsFirstRunWizard}.");
+            if (!_viewModel.NeedsFirstRunWizard) return;
+            try
+            {
+                LoggerService.Instance.Info("First-run: creating wizard window.");
+                var wizard = new FirstRunWindow { Owner = this };
+                LoggerService.Instance.Info("First-run: showing wizard dialog.");
+                bool? result = wizard.ShowDialog();
+                LoggerService.Instance.Info($"First-run: dialog closed with result={result}.");
+                _viewModel.ReloadSettingsFromDisk();
+            }
+            catch (Exception ex)
+            {
+                LoggerService.Instance.Error("First-run wizard failed.", ex);
+                try { System.IO.File.AppendAllText(System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData), "ProcessCoreOptimizer", "wizard-error.txt"), ex.ToString()); } catch { }
             }
         }
 

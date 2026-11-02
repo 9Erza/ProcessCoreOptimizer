@@ -16,6 +16,11 @@ param(
 $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes, System.Drawing, System.Windows.Forms
 
+# No zombies: a lingering instance holds the single-instance mutex and every
+# new launch would only show the "already running" dialog (which breaks UIA).
+Get-Process -Name ProcessCoreOptimizer -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+Start-Sleep -Seconds 2
+
 $root = Split-Path -Parent $PSScriptRoot
 $exe = Join-Path $root $ExePath
 if (!(Test-Path $exe)) { throw "Build output not found: $exe. Run dotnet publish first." }
@@ -40,6 +45,57 @@ function Get-Window([string]$name, [int]$timeoutSec = 25) {
             (New-Object System.Windows.Automation.PropertyCondition(
                 [System.Windows.Automation.AutomationElement]::NameProperty, $name)))
         if ($w) { return $w }
+        Start-Sleep -Milliseconds 500
+    }
+    return $null
+}
+
+Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+using System.Text;
+public static class PcoWin32 {
+    [DllImport("user32.dll")] public static extern bool EnumWindows(EnumWindowsProc c, IntPtr l);
+    public delegate bool EnumWindowsProc(IntPtr h, IntPtr l);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetWindowText(IntPtr h, StringBuilder s, int n);
+    [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr h);
+}
+'@ -ErrorAction SilentlyContinue
+
+Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public static class PcoMouse {
+    [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
+    [DllImport("user32.dll")] public static extern void mouse_event(uint f, uint x, uint y, uint d, UIntPtr e);
+    public const uint LEFTDOWN = 0x02, LEFTUP = 0x04;
+    public static void Click(int x, int y) {
+        SetCursorPos(x, y);
+        mouse_event(LEFTDOWN, (uint)x, (uint)y, 0, UIntPtr.Zero);
+        mouse_event(LEFTUP, (uint)x, (uint)y, 0, UIntPtr.Zero);
+    }
+}
+'@ -ErrorAction SilentlyContinue
+
+function Get-WindowWin32([string]$name, [int]$timeoutSec = 30) {
+    $deadline = (Get-Date).AddSeconds($timeoutSec)
+    while ((Get-Date) -lt $deadline) {
+        $found = $null
+        $cb = [PcoWin32+EnumWindowsProc]{
+            param($h, $l)
+            $sb = New-Object Text.StringBuilder 256
+            [PcoWin32]::GetWindowText($h, $sb, 256) | Out-Null
+            if ($sb.ToString() -eq $name -and [PcoWin32]::IsWindowVisible($h)) {
+                $script:foundHwnd = $h
+                return $false
+            }
+            return $true
+        }
+        $script:foundHwnd = $null
+        [PcoWin32]::EnumWindows($cb, [IntPtr]::Zero) | Out-Null
+        if ($script:foundHwnd -and $script:foundHwnd -ne [IntPtr]::Zero) {
+            return [System.Windows.Automation.AutomationElement]::FromHandle($script:foundHwnd)
+        }
         Start-Sleep -Milliseconds 500
     }
     return $null
@@ -76,6 +132,9 @@ function Check([string]$name, [scriptblock]$body) {
 
 $app = $null
 try {
+    # Main phase simulates an existing user (wizard covered separately):
+    # pre-seed onboarding + keep windows visible (tray-hide is covered by close test).
+    '{"OnboardingCompletedVersion":1,"MinimizeToTray":false}' | Out-File (Join-Path $dataDir "settings.json") -Encoding utf8
     $app = Start-Process -FilePath $exe -ArgumentList "--no-update-check --safe-mode" -PassThru
     $window = Get-Window "Process Core Optimizer"
     if (!$window) { throw "Main window did not appear." }
@@ -115,6 +174,9 @@ try {
         Start-Sleep -Milliseconds 800
         $wp.SetWindowVisualState([System.Windows.Automation.WindowVisualState]::Normal)
         Start-Sleep -Milliseconds 800
+        # Re-fetch: minimize/restore cycles invalidate cached UIA elements.
+        $window = Get-Window "Process Core Optimizer" 10
+        if (!$window) { throw "Main window lost after restore." }
     }
 
     Check "safe-mode notice logged" {
@@ -127,7 +189,58 @@ try {
         if (!$hits) { throw "Safe-mode line missing from file log." }
     }
 
+    Check "language toggle to PL and back" {
+        # The flag ToggleButton (custom template) is not exposed to UI Automation;
+        # click its sidebar position with the mouse (bottom-left, under the log).
+        $window = Get-Window "Process Core Optimizer" 10
+        if (!$window) { throw "Main window lost before language toggle." }
+        $r = $window.Current.BoundingRectangle
+        [PcoMouse]::Click([int]($r.X + 45), [int]($r.Y + $r.Height - 45))
+        Start-Sleep -Milliseconds 900
+        $window = Get-Window "Process Core Optimizer" 10
+        if ($window) { Save-Shot "09-settings-pl.png" $window }
+        $r = $window.Current.BoundingRectangle
+        [PcoMouse]::Click([int]($r.X + 45), [int]($r.Y + $r.Height - 45))
+        Start-Sleep -Milliseconds 900
+        $window = Get-Window "Process Core Optimizer" 10
+        if (!$window) { throw "Main window lost after language toggle." }
+    }
+
+    Check "startup state readable" {
+        # Re-fetch: the language toggle re-renders resources and stale elements return nothing.
+        $window = Get-Window "Process Core Optimizer" 10
+        if (!$window) { throw "Main window lost." }
+        # Status text is rendered in Settings; find any realized status line
+        # ("Startup: ..." / "Autostart: ..."). Planner log lines only appear on apply.
+        $texts = $window.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+            (New-Object System.Windows.Automation.PropertyCondition(
+                [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+                [System.Windows.Automation.ControlType]::Text)))
+        $found = $false
+        foreach ($t in $texts) {
+            try {
+                $n = $t.Current.Name
+                if ($n -like "Startup:*" -or $n -like "Autostart:*") { $found = $true; break }
+            } catch { }
+        }
+        if (!$found) { throw "No startup status text found in Settings." }
+    }
+
+    Check "settings scrolls to startup section" {
+        # Window reference is fresh from the previous check.
+        $wp = $window.GetCurrentPattern([System.Windows.Automation.WindowPattern]::Pattern)
+        try { $wp.SetWindowVisualState([System.Windows.Automation.WindowVisualState]::Normal) } catch { }
+        $window.SetFocus()
+        Start-Sleep -Milliseconds 300
+        $shell = New-Object -ComObject WScript.Shell
+        for ($i = 0; $i -lt 6; $i++) { $shell.SendKeys("{PGDN}"); Start-Sleep -Milliseconds 250 }
+        Save-Shot "08-settings-startup.png" $window
+    }
+
     Check "close window" {
+        # Re-fetch: earlier minimize/restore and re-renders invalidate cached elements.
+        $window = Get-Window "Process Core Optimizer" 10
+        if (!$window) { throw "Main window lost before close." }
         # CloseToTray may intercept Close and hide to tray instead of exiting.
         $window.GetCurrentPattern([System.Windows.Automation.WindowPattern]::Pattern).Close()
         if (!$app.WaitForExit(5000)) {
@@ -135,6 +248,45 @@ try {
             if (!$app.WaitForExit(8000)) { throw "App did not exit after Close." }
             $script:results += "NOTE: Close was intercepted by tray; terminated for QA."
         }
+    }
+
+    Check "first-run wizard on fresh data" {
+        # Simulate a fresh install: empty data dir (backup already taken).
+        # Kill any leftovers first; the log file is released on process exit.
+        Get-Process -Name ProcessCoreOptimizer -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Milliseconds 2000
+        $gone = $false
+        for ($i = 0; $i -lt 10 -and !$gone; $i++) {
+            try {
+                Remove-Item (Join-Path $dataDir "*") -Recurse -Force -ErrorAction Stop
+                $gone = $true
+            } catch { Start-Sleep -Milliseconds 500 }
+        }
+        if (!$gone) { throw "Data dir locked by a lingering process; aborting wizard phase." }
+        $wapp = Start-Process -FilePath $exe -ArgumentList "--no-update-check --safe-mode" -PassThru
+        try {
+            # Owned modal dialogs are missed by plain UIA tree search; use Win32 handles.
+            $wiz = Get-WindowWin32 "Process Core Optimizer - First Run" 30
+            if (!$wiz) { throw "Wizard window did not appear on fresh data." }
+            Save-Shot "10-wizard-page1.png" $wiz
+            Click-Button $wiz "Next"
+            Save-Shot "11-wizard-page2.png" $wiz
+            Click-Button $wiz "Next"
+            Save-Shot "12-wizard-page3.png" $wiz
+            Click-Button $wiz "Finish"
+            Start-Sleep -Milliseconds 1500
+            if ($wapp.HasExited) { throw "App exited after wizard Finish (marker may be wrong, or crash)." }
+            $script:results += "PASS: wizard finish keeps app running"
+            Write-Host "PASS: wizard finish keeps app running" -ForegroundColor Green
+        }
+        finally {
+            try {
+                if ($wapp -and !$wapp.HasExited) { Stop-Process -Id $wapp.Id -Force; $wapp.WaitForExit(8000) }
+            } catch { }
+        }
+        # Marker check: onboarding stamped completed.
+        $marker = Join-Path $dataDir "settings.json"
+        if (!(Test-Path $marker)) { throw "settings.json missing after wizard Finish." }
     }
 }
 finally {
@@ -162,8 +314,7 @@ finally {
         }
     }
 }
-
-$results | Out-File (Join-Path $ev "results.txt")
+$script:results | Out-File (Join-Path $ev "results.txt")
 $failed = @($script:results | Where-Object { $_ -like "FAIL*" }).Count
 Write-Host "GUI checks: $($script:results.Count - $failed)/$($script:results.Count) passed. Evidence: $ev"
 if ($failed -gt 0) { exit 1 }
