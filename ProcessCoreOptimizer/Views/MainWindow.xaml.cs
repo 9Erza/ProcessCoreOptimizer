@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
+using ProcessCoreOptimizer.WPF.Models;
 using ProcessCoreOptimizer.WPF.ViewModels;
 
 namespace ProcessCoreOptimizer.WPF.Views
@@ -42,6 +43,7 @@ namespace ProcessCoreOptimizer.WPF.Views
             };
 
             this.Loaded += MainWindow_Loaded;
+            this.ContentRendered += MainWindow_ContentRendered;
         }
 
         /// <summary>
@@ -117,7 +119,9 @@ namespace ProcessCoreOptimizer.WPF.Views
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            bool startHidden = _viewModel.AppSettings.StartMinimized || ProcessCoreOptimizer.WPF.App.StartupOptions.StartMinimized || ProcessCoreOptimizer.WPF.App.StartupOptions.StartToTray;
+            bool startHidden = _viewModel.AppSettings.StartupWindowMode != Models.StartupWindowMode.Normal
+                || ProcessCoreOptimizer.WPF.App.StartupOptions.StartMinimized
+                || ProcessCoreOptimizer.WPF.App.StartupOptions.StartToTray;
 
             if (startHidden)
             {
@@ -126,6 +130,21 @@ namespace ProcessCoreOptimizer.WPF.Views
                 {
                     this.Hide();
                 }
+            }
+        }
+
+        private void MainWindow_ContentRendered(object? sender, EventArgs e)
+        {
+            if (!_viewModel.NeedsFirstRunWizard) return;
+            try
+            {
+                var wizard = new FirstRunWindow { Owner = this };
+                wizard.ShowDialog();
+                _viewModel.ReloadSettingsFromDisk();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"First-run wizard failed: {ex.Message}");
             }
         }
 

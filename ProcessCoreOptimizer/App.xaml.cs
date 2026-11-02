@@ -12,12 +12,34 @@ namespace ProcessCoreOptimizer.WPF
     {
         private const string SingleInstanceMutexName = "ERZA.ProcessCoreOptimizer.SingleInstance";
         private static Mutex? _singleInstanceMutex;
+        private static bool _restartHandoff;
 
         public static AppStartupOptions StartupOptions { get; private set; } = new();
 
         protected override void OnStartup(StartupEventArgs e)
         {
             StartupOptions = AppStartupOptions.Parse(e.Args);
+
+            // Elevated helper entry: perform the privileged task and exit with a code.
+            // No UI, no mutex, no side effects beyond the requested operation.
+            var helper = StartupHelperCommand.TryParse(e.Args);
+            if (helper != null)
+            {
+                int exitCode;
+                try
+                {
+                    using var service = new StartupService();
+                    exitCode = service.RunStartupHelper(e.Args);
+                }
+                catch (Exception ex)
+                {
+                    LoggerService.Instance.Warn($"Startup helper failed: {ex.Message}");
+                    exitCode = 1;
+                }
+
+                Shutdown(exitCode);
+                return;
+            }
 
             try
             {
@@ -51,20 +73,87 @@ namespace ProcessCoreOptimizer.WPF
             base.OnStartup(e);
         }
 
-        protected override void OnExit(ExitEventArgs e)
+        /// <summary>
+        /// Elevated restart handoff. Releases the single-instance mutex first so the
+        /// successor can start, launches it with runas, then shuts down. On UAC
+        /// cancel or launch failure the mutex is re-acquired and the app keeps running.
+        /// </summary>
+        public static RestartElevatedResult RequestElevatedRestart(StartupService service, string[] forwardArgs)
         {
             try
             {
-                _singleInstanceMutex?.ReleaseMutex();
-                _singleInstanceMutex?.Dispose();
+                try
+                {
+                    _singleInstanceMutex?.ReleaseMutex();
+                    _singleInstanceMutex?.Dispose();
+                }
+                catch { }
+                _singleInstanceMutex = null;
+                _restartHandoff = true;
+
+                var outcome = service.RestartAsAdmin(forwardArgs);
+                if (outcome != RestartResult.Started)
+                {
+                    ReacquireMutexAfterHandoff();
+                    return outcome == RestartResult.Cancelled
+                        ? RestartElevatedResult.Cancelled
+                        : RestartElevatedResult.Failed;
+                }
+
+                Current.Shutdown();
+                return RestartElevatedResult.Started;
             }
             catch
             {
-                // Ignore shutdown cleanup errors.
+                ReacquireMutexAfterHandoff();
+                return RestartElevatedResult.Failed;
+            }
+        }
+
+        private static void ReacquireMutexAfterHandoff()
+        {
+            _restartHandoff = false;
+            try
+            {
+                _singleInstanceMutex = new Mutex(initiallyOwned: true, SingleInstanceMutexName, out bool createdNew);
+                if (!createdNew)
+                {
+                    // Another instance appeared meanwhile; stay alive without the mutex.
+                    try { _singleInstanceMutex.Dispose(); } catch { }
+                    _singleInstanceMutex = null;
+                }
+            }
+            catch
+            {
+                _singleInstanceMutex = null;
+            }
+        }
+
+        protected override void OnExit(ExitEventArgs e)
+        {
+            // During a restart handoff the mutex is already released for the successor.
+            if (!_restartHandoff)
+            {
+                try
+                {
+                    _singleInstanceMutex?.ReleaseMutex();
+                    _singleInstanceMutex?.Dispose();
+                }
+                catch
+                {
+                    // Ignore shutdown cleanup errors.
+                }
             }
 
             LoggerService.Shared.Dispose();
             base.OnExit(e);
         }
+    }
+
+    public enum RestartElevatedResult
+    {
+        Started,
+        Cancelled,
+        Failed
     }
 }

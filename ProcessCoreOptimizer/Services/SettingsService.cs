@@ -1,25 +1,34 @@
-﻿using Microsoft.Win32;
-using ProcessCoreOptimizer.WPF.Logging;
+﻿using ProcessCoreOptimizer.WPF.Logging;
 using ProcessCoreOptimizer.WPF.Models;
 using System;
-using System.Diagnostics;
 using System.IO;
-using System.Security.Principal;
-using System.Text;
 using System.Text.Json;
 
 namespace ProcessCoreOptimizer.WPF.Services
 {
     /// <summary>
-    /// Handles settings persistence, Windows startup entries and elevation checks.
+    /// Handles settings persistence. Windows startup registration lives in
+    /// <see cref="StartupService"/> + <see cref="StartupApplyCoordinator"/>
+    /// (plan → execute → verify); this service never touches Registry/Task directly.
     /// </summary>
     public class SettingsService : IDisposable
     {
         private readonly string _filePath = AppPaths.GetUserDataFilePath("settings.json");
-        private readonly string _appName = "ProcessCoreOptimizer";
-        private readonly string _exePath = Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty;
         private readonly ILogger _logger = LoggerService.Instance;
         private bool _disposed;
+
+        public bool HadExistingSettings()
+        {
+            try
+            {
+                AppPaths.MigrateLegacyFileIfNeeded("settings.json");
+                return File.Exists(_filePath);
+            }
+            catch
+            {
+                return false;
+            }
+        }
 
         public AppSettings LoadSettings()
         {
@@ -48,7 +57,9 @@ namespace ProcessCoreOptimizer.WPF.Services
 
                 if (string.IsNullOrWhiteSpace(jsonContent)) return new AppSettings();
                 var settings = JsonSerializer.Deserialize<AppSettings>(jsonContent) ?? new AppSettings();
-                return SanitizeSettings(settings);
+                settings = SanitizeSettings(settings);
+                StartupSettingsMigration.Apply(settings);
+                return settings;
             }
             catch (Exception ex)
             {
@@ -71,71 +82,6 @@ namespace ProcessCoreOptimizer.WPF.Services
             }
         }
 
-        public bool IsRunAsAdmin()
-        {
-            using var identity = WindowsIdentity.GetCurrent();
-            var principal = new WindowsPrincipal(identity);
-            return principal.IsInRole(WindowsBuiltInRole.Administrator);
-        }
-
-        public void RestartAsAdmin()
-        {
-            if (IsRunAsAdmin() || string.IsNullOrWhiteSpace(_exePath)) return;
-
-            try
-            {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = _exePath,
-                    UseShellExecute = true,
-                    Verb = "runas"
-                });
-
-                Environment.Exit(0);
-            }
-            catch (Exception ex)
-            {
-                _logger.Warn($"Administrator restart cancelled or failed: {ex.Message}");
-            }
-        }
-
-        public void ApplyWindowsStartup(AppSettings settings)
-        {
-            try
-            {
-                using var key = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", writable: true)
-                              ?? Registry.CurrentUser.CreateSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", writable: true);
-
-                if (!settings.StartWithWindows)
-                {
-                    key?.DeleteValue(_appName, throwOnMissingValue: false);
-                    RemoveScheduledTask();
-                    return;
-                }
-
-                if (settings.RunAsAdministrator)
-                {
-                    key?.DeleteValue(_appName, throwOnMissingValue: false);
-
-                    if (!IsRunAsAdmin())
-                    {
-                        _logger.Warn("Elevated autostart requires administrator rights. Restart as administrator first.");
-                        return;
-                    }
-
-                    CreateAdvancedScheduledTask(settings.StartMinimized);
-                    return;
-                }
-
-                RemoveScheduledTask();
-                key?.SetValue(_appName, $"{Quote(_exePath)} {BuildStartupArguments(settings.StartMinimized, settings.MinimizeToTray)}".Trim());
-            }
-            catch (Exception ex)
-            {
-                _logger.Error("Failed to apply Windows startup configuration", ex);
-            }
-        }
-
         private static AppSettings SanitizeSettings(AppSettings settings)
         {
             settings.Language = settings.Language == "pl" ? "pl" : "en";
@@ -149,126 +95,8 @@ namespace ProcessCoreOptimizer.WPF.Services
             settings.ProcessListRefreshSeconds = Math.Clamp(settings.ProcessListRefreshSeconds, 1, 10);
             settings.ProfileWatcherSeconds = Math.Clamp(settings.ProfileWatcherSeconds, 1, 30);
             settings.HardwareRefreshSeconds = Math.Clamp(settings.HardwareRefreshSeconds, 1, 10);
+            if (!Enum.IsDefined(settings.StartupWindowMode)) settings.StartupWindowMode = StartupWindowMode.Normal;
             return settings;
-        }
-
-        private void CreateAdvancedScheduledTask(bool startMinimized)
-        {
-            string tempXmlFile = Path.Combine(Path.GetTempPath(), $"{_appName}_{Guid.NewGuid():N}.xml");
-
-            try
-            {
-                string arguments = BuildStartupArguments(startMinimized, startMinimized);
-                string xmlConfig = $@"<?xml version=""1.0"" encoding=""UTF-16""?>
-<Task version=""1.2"" xmlns=""http://schemas.microsoft.com/windows/2004/02/mit/task"">
-  <Triggers>
-    <LogonTrigger>
-      <Enabled>true</Enabled>
-    </LogonTrigger>
-  </Triggers>
-  <Principals>
-    <Principal id=""Author"">
-      <RunLevel>HighestAvailable</RunLevel>
-    </Principal>
-  </Principals>
-  <Settings>
-    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
-    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
-    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
-    <AllowHardTerminate>true</AllowHardTerminate>
-    <StartWhenAvailable>true</StartWhenAvailable>
-    <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>
-    <AllowStartOnDemand>true</AllowStartOnDemand>
-    <Enabled>true</Enabled>
-    <Hidden>false</Hidden>
-    <RunOnlyIfIdle>false</RunOnlyIfIdle>
-    <WakeToRun>false</WakeToRun>
-    <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
-    <Priority>7</Priority>
-  </Settings>
-  <Actions Context=""Author"">
-    <Exec>
-      <Command>{EscapeXml(_exePath)}</Command>
-      <Arguments>{EscapeXml(arguments)}</Arguments>
-    </Exec>
-  </Actions>
-</Task>";
-
-                File.WriteAllText(tempXmlFile, xmlConfig, Encoding.Unicode);
-
-                using var proc = Process.Start(new ProcessStartInfo
-                {
-                    FileName = "schtasks.exe",
-                    Arguments = $"/create /tn \"{_appName}\" /xml \"{tempXmlFile}\" /f",
-                    CreateNoWindow = true,
-                    UseShellExecute = false,
-                    WindowStyle = ProcessWindowStyle.Hidden
-                });
-
-                if (proc != null && !proc.WaitForExit(TimeSpan.FromSeconds(15)))
-                {
-                    try { proc.Kill(entireProcessTree: true); } catch { }
-                    _logger.Warn("schtasks.exe timed out while creating the autostart task.");
-                }
-                else if (proc?.ExitCode != 0)
-                {
-                    _logger.Warn($"schtasks.exe returned exit code {proc?.ExitCode}");
-                }
-            }
-            finally
-            {
-                try
-                {
-                    if (File.Exists(tempXmlFile)) File.Delete(tempXmlFile);
-                }
-                catch (Exception ex)
-                {
-                    _logger.Debug($"Could not delete temporary task XML: {ex.Message}");
-                }
-            }
-        }
-
-        private void RemoveScheduledTask()
-        {
-            try
-            {
-                using var proc = Process.Start(new ProcessStartInfo
-                {
-                    FileName = "schtasks.exe",
-                    Arguments = $"/delete /tn \"{_appName}\" /f",
-                    CreateNoWindow = true,
-                    UseShellExecute = false,
-                    WindowStyle = ProcessWindowStyle.Hidden
-                });
-
-                if (proc != null && !proc.WaitForExit(TimeSpan.FromSeconds(15)))
-                {
-                    try { proc.Kill(entireProcessTree: true); } catch { }
-                    _logger.Debug("Scheduled task cleanup timed out.");
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Debug($"Scheduled task cleanup skipped: {ex.Message}");
-            }
-        }
-
-        private static string Quote(string value) => $"\"{value}\"";
-
-        private static string BuildStartupArguments(bool startMinimized, bool startToTray)
-        {
-            if (startToTray) return "--tray";
-            return startMinimized ? "--minimized" : string.Empty;
-        }
-
-        private static string EscapeXml(string value)
-        {
-            return value
-                .Replace("&", "&amp;")
-                .Replace("<", "&lt;")
-                .Replace(">", "&gt;")
-                .Replace("\"", "&quot;")
-                .Replace("'", "&apos;");
         }
 
         public void Dispose()
