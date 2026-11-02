@@ -41,13 +41,33 @@ and startup registration applied only when startup settings change.
 ## Verification
 
 - Release build: 0 warnings, 0 errors.
-- Tests: 72 MSTest cases, all passing (identity, PID reuse, masks, statuses,
-  conflicts, import/export, watcher, restore, updater, localization parity).
+- Tests: 97 MSTest cases, all passing —
+  fake-backend logic, read-only self-PID checks, negative P0 identity tests,
+  CPU Sets restore/suspension matrix, updater gates, localization parity, and
+  real Windows API tests on isolated self-owned `%TEMP%` probe copies
+  (affinity/CPU Sets/priority round-trips with real Win32 codes, exited-process
+  refusal, watcher apply + restore + suspension, path-bound mismatch).
+  No user, service or agent process is ever touched.
+- GUI: 11/11 UI Automation checks on Windows 11 (session 1, 1920×1080, 100% DPI):
+  all six tabs via real clicks, maximize/minimize/restore, tray-intercept close,
+  safe-mode log line. Harness: `tools/Run-GuiVerification.ps1` (backs up and
+  restores `%APPDATA%`, launches with `--safe-mode`).
+- GUI defects found live and fixed: theme scope crash at startup (now
+  App-level), version showing `+sha`, truncated process names, clipped log
+  lines, profile-button overflow, CPU Sets handle rights (real tests caught it).
+- Performance baseline (Win11, i5-10210U, 8 LP, 100% DPI): startup 1.5–1.6 s;
+  idle 60 s ≈ 180 MB WS / 85 MB Private / 0.5% CPU / ~740 handles / 21 threads;
+  100 synthetic profiles ≈ +5 MB WS, no CPU delta; HW monitor ON ≈ +10 MB WS,
+  +80 handles; minimized ≈ idle. Harness: `tools/Measure-Performance.ps1`,
+  `tools/Measure-Cpu.ps1`; raw CSV in gitignored `.evidence/perf`.
 - CI: restore → Release build → tests → `git diff --check`, green.
-- Local artifact: self-contained single-file `ProcessCoreOptimizer.exe`
-  2.0.0 (see `docs/INSTALLER.md` for SHA-256 and installer status).
-- Interactive screenshots: NOT CAPTURED (headless build environment);
-  gallery still shows 1.3.x UI and is marked accordingly.
+- Local artifacts: self-contained single-file `ProcessCoreOptimizer.exe` 2.0.0
+  and `installer/Output/ProcessCoreOptimizer_Setup_2.0.0.exe` (50,784,844 bytes,
+  SHA-256 `11DE86C0…D6795D9F1`, PE 2.0.0) — see `docs/INSTALLER.md`.
+- Interactive screenshots: real 2.0 UI (6 screens) published; no mockups.
+- Install/upgrade/uninstall on a VM: NOT RUN (no isolated VM; dev-machine
+  install deliberately avoided). Multi-group hardware: NOT RUN (8-LP machine);
+  synthetic mapping discipline tested instead.
 
 ## Known limitations
 
