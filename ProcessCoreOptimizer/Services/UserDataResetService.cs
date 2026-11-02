@@ -15,6 +15,7 @@ namespace ProcessCoreOptimizer.WPF.Services
         IReadOnlyList<string> DeletedFiles,
         IReadOnlyList<string> DeletedDirectories,
         IReadOnlyList<string> Errors,
+        IReadOnlyList<string> Notes,
         string? StartupRemovalError,
         string? ActiveLogPath);
 
@@ -73,7 +74,7 @@ namespace ProcessCoreOptimizer.WPF.Services
         {
             if (isBusy())
             {
-                return new DataResetResult(false, true, [], [], [], null, null);
+                return new DataResetResult(false, true, [], [], [], [], null, null);
             }
 
             string root;
@@ -83,24 +84,25 @@ namespace ProcessCoreOptimizer.WPF.Services
             }
             catch (Exception ex)
             {
-                return new DataResetResult(false, false, [], [], new[] { $"Invalid data directory: {ex.Message}" }, null, null);
+                return new DataResetResult(false, false, [], [], new[] { $"Invalid data directory: {ex.Message}" }, [], null, null);
             }
 
             var deletedFiles = new List<string>();
             var deletedDirs = new List<string>();
             var errors = new List<string>();
+            var notes = new List<string>();
 
             // Pre-flight: refuse if the root itself is (or contains) a link.
             try
             {
                 if (IsLink(root))
                 {
-                    return new DataResetResult(false, false, [], [], new[] { $"Refused: data directory '{root}' is a link or junction." }, null, null);
+                    return new DataResetResult(false, false, [], [], new[] { $"Refused: data directory '{root}' is a link or junction." }, [], null, null);
                 }
             }
             catch (Exception ex)
             {
-                return new DataResetResult(false, false, [], [], new[] { $"Cannot inspect data directory: {ex.Message}" }, null, null);
+                return new DataResetResult(false, false, [], [], new[] { $"Cannot inspect data directory: {ex.Message}" }, [], null, null);
             }
 
             await prepareForWipeAsync().ConfigureAwait(false);
@@ -134,7 +136,7 @@ namespace ProcessCoreOptimizer.WPF.Services
                     foreach (string dir in Directory.EnumerateDirectories(root))
                     {
                         cancellationToken.ThrowIfCancellationRequested();
-                        DeleteGuardedDirectory(root, dir, deletedDirs, errors);
+                        DeleteGuardedDirectory(root, dir, deletedDirs, notes, errors);
                     }
                 }
             }
@@ -171,7 +173,7 @@ namespace ProcessCoreOptimizer.WPF.Services
 
             bool success = errors.Count == 0;
             _logger.Info($"Factory reset complete. Success={success}, deleted {deletedFiles.Count} file(s), {deletedDirs.Count} dir(s).");
-            return new DataResetResult(success, false, deletedFiles, deletedDirs, errors, startupError, activeLog);
+            return new DataResetResult(success, false, deletedFiles, deletedDirs, errors, notes, startupError, activeLog);
         }
 
         private static bool IsActiveLogFile(string candidate)
@@ -229,7 +231,7 @@ namespace ProcessCoreOptimizer.WPF.Services
             }
         }
 
-        private static void DeleteGuardedDirectory(string root, string candidate, List<string> deleted, List<string> errors)
+        private void DeleteGuardedDirectory(string root, string candidate, List<string> deleted, List<string> notes, List<string> errors)
         {
             try
             {
@@ -254,7 +256,7 @@ namespace ProcessCoreOptimizer.WPF.Services
                 }
                 else
                 {
-                    errors.Add($"Kept non-empty directory '{Path.GetFileName(full)}' (user content preserved).");
+                    notes.Add($"Kept non-empty directory '{Path.GetFileName(full)}' (user content preserved).");
                 }
             }
             catch (Exception ex)
