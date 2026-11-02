@@ -102,7 +102,6 @@ namespace ProcessCoreOptimizer.WPF.Services
                         continue;
                     }
 
-                    string? livePath = null;
                     bool restoredAny = false;
 
                     if (entry.AffinityMask.HasValue && entry.AffinityMask.Value != 0)

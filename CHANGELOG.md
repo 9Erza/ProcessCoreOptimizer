@@ -1,22 +1,41 @@
 # Changelog
 
-## Unreleased - CPU Engine Hardening (FrameHub lineage, PCO character kept)
+## v2.0.0 - Engine 2.0, Profiles 2.0 & Desktop 2.0
 
 ### Engine safety (P0)
 - Mutations now re-validate PID + process start time + process name (+ EXE path for path-bound profiles) from a fresh OS handle immediately before every write. Stale snapshots never authorize a mutation (`SKIPPED_IDENTITY_MISMATCH` on mismatch).
 - `ProcessService` uses minimal handle rights (`QUERY_LIMITED_INFORMATION` for reads, `SET_INFORMATION | QUERY_LIMITED` for priority writes) and `GetProcessTimes` start-time checks to reduce TOCTOU around PID reuse.
+- Removed uncontrolled PID-only mutation overloads (`SetProcessAffinity`, `SetPriority`, `ApplyCoreOptimization` without identity); every OS write requires a verified identity.
+- New `OperationStatus` model (`FullyApplied`, `PartiallyApplied`, `Failed`, `Skipped*`, `Unsupported`, `Cancelled`): full success means every requested action applied; partial success is reported and retried, never cached as done; pure failure with elevation evidence is `SkippedNoPermission`.
+- Core masks validated up front (`ERR_EMPTY_MASK`, `ERR_MASK_OUT_OF_RANGE` against the known processor map).
+- Affinity apply surfaces a failed CPU Sets cleanup as `OK_AFFINITY_CPUSETS_NOT_CLEARED` instead of hiding it behind `OK_AFFINITY`.
 - Path-bound profiles never fall back to a same-name executable at a different path.
 - Protected system processes are refused on the mutation path (`SKIPPED_PROTECTED`), not only hidden in the UI.
 - RealTime remains gated behind `AllowRealtimePriority` + confirmation; `RealTime` normalizes to `High` without opt-in.
 
-### Profiles (P1)
+### Profiles & watcher (P1)
+- Deterministic conflict detection (`ProfileConflicts`): path-bound wins, then newest, then Id; conflicts shown in UI instead of silently picking.
+- Duplicate / export / import profiles (validated JSON, pure merge, no code execution), capture-live-settings drafts, per-instance session history.
+- Background watcher extracted to `ProfileWatcherService`: reentrancy gate, cancellation, shutdown guards (no OS writes after dispose), per-run profile snapshots, diagnostics (`LastRun`, throttled logging, bounded caches).
 - Fixed priority-only profiles being dropped by `SanitizeProfiles` (`AffinityMask == 0` is valid when `ApplyCoreOptimization == false`).
-- Partial successes are no longer cached as fully applied: cache stores only fully-applied signatures, failed halves are retried next watcher tick.
 - Fixed `RequiresAdmin` false-positive on successful `OK_CPUSETS_5` (only real `ERR_*` access errors flag elevation now).
-- Multi-profile support per process name: path-bound variants coexist, path-bound wins, newest wins on ties.
-- `SanitizeProfiles` dedup key is now name+normalized-path (was name only); equivalence check is order-independent and path-aware.
 - Priority changes no longer fire from merely browsing the priority ComboBox; Apply/Save/Update remain the explicit mutation points.
 - Core checkbox mapping now uses `CoreInfo.Index` (logical processor index) instead of list position.
+
+### CPU topology & process management (P1)
+- Honest Unknown classification (`[?]`) when CPU Set data is unavailable; no more confident P/E guesses from WMI fallback.
+- Named core presets (All / P-cores / E-cores / physical-without-SMT), offered only when valid for the detected machine.
+- Multi-group detection (`CpuTopologyReport`) with an explicit group-0 / 64-LP limitation note; no fake multi-group support.
+- Snapshot EXE paths, process details (PID, start time, EXE path, affinity source, priority, assigned profile, last status), process/profile filters.
+
+### Desktop 2.0 (P2)
+- Design system: `Themes/Colors.xaml` tokens + `Themes/Controls.xaml` styles; `MainWindow.xaml` split into six views (Processes, CPU & Topology, Profiles, Hardware, Settings, Diagnostics).
+- New Diagnostics tab: watcher status, recent operations, conflicts, log.
+- Session restore of pre-optimization affinity/priority (verified identity per instance, recycled PIDs never restored into).
+- Releases-aware updater: notifies only when a published release carries an installer asset (no false positives from a bumped `version.txt`).
+- Startup registration applied only when startup settings actually change.
+- One-line version truth: `version.txt` → `Directory.Build.props` → PE metadata (`2.0.0.0`), UI, updater, docs.
+- Localization parity enforced by tests (EN/PL key sets identical).
 
 ### Reliability (P1/P2)
 - `AtomicFileService` is now per-file locked and uses atomic `File.Replace` with `.bak`; loads fall back to `.bak` when live JSON is truncated/invalid, for both profiles and settings.
@@ -27,15 +46,18 @@
 - `CpuVendor` is cached instead of querying WMI per binding.
 - Watcher failure-log throttle no longer keys on PID (restarting processes can't spam) and is bounded to 500 entries.
 - `GetCurrentCoreSelection` (CPU Sets first, affinity fallback) is used when reflecting current selection in the UI.
+- Removed dead code: PID-only overloads, unused `ChangePriority`, unused `GetPriorityString` (replaced by `TryGetPriority`).
 
-### Tests & CI (P3)
-- New `ProcessCoreOptimizer.Tests` (MSTest, 33 cases): PID reuse, name/path mismatch, missing identity, protected processes, zero/invalid masks, priority-only/affinity-only/CPU Sets profiles, partial-success retry, cache invalidation, multi-instance + conflicts, save/load, legacy migration, corrupt JSON fallback, cleanup.
-- New lightweight GitHub Actions CI: Release build + tests + `git diff --check`.
-- Solution `ProcessCoreOptimizer.slnx` now includes the tests project.
+### Tests & CI (P1/P2)
+- `ProcessCoreOptimizer.Tests` (MSTest, 72 cases): identity, PID reuse, TOCTOU refusal, path-bound, CPU Sets mapping, mask validation, statuses, partial-success retry, cache invalidation, watcher lifecycle, conflicts, import/export, preview, restore, updater gates, localization parity, persistence.
+- No test mutates real processes (fake backend + read-only self-PID checks).
+- Lightweight GitHub Actions CI: Release build + tests + `git diff --check`.
+- Solution `ProcessCoreOptimizer.slnx` includes the tests project.
 
 ### Docs
-- Rewritten `README.md` / `README.pl.md` to FrameHub presentation standard (features, Affinity vs CPU Sets, profiles/watcher, topology/limits, safety, screenshots, build, FrameHub section).
-- Screenshots: existing v1.3.0 gallery kept and marked as current; no synthetic screenshots added.
+- `README.md` / `README.pl.md` updated for 2.0 (features, tabs, presets, diagnostics, restore, updater, build, installer status).
+- New: `docs/ARCHITECTURE.md`, `docs/RELEASE_NOTES_2.0.0.md` (+`.pl.md`), `docs/INSTALLER.md`.
+- Screenshots: existing 1.3.x gallery kept and marked; 2.0 screenshots intentionally not synthesized (headless environment) — to be captured from a GUI session.
 
 ## v1.3.0 - Core Refactor & Performance Foundation
 

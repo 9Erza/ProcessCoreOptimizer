@@ -110,7 +110,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
 
         public string AppVersion { get; } = Assembly.GetExecutingAssembly()
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-            .InformationalVersion ?? "1.3.0";
+            .InformationalVersion ?? "2.0.0";
 
         public AppSettings AppSettings
         {
