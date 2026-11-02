@@ -12,20 +12,104 @@ namespace ProcessCoreOptimizer.WPF.Services
     /// a mutation: every target is re-validated (PID + start time + name + path)
     /// immediately before touching the OS. Only fully-applied profiles are cached,
     /// so partial failures are retried on the next watcher tick.
+    /// An optional <see cref="SessionRestoreService"/> receives the pre-mutation
+    /// baseline on first touch; temporarily suspended instances are skipped until
+    /// their suspension expires (e.g. after a manual session restore).
     /// </summary>
     public sealed class OptimizationService
     {
         private readonly ProcessService _processService;
         private readonly Func<Dictionary<int, uint>> _cpuSetMapProvider;
+        private readonly SessionRestoreService? _restoreService;
         private readonly ILogger _logger;
         private readonly Dictionary<ProcessInstanceKey, string> _appliedProfileSignatures = new();
+        private readonly Dictionary<ProcessInstanceKey, (DateTimeOffset ExpiresAt, string Reason)> _suspensions = new();
         private readonly object _cacheLock = new();
 
-        public OptimizationService(ProcessService processService, Func<Dictionary<int, uint>> cpuSetMapProvider)
+        public OptimizationService(ProcessService processService, Func<Dictionary<int, uint>> cpuSetMapProvider, SessionRestoreService? restoreService = null)
         {
             _processService = processService;
             _cpuSetMapProvider = cpuSetMapProvider;
+            _restoreService = restoreService;
             _logger = LoggerService.Instance;
+        }
+
+        /// <summary>
+        /// Skips automatic application for a live instance until the duration
+        /// elapses. Used after manual session restore so the watcher does not
+        /// immediately re-apply the profile against the user's intent.
+        /// Suspensions are in-memory only and expire on their own.
+        /// </summary>
+        public void SuspendInstance(ProcessInstanceKey key, TimeSpan duration, string reason)
+        {
+            if (key.ProcessId <= 0 || key.StartTimeUtc == default) return;
+            lock (_cacheLock)
+            {
+                _suspensions[key] = (DateTimeOffset.UtcNow + duration, reason ?? string.Empty);
+            }
+        }
+
+        public void SuspendLiveInstances(string processName, TimeSpan duration, string reason)
+        {
+            Process[] live = Array.Empty<Process>();
+            try
+            {
+                live = Process.GetProcessesByName(ProfileService.NormalizeProcessName(processName));
+                lock (_cacheLock)
+                {
+                    foreach (var proc in live)
+                    {
+                        try
+                        {
+                            if (proc.HasExited) continue;
+                            var key = ProcessScannerService.CreateInstanceKey(proc);
+                            if (key.StartTimeUtc != default) _suspensions[key] = (DateTimeOffset.UtcNow + duration, reason ?? string.Empty);
+                        }
+                        catch { }
+                    }
+                }
+            }
+            finally
+            {
+                foreach (var proc in live) proc.Dispose();
+            }
+        }
+
+        public int SuspendedCount
+        {
+            get
+            {
+                lock (_cacheLock)
+                {
+                    PruneSuspensionsLocked();
+                    return _suspensions.Count;
+                }
+            }
+        }
+
+        private bool IsSuspended(ProcessInstanceKey key, out string reason)
+        {
+            reason = string.Empty;
+            lock (_cacheLock)
+            {
+                PruneSuspensionsLocked();
+                if (_suspensions.TryGetValue(key, out var entry))
+                {
+                    reason = entry.Reason;
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
+        private void PruneSuspensionsLocked()
+        {
+            var now = DateTimeOffset.UtcNow;
+            foreach (var expired in _suspensions.Where(kv => kv.Value.ExpiresAt <= now).Select(kv => kv.Key).ToList())
+            {
+                _suspensions.Remove(expired);
+            }
         }
 
         public OptimizationBatchResult ApplyProfileToRunningProcesses(ProcessProfile profile, bool allowRealtimePriority, bool force)
@@ -120,6 +204,23 @@ namespace ProcessCoreOptimizer.WPF.Services
                 };
             }
 
+            if (IsSuspended(key, out string suspendReason))
+            {
+                return new OptimizationResult
+                {
+                    Success = false,
+                    ProcessId = key.ProcessId,
+                    ProcessName = processName,
+                    Mode = NormalizeOptimizationMode(profile.OptimizationMode),
+                    Priority = PriorityService.Normalize(profile.Priority, allowRealtimePriority),
+                    Message = string.IsNullOrWhiteSpace(suspendReason) ? "SKIPPED_SUSPENDED" : $"SKIPPED_SUSPENDED: {suspendReason}",
+                    Status = OperationStatus.SkippedSuspended,
+                    Retryable = false,
+                    RequestedCore = profile.ApplyCoreOptimization,
+                    RequestedPriority = profile.ApplyPriority
+                };
+            }
+
             if (!ProcessIdentityValidator.MatchesLiveProcess(key, processName, profile))
             {
                 return new OptimizationResult
@@ -168,11 +269,42 @@ namespace ProcessCoreOptimizer.WPF.Services
             bool requiresAdmin = false;
             int? win32Error = null;
 
+            if (!ProcessMutationTarget.TryCreate(
+                    key.ProcessId, key.StartTimeUtc,
+                    ProfileService.NormalizeProcessName(processName), profile.ExecutablePath,
+                    out ProcessMutationTarget target))
+            {
+                return new OptimizationResult
+                {
+                    Success = false,
+                    ProcessId = key.ProcessId,
+                    ProcessName = processName,
+                    Mode = mode,
+                    Priority = priority,
+                    Message = "SKIPPED_IDENTITY_MISMATCH",
+                    Status = OperationStatus.SkippedIdentityMismatch,
+                    Retryable = false,
+                    RequestedCore = profile.ApplyCoreOptimization,
+                    RequestedPriority = profile.ApplyPriority
+                };
+            }
+
+            if (profile.ApplyCoreOptimization || profile.ApplyPriority)
+            {
+                // Baseline before the first real mutation; no-ops when one exists.
+                try
+                {
+                    _restoreService?.TryCaptureBaseline(
+                        key, ProfileService.NormalizeProcessName(processName), profile.ExecutablePath,
+                        _processService, _cpuSetMapProvider());
+                }
+                catch { }
+            }
+
             if (profile.ApplyCoreOptimization)
             {
                 coreMessage = _processService.ApplyCoreOptimization(
-                    key.ProcessId, profile.AffinityMask, mode, _cpuSetMapProvider(),
-                    key, ProfileService.NormalizeProcessName(processName), profile.ExecutablePath);
+                    key.ProcessId, profile.AffinityMask, mode, _cpuSetMapProvider(), target);
                 coreApplied = coreMessage.StartsWith("OK", StringComparison.OrdinalIgnoreCase);
                 requiresAdmin = ProcessService.RequiresAdminForMessage(coreMessage);
                 win32Error = ExtractWin32Error(coreMessage);
@@ -180,9 +312,7 @@ namespace ProcessCoreOptimizer.WPF.Services
 
             if (profile.ApplyPriority && PriorityService.TryParse(priority, allowRealtimePriority, out ProcessPriorityClass parsedPriority))
             {
-                priorityApplied = _processService.SetPriority(
-                    key.ProcessId, parsedPriority,
-                    key, ProfileService.NormalizeProcessName(processName), profile.ExecutablePath);
+                priorityApplied = _processService.SetPriority(key.ProcessId, parsedPriority, target);
                 priorityMessage = priorityApplied ? "OK_PRIORITY" : "ERR_PRIORITY";
                 requiresAdmin |= !priorityApplied && IsAccessDeniedPriority(key.ProcessId);
             }
@@ -320,6 +450,13 @@ namespace ProcessCoreOptimizer.WPF.Services
                 {
                     _appliedProfileSignatures.Remove(staleKey);
                 }
+
+                foreach (var staleKey in _suspensions.Keys.Where(k => !activeInstances.Contains(k)).ToList())
+                {
+                    _suspensions.Remove(staleKey);
+                }
+
+                PruneSuspensionsLocked();
             }
         }
 

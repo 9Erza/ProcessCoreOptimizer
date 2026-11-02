@@ -17,6 +17,9 @@ namespace ProcessCoreOptimizer.WPF.Models
         /// <summary>At least one requested action applied, at least one failed. Retry makes sense.</summary>
         PartiallyApplied,
 
+        /// <summary>Temporarily suspended (e.g. after manual session restore); expires automatically.</summary>
+        SkippedSuspended,
+
         /// <summary>At least one action attempted, none applied.</summary>
         Failed,
 
@@ -55,6 +58,7 @@ namespace ProcessCoreOptimizer.WPF.Models
         {
             OperationStatus.FullyApplied => "APPLIED",
             OperationStatus.PartiallyApplied => "PARTIALLY_APPLIED",
+            OperationStatus.SkippedSuspended => "SKIPPED_SUSPENDED",
             OperationStatus.Failed => "FAILED",
             OperationStatus.SkippedAlreadyApplied => "SKIPPED_ALREADY_APPLIED",
             OperationStatus.SkippedIdentityMismatch => "SKIPPED_IDENTITY_MISMATCH",

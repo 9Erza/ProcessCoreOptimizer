@@ -41,13 +41,33 @@ oraz rejestracja autostartu tylko przy zmianie ustawień startu.
 ## Weryfikacja
 
 - Release build: 0 ostrzeżeń, 0 błędów.
-- Testy: 72 przypadki MSTest, wszystkie zielone (tożsamość, PID reuse, maski,
-  statusy, konflikty, import/eksport, watcher, restore, aktualizator, parzystość lokalizacji).
+- Testy: 97 przypadków MSTest, wszystkie zielone —
+  logika na fake backend, read-only self-PID, negatywne testy tożsamości P0,
+  macierz restore/suspension CPU Sets, bramki aktualizatora, parzystość lokalizacji
+  oraz prawdziwe Windows API na izolowanych własnych kopiach testowych w `%TEMP%`
+  (round-tripy affinity/CPU Sets/priorytetu z prawdziwymi kodami Win32, odmowa
+  dla zakończonego procesu, watcher + restore + suspension, path-bound mismatch).
+  Żaden proces użytkownika, usługi ani agenta nie jest dotykany.
+- GUI: 11/11 kontroli UI Automation na Windows 11 (sesja 1, 1920×1080, 100% DPI):
+  sześć zakładek prawdziwymi kliknięciami, maximize/minimize/restore,
+  tray-intercept close, linia safe-mode. Harness: `tools/Run-GuiVerification.ps1`
+  (backup i restore `%APPDATA%`, start z `--safe-mode`).
+- Defekty GUI wykryte na żywo i naprawione: crash zakresu theme przy starcie
+  (teraz poziom App), wersja z `+sha`, ucięte nazwy procesów, ucięte logi,
+  przepełnienie przycisków profili, prawa uchwytów CPU Sets (wykryły to prawdziwe testy).
+- Baseline wydajności (Win11, i5-10210U, 8 LP, 100% DPI): start 1,5–1,6 s;
+  idle 60 s ≈ 180 MB WS / 85 MB Private / 0,5% CPU / ~740 uchwytów / 21 wątków;
+  100 syntetycznych profili ≈ +5 MB WS, bez delty CPU; monitor HW ON ≈ +10 MB WS,
+  +80 uchwytów; zminimalizowany ≈ idle. Harness: `tools/Measure-Performance.ps1`,
+  `tools/Measure-Cpu.ps1`; surowe CSV w ignorowanym `.evidence/perf`.
 - CI: restore → Release build → testy → `git diff --check`, zielone.
-- Artefakt lokalny: samowystarczalny jednoplikowy `ProcessCoreOptimizer.exe`
-  2.0.0 (patrz `docs/INSTALLER.md` — SHA-256 i status instalatora).
-- Interaktywne screenshoty: NIE WYKONANO (środowisko headless);
-  galeria nadal pokazuje UI 1.3.x i jest tak oznaczona.
+- Artefakty lokalne: samowystarczalny jednoplikowy `ProcessCoreOptimizer.exe` 2.0.0
+  oraz `installer/Output/ProcessCoreOptimizer_Setup_2.0.0.exe` (50 784 844 bajtów,
+  SHA-256 `11DE86C0…D6795D9F1`, PE 2.0.0) — patrz `docs/INSTALLER.md`.
+- Interaktywne screenshoty: prawdziwe UI 2.0 (6 ekranów) opublikowane; bez mockupów.
+- Instalacja/upgrade/uninstall na VM: NIE WYKONANO (brak izolowanej VM; instalacja
+  na maszynie deweloperskiej celowo uniknięta). Sprzęt multi-group: NIE WYKONANO
+  (maszyna 8-LP); przetestowano syntetyczną dyscyplinę mapowania.
 
 ## Znane ograniczenia
 

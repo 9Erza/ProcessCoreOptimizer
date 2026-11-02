@@ -108,9 +108,18 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         public ICommand CaptureLiveSettingsCommand { get; }
         public ICommand RestoreSettingsCommand { get; }
 
-        public string AppVersion { get; } = Assembly.GetExecutingAssembly()
+        public string AppVersion { get; } = FormatDisplayVersion(Assembly.GetExecutingAssembly()
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-            .InformationalVersion ?? "2.0.0";
+            .InformationalVersion ?? "2.0.0");
+
+        private static string FormatDisplayVersion(string informationalVersion)
+        {
+            // InformationalVersion carries build metadata ("2.0.0+sha"); the UI
+            // and tray show the clean version, the updater parses it strictly.
+            string v = (informationalVersion ?? string.Empty).Trim().TrimStart('v', 'V');
+            int plus = v.IndexOf('+');
+            return (plus >= 0 ? v.Substring(0, plus) : v).Trim();
+        }
 
         public AppSettings AppSettings
         {
@@ -320,7 +329,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             ConfigureLoggerFromSettings();
 
             _processScannerService = new ProcessScannerService(_processService);
-            _optimizationService = new OptimizationService(_processService, () => _cpuSetMap);
+            _optimizationService = new OptimizationService(_processService, () => _cpuSetMap, _sessionRestore);
             _profileWatcher = new ProfileWatcherService(
                 _processScannerService,
                 _optimizationService,
@@ -407,6 +416,13 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 {
                     // Background watcher: single authoritative pipeline with reentrancy,
                     // cancellation and shutdown guards (no UI touches inside).
+                    // Safe mode: observe only, never mutate.
+                    if (IsSafeMode)
+                    {
+                        LogSafeModeSkipOnce();
+                        return;
+                    }
+
                     OptimizationBatchResult? batch = await _profileWatcher
                         .RunOnceAsync("background profile watcher", force: false)
                         .ConfigureAwait(true);
@@ -422,7 +438,10 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 ProcessScanResult scan = await _processScannerService.ScanUserProcessesAsync();
                 _optimizationService.CleanupStaleCache(scan.ActiveInstances);
                 CleanupOptimizationDiagnosticLogCache();
-                var uiBatch = _optimizationService.ApplyProfilesForSnapshots(profilesSnapshot, scan.Groups, AppSettings.AllowRealtimePriority, force: false);
+                OptimizationBatchResult uiBatch = IsSafeMode
+                    ? new OptimizationBatchResult()
+                    : _optimizationService.ApplyProfilesForSnapshots(profilesSnapshot, scan.Groups, AppSettings.AllowRealtimePriority, force: false);
+                if (IsSafeMode) LogSafeModeSkipOnce();
                 _operationHistory.RecordBatch(uiBatch, "process list refresh");
                 LogOptimizationBatch(uiBatch, "process list refresh");
 
@@ -642,7 +661,6 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 UpdatedAt = DateTime.UtcNow
             };
 
-            CaptureSessionBaseline(SelectedProcess.Name);
             int affected = ApplyProfileToRunningProcesses(temporaryProfile, force: true);
             SelectedProcess.IsOptimized = affected > 0;
             SelectedProcess.ModeTag = affected > 0 ? GetModeTag(mode) : string.Empty;
@@ -686,7 +704,6 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             _profiles = _profileService.LoadProfiles();
             RefreshSavedProfilesView();
 
-            CaptureSessionBaseline(SelectedProcess.Name);
             int affected = ApplyProfileToRunningProcesses(newProfile, force: true);
             SelectedProcess.IsOptimized = true;
             SelectedProcess.ModeTag = GetModeTag(mode);
@@ -726,7 +743,6 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             ClearAppliedProfileCache(processName);
 
             var profileToApply = _profiles.FirstOrDefault(p => p.ProcessName.Equals(processName, StringComparison.OrdinalIgnoreCase));
-            CaptureSessionBaseline(processName);
             int affected = profileToApply != null ? ApplyProfileToRunningProcesses(profileToApply, force: true) : 0;
 
             var activeProcess = Processes.FirstOrDefault(p => p.Name.Equals(processName, StringComparison.OrdinalIgnoreCase));
@@ -763,53 +779,22 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             SelectedSavedProfile = null;
         }
 
-        private void CaptureSessionBaseline(string processName)
-        {
-            try
-            {
-                Process[] candidates = Process.GetProcessesByName(ProfileService.NormalizeProcessName(processName));
-                try
-                {
-                    foreach (var proc in candidates)
-                    {
-                        try
-                        {
-                            if (proc.HasExited) continue;
-                            var key = ProcessScannerService.CreateInstanceKey(proc);
-                            string? path = ProcessIdentityValidator.TryGetProcessPath(proc);
-                            long? mask = null;
-                            try
-                            {
-                                var selection = _processService.GetCurrentCoreSelection(proc.Id, _cpuSetMap);
-                                if (selection.Success && selection.Mask != 0) mask = selection.Mask;
-                            }
-                            catch { }
-
-                            ProcessPriorityClass? prio = null;
-                            try { prio = _processService.TryGetPriority(proc.Id); } catch { }
-
-                            if (mask.HasValue || prio.HasValue)
-                            {
-                                _sessionRestore.Capture(key, proc.ProcessName, path, mask, prio);
-                            }
-                        }
-                        catch { }
-                    }
-                }
-                finally
-                {
-                    foreach (var p in candidates) p.Dispose();
-                }
-            }
-            catch { }
-        }
-
         private void RestoreSessionSettings()
         {
             if (SelectedProcess == null) return;
+            if (IsSafeMode)
+            {
+                AddLog("Safe mode: session restore blocked, OS mutations disabled (--safe-mode).");
+                return;
+            }
             var result = _sessionRestore.RestoreForProcess(SelectedProcess.Name, _processService, _cpuSetMap);
+            // The watcher must not immediately re-apply the profile against the
+            // user's intent: suspend automatic application for these instances.
+            // Suspensions expire on their own; nothing persists.
+            _optimizationService.SuspendLiveInstances(SelectedProcess.Name, TimeSpan.FromMinutes(5), "manual session restore");
             ClearAppliedProfileCache(SelectedProcess.Name);
-            AddLog($"Session restore for '{SelectedProcess.Name}': {result.Message}");
+            AddLog($"Session restore for '{SelectedProcess.Name}': {result.Message} Automatic re-apply suspended for 5 minutes.");
+            RefreshWatcherStatus();
         }
 
         private void UpdateCoreSelectionFromAffinity(string processName)
@@ -873,8 +858,25 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
 
         private int CountSelectedCores() => Cores.Count(c => c.IsChecked);
 
+        private bool IsSafeMode => ProcessCoreOptimizer.WPF.App.StartupOptions.SafeMode;
+        private bool _safeModeNoticeShown;
+
+        private void LogSafeModeSkipOnce()
+        {
+            if (_safeModeNoticeShown) return;
+            _safeModeNoticeShown = true;
+            LoggerService.Instance.Info("Safe mode active: OS mutations disabled (--safe-mode).");
+            AddLog("Safe mode: observing only, OS mutations disabled (--safe-mode).");
+        }
+
         private int ApplyProfileToRunningProcesses(ProcessProfile profile, bool force)
         {
+            if (IsSafeMode)
+            {
+                AddLog("Safe mode: manual apply blocked, OS mutations disabled (--safe-mode).");
+                return 0;
+            }
+
             var result = _optimizationService.ApplyProfileToRunningProcesses(profile, AppSettings.AllowRealtimePriority, force);
             _operationHistory.RecordBatch(result, force ? "manual profile action" : "background profile watcher");
             LogOptimizationBatch(result, force ? "manual profile action" : "background profile watcher");
