@@ -41,11 +41,10 @@ namespace ProcessCoreOptimizer.WPF.Services
                     var cores = BuildTopologyFromCpuSets(cpuSets);
                     _logger.Info($"CPU topology from CPU Sets: logical={cores.Count}, P={cores.Count(c => !c.IsECore && !c.IsThread)}, T={cores.Count(c => c.IsThread)}, E={cores.Count(c => c.IsECore)}");
 
-                    int totalCpuSets = GetSystemCpuSetInfos().Count;
-                    const string groupNote = "Only processor group 0 / first 64 logical processors are exposed because classic affinity masks are limited in this UI.";
-                    if (totalCpuSets > cores.Count)
+                    var report = BuildTopologyReport(cores);
+                    if (report.LimitedToGroup0)
                     {
-                        _logger.Warn(groupNote);
+                        _logger.Warn(report.LimitationMessage);
                     }
 
                     return cores;
@@ -101,6 +100,63 @@ namespace ProcessCoreOptimizer.WPF.Services
             {
                 _logger.Error("Failed to build CPU Set map", ex);
                 return new Dictionary<int, uint>();
+            }
+        }
+
+        /// <summary>
+        /// Describes what the OS exposes beyond what PCO can address.
+        /// Multi-group machines are detected here; the 64-bit mask model stays
+        /// limited to group 0 by design (see CpuTopologyReport).
+        /// </summary>
+        public CpuTopologyReport GetTopologyReport(IReadOnlyList<CoreInfo>? cores = null)
+        {
+            try
+            {
+                var all = GetSystemCpuSetInfos();
+                int total = all.Count;
+                int groups = all.Select(x => x.Group).Distinct().Count();
+                int visible = cores?.Count ?? GetCoreTopology().Count;
+                bool limited = total > visible;
+                return new CpuTopologyReport
+                {
+                    TotalCpuSets = total,
+                    ProcessorGroups = Math.Max(groups, 1),
+                    VisibleLogicalProcessors = visible,
+                    LimitedToGroup0 = limited,
+                    LimitationMessage = limited
+                        ? $"System exposes {total} CPU Sets across {Math.Max(groups, 1)} processor group(s); PCO addresses group 0 / first {visible} logical processors (64-bit affinity mask limit)."
+                        : string.Empty
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug($"Topology report failed: {ex.Message}");
+                return new CpuTopologyReport { ProcessorGroups = 1 };
+            }
+        }
+
+        private CpuTopologyReport BuildTopologyReport(List<CoreInfo> cores)
+        {
+            try
+            {
+                var all = GetSystemCpuSetInfos();
+                int total = all.Count;
+                int groups = all.Select(x => x.Group).Distinct().Count();
+                bool limited = total > cores.Count;
+                return new CpuTopologyReport
+                {
+                    TotalCpuSets = total,
+                    ProcessorGroups = Math.Max(groups, 1),
+                    VisibleLogicalProcessors = cores.Count,
+                    LimitedToGroup0 = limited,
+                    LimitationMessage = limited
+                        ? $"System exposes {total} CPU Sets across {Math.Max(groups, 1)} processor group(s); PCO addresses group 0 / first {cores.Count} logical processors (64-bit affinity mask limit)."
+                        : string.Empty
+                };
+            }
+            catch
+            {
+                return new CpuTopologyReport { ProcessorGroups = 1, VisibleLogicalProcessors = cores.Count };
             }
         }
 
@@ -161,6 +217,8 @@ namespace ProcessCoreOptimizer.WPF.Services
                         EfficiencyClass = cpu.EfficiencyClass,
                         IsECore = isECore,
                         IsThread = isThread,
+                        IsClassificationUnknown = false,
+                        CpuSetId = cpu.Id,
                         TypeTag = isECore ? "[E]" : isThread ? "[T]" : "[P]"
                     });
                 }
@@ -200,14 +258,14 @@ namespace ProcessCoreOptimizer.WPF.Services
 
             for (int i = 0; i < pCores && index < logicalProcs; i++)
             {
-                cores.Add(new CoreInfo { Index = index++, CoreIndex = i, TypeTag = "[P]", IsThread = false, IsECore = false });
+                cores.Add(new CoreInfo { Index = index++, CoreIndex = i, TypeTag = "[?]", IsThread = false, IsECore = false, IsClassificationUnknown = true });
                 if (hasSmt && index < logicalProcs)
                 {
-                    cores.Add(new CoreInfo { Index = index++, CoreIndex = i, TypeTag = "[T]", IsThread = true, IsECore = false });
+                    cores.Add(new CoreInfo { Index = index++, CoreIndex = i, TypeTag = "[?]", IsThread = false, IsClassificationUnknown = true });
                 }
             }
 
-            _logger.Warn("Using fallback CPU topology. P/E-core classification may be approximate on hybrid CPUs.");
+            _logger.Warn("Using fallback CPU topology. P/E-core classification is unavailable (Unknown) on this system.");
             return cores;
         }
 
