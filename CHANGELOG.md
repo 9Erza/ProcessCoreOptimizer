@@ -48,6 +48,7 @@
 - Watcher failure-log throttle no longer keys on PID (restarting processes can't spam) and is bounded to 500 entries.
 - `GetCurrentCoreSelection` (CPU Sets first, affinity fallback) is used when reflecting current selection in the UI.
 - Removed dead code: PID-only overloads, unused `ChangePriority`, unused `GetPriorityString` (replaced by `TryGetPriority`), legacy `ApplyWindowsStartup`/schtasks paths (replaced by the coordinator), obsolete settings keys (migrated).
+- Phase 4 hardening: persistent per-file legacy suppression (no data resurrection after Factory Reset, order-independent readers), fail-closed path handling, tray/Window Icon from the original ICO with proper disposal and language-aware menu rebuild, explicit Startup window-mode semantics (Tray always hides; Minimized respects MinimizeToTray), wizard forced visible even from tray startup, single-instance failover on restart (no dual watchers), developer/support links (allowlisted, no telemetry).
 
 ### Phase 3 — startup, administration, reset, first-run (this branch)
 - New startup architecture (1.1–1.4): `StartupWindowMode` Normal/Minimized/Tray, desired vs actual evaluation (`Disabled/Registry/ElevatedTask/Conflict/Broken`), COM-based task reads, create-before-delete ordering (the old code deleted the registry entry before the task existed), UAC-cancel handling, privileged helper protocol, cooperative elevated restart with single-instance handoff.

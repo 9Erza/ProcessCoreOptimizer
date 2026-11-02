@@ -4,6 +4,7 @@
         xmlns:views="clr-namespace:ProcessCoreOptimizer.WPF.Views"
         xmlns:ap="clr-namespace:System.Windows.Automation;assembly=PresentationCore"
         Title="Process Core Optimizer" Height="750" Width="1100" MinWidth="1000" MinHeight="700"
+        Icon="/Images/processcoreoptimizer.ico"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
         AllowsTransparency="True"

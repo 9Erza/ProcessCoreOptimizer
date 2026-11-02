@@ -277,9 +277,17 @@ No release, installer or version bump is published from automation without expli
 
 ---
 
-## Author
+## Author & Support
 
 Developed by **[Eryk / 9Erza](https://github.com/9Erza)**.
+
+- Developer: <https://github.com/9Erza>
+- Source code: <https://github.com/9Erza/ProcessCoreOptimizer>
+- Support development (voluntary): <https://buymeacoffee.com/9erza>
+
+The same links live inside the app: sidebar icons and the About section in
+Settings. They only open your browser on click — no tracking, no network calls,
+no ads, no paywalled features.
 
 ---
 

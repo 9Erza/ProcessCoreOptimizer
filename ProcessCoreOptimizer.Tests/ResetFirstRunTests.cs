@@ -141,6 +141,23 @@ public sealed class ResetFirstRunTests
     }
 
     [TestMethod]
+    public void RestoreDefaults_LeavesProfilesFileUntouched()
+    {
+        string root = _tempRoot!;
+        string profilesPath = Path.Combine(root, "profiles.json");
+        File.WriteAllText(profilesPath, "[{\"ProcessName\":\"keepme\",\"AffinityMask\":3}]");
+        string before = File.ReadAllText(profilesPath);
+
+        var svc = new SettingsService();
+        var current = svc.LoadSettings();
+        var defaults = UserDataResetService.BuildDefaultSettings(current);
+        svc.SaveSettings(defaults);
+
+        Assert.AreEqual(before, File.ReadAllText(profilesPath), "Restore-defaults must not touch profiles.");
+        Assert.IsTrue(File.Exists(Path.Combine(root, "settings.json")));
+    }
+
+    [TestMethod]
     public void FirstRun_Finish_PersistsChoicesAndMarker()
     {
         var vm = new FirstRunViewModel { Language = "pl" };

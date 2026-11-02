@@ -1689,6 +1689,11 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             RefreshAvailablePriorities();
             RefreshDisplayedPriorities();
             OnPropertyChanged(nameof(CpuVendorText));
+            try
+            {
+                (WpfApplication.Current.MainWindow as Views.MainWindow)?.ApplyTrayLanguage();
+            }
+            catch { }
         }
 
         private void RefreshAvailablePriorities()

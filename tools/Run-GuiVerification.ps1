@@ -237,17 +237,44 @@ try {
         Save-Shot "08-settings-startup.png" $window
     }
 
-    Check "close window" {
-        # Re-fetch: earlier minimize/restore and re-renders invalidate cached elements.
-        $window = Get-Window "Process Core Optimizer" 10
-        if (!$window) { throw "Main window lost before close." }
-        # CloseToTray may intercept Close and hide to tray instead of exiting.
-        $window.GetCurrentPattern([System.Windows.Automation.WindowPattern]::Pattern).Close()
-        if (!$app.WaitForExit(5000)) {
-            Stop-Process -Id $app.Id -Force -ErrorAction Stop
-            if (!$app.WaitForExit(8000)) { throw "App did not exit after Close." }
-            $script:results += "NOTE: Close was intercepted by tray; terminated for QA."
+    Check "about links present with automation names" {
+        # Focus the settings scroll area first (a plain click), otherwise keys go elsewhere.
+        $r = $window.Current.BoundingRectangle
+        [PcoMouse]::Click([int]($r.X + 600), [int]($r.Y + 400))
+        Start-Sleep -Milliseconds 400
+        $shell = New-Object -ComObject WScript.Shell
+        for ($i = 0; $i -lt 12; $i++) { $shell.SendKeys("{PGDN}"); Start-Sleep -Milliseconds 200 }
+        Save-Shot "15-about-links.png" $window
+        $found = @{}
+        $btns = $window.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+            (New-Object System.Windows.Automation.PropertyCondition(
+                [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+                [System.Windows.Automation.ControlType]::Button)))
+        foreach ($b in $btns) {
+            try {
+                $nm = $b.Current.Name
+                if ($nm -eq "9Erza" -or $nm -eq "Process Core Optimizer" -or $nm -eq "Buy Me a Coffee") { $found[$nm] = $true }
+            } catch { }
         }
+        foreach ($need in @("9Erza", "Process Core Optimizer", "Buy Me a Coffee")) {
+            if (!$found.ContainsKey($need)) { throw "About link button '$need' not found." }
+        }
+    }
+
+    Check "close hides to tray (process alive, window hidden)" {
+        $w = Get-Window "Process Core Optimizer" 10
+        if (!$w) { throw "Main window lost before close." }
+        try {
+            $w.GetCurrentPattern([System.Windows.Automation.WindowPattern]::Pattern).Close()
+        } catch {
+            throw "Close invocation failed: $($_.Exception.Message)"
+        }
+        Start-Sleep -Milliseconds 1500
+        $gone = Get-Window "Process Core Optimizer" 5
+        if ($gone) { throw "Main window still visible after Close (expected tray hide)." }
+        $app.Refresh()
+        if ($app.HasExited) { throw "App exited on Close; expected hide-to-tray (CloseToTray default)." }
+        $script:results += "NOTE: Close hid the app to tray as designed; terminating for QA."
     }
 
     Check "first-run wizard on fresh data" {

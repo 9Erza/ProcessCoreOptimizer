@@ -126,7 +126,6 @@
                     <!-- About -->
                     <TextBlock Text="{DynamicResource StrSetGroupAbout}" Style="{StaticResource PcoSectionHeader}"/>
                     <TextBlock Text="{DynamicResource StrAboutLine}" Style="{StaticResource PcoMutedText}" Margin="0,0,0,12"/>
-                    <TextBlock Text="{DynamicResource StrAboutLine}" Style="{StaticResource PcoMutedText}" Margin="0,0,0,12"/>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8" VerticalAlignment="Center">
                         <Button Style="{StaticResource IconLinkButton}" Command="{Binding OpenAuthorCommand}"
                                 ToolTip="{DynamicResource StrAuthorTooltip}"
@@ -136,8 +135,7 @@
                         </Button>
                         <StackPanel VerticalAlignment="Center">
                             <TextBlock Text="{DynamicResource StrDeveloper}" Foreground="{StaticResource PcoMutedBrush}" FontSize="11"/>
-                            <Button Content="9Erza" Command="{Binding OpenAuthorCommand}" Style="{StaticResource LinkTextButton}"
-                                    ToolTip="{DynamicResource StrAuthorTooltip}" ap:AutomationProperties.Name="{DynamicResource StrAuthorTooltip}"/>
+                            <Button Content="9Erza" Command="{Binding OpenAuthorCommand}" Style="{StaticResource LinkTextButton}" ToolTip="{DynamicResource StrAuthorTooltip}" ap:AutomationProperties.Name="9Erza"/>
                         </StackPanel>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8" VerticalAlignment="Center">
@@ -149,8 +147,7 @@
                         </Button>
                         <StackPanel VerticalAlignment="Center">
                             <TextBlock Text="{DynamicResource StrSourceCode}" Foreground="{StaticResource PcoMutedBrush}" FontSize="11"/>
-                            <Button Content="Process Core Optimizer" Command="{Binding OpenRepositoryCommand}" Style="{StaticResource LinkTextButton}"
-                                    ToolTip="{DynamicResource StrRepoTooltip}" ap:AutomationProperties.Name="{DynamicResource StrRepoTooltip}"/>
+                            <Button Content="Process Core Optimizer" Command="{Binding OpenRepositoryCommand}" Style="{StaticResource LinkTextButton}" ToolTip="{DynamicResource StrRepoTooltip}" ap:AutomationProperties.Name="Process Core Optimizer"/>
                         </StackPanel>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8" VerticalAlignment="Center">
@@ -162,8 +159,7 @@
                         </Button>
                         <StackPanel VerticalAlignment="Center">
                             <TextBlock Text="{DynamicResource StrSupportDev}" Foreground="{StaticResource PcoMutedBrush}" FontSize="11"/>
-                            <Button Content="Buy Me a Coffee" Command="{Binding OpenSupportCommand}" Style="{StaticResource LinkTextButton}"
-                                    ToolTip="{DynamicResource StrSupportTooltip}" ap:AutomationProperties.Name="{DynamicResource StrSupportTooltip}"/>
+                            <Button Content="Buy Me a Coffee" Command="{Binding OpenSupportCommand}" Style="{StaticResource LinkTextButton}" ToolTip="{DynamicResource StrSupportTooltip}" ap:AutomationProperties.Name="Buy Me a Coffee"/>
                         </StackPanel>
                     </StackPanel>
                     <TextBlock Text="{Binding ExternalLinkErrorText}" Foreground="{StaticResource PcoRedBrush}" FontSize="12" Margin="0,0,0,8" TextWrapping="Wrap">

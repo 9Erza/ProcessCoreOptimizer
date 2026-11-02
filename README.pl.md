@@ -276,9 +276,17 @@ Bez wyraźnej zgody nie publikujemy z automatyzacji release, instalatora ani pod
 
 ---
 
-## Autor
+## Autor i wsparcie
 
 Autor: **[Eryk / 9Erza](https://github.com/9Erza)**.
+
+- Autor: <https://github.com/9Erza>
+- Kod źródłowy: <https://github.com/9Erza/ProcessCoreOptimizer>
+- Wesprzyj rozwój (dobrowolnie): <https://buymeacoffee.com/9erza>
+
+Te same linki są w aplikacji: ikony w bocznym menu i sekcja O programie
+w Ustawieniach. Otwierają przeglądarkę tylko po kliknięciu — bez śledzenia,
+bez zapytań sieciowych, bez reklam i bez płatnych funkcji.
 
 ---
 
