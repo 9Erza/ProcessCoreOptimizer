@@ -110,12 +110,22 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         public ICommand ToggleSettingCommand { get; }
         public ICommand RestartAsAdministratorCommand { get; }
         public ICommand RefreshStartupStatusCommand { get; }
+        public string? ExternalLinkErrorText
+        {
+            get => _externalLinkErrorText;
+            private set => SetProperty(ref _externalLinkErrorText, value);
+        }
+
         public ICommand OpenWizardCommand { get; }
         public ICommand RestoreDefaultsCommand { get; }
         public ICommand FactoryResetCommand { get; }
+        public ICommand OpenAuthorCommand { get; }
+        public ICommand OpenRepositoryCommand { get; }
+        public ICommand OpenSupportCommand { get; }
 
         private string _dataResetStatusText = string.Empty;
         private string _factoryResetConfirmationText = string.Empty;
+        private string? _externalLinkErrorText;
         public ICommand ApplyCorePresetCommand { get; }
         public ICommand DuplicateProfileCommand { get; }
         public ICommand ExportProfilesCommand { get; }
@@ -482,6 +492,18 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             }
         }
 
+        private void OpenExternalLink(PcoExternalLink link)
+        {
+            ExternalLinkErrorText = null;
+            if (!Services.ExternalLinks.TryOpen(link))
+            {
+                ExternalLinkErrorText = WpfApplication.Current?.TryFindResource("StrLinkOpenFailed") as string
+                    ?? (IsPolishLanguage
+                        ? "Nie udało się otworzyć strony w przeglądarce."
+                        : "Could not open the link in your browser.");
+            }
+        }
+
         private void OpenFirstRunWizard()
         {
             var window = new Views.FirstRunWindow
@@ -690,6 +712,9 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             OpenWizardCommand = new RelayCommand(_ => OpenFirstRunWizard());
             RestoreDefaultsCommand = new RelayCommand(_ => { _ = RestoreDefaultSettingsAsync(); });
             FactoryResetCommand = new RelayCommand(_ => { _ = RunFactoryResetAsync(); });
+            OpenAuthorCommand = new RelayCommand(_ => OpenExternalLink(PcoExternalLink.Author));
+            OpenRepositoryCommand = new RelayCommand(_ => OpenExternalLink(PcoExternalLink.Repository));
+            OpenSupportCommand = new RelayCommand(_ => OpenExternalLink(PcoExternalLink.Support));
             ApplyCorePresetCommand = new RelayCommand(preset => ApplyCorePreset(preset?.ToString()));
             DuplicateProfileCommand = new RelayCommand(_ => DuplicateSelectedProfile());
             ExportProfilesCommand = new RelayCommand(_ => ExportProfilesToFile());

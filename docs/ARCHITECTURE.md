@@ -86,7 +86,8 @@ and shown; the engine resolves them deterministically, never randomly.
 - `UserDataResetService` (root-scoped): restore-defaults preserves language;
   factory reset requires typed `RESET`, quiesces the engine, refuses links and
   escaping paths, deletes only allowlisted files, never reimports legacy files
-  (one-shot stamp consumed by `MigrateLegacyFileIfNeeded`), removes startup
+  (persistent per-file `.nolegacy.*` suppression stamps checked by
+  `MigrateLegacyFileIfNeeded`), removes startup
   separately with its own error channel, truncates the held log afterwards.
 - `OnboardingResolver`: fresh installs (and post-wipe launches) show the
   3-page first-run wizard; legacy data upgrades silently; interrupted runs resume.

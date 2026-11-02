@@ -93,9 +93,11 @@ namespace ProcessCoreOptimizer.WPF.Services
             var notes = new List<string>();
 
             // Pre-flight: refuse if the root itself is (or contains) a link.
+            // A missing root is fine (created below); only an existing,
+            // unreadable or reparse-point root refuses the wipe.
             try
             {
-                if (IsLink(root))
+                if (Directory.Exists(root) && IsLink(root))
                 {
                     return new DataResetResult(false, false, [], [], new[] { $"Refused: data directory '{root}' is a link or junction." }, [], null, null);
                 }
@@ -159,12 +161,17 @@ namespace ProcessCoreOptimizer.WPF.Services
                 startupError = $"Startup removal failed: {ex.Message}";
             }
 
-            // Leave the one-shot stamp so the next launch does not reimport
-            // legacy files from the executable directory.
+            // Leave one-shot stamps (one per data file) so the next launch does not
+            // reimport legacy files from the executable directory.
             try
             {
                 Directory.CreateDirectory(root);
-                File.WriteAllText(Path.Combine(root, AppPaths.FactoryResetStampFileName), DateTime.UtcNow.ToString("o"));
+                foreach (string dataFile in new[] { "settings.json", "profiles.json" })
+                {
+                    File.WriteAllText(
+                        Path.Combine(root, AppPaths.LegacySuppressStampFileName(dataFile)),
+                        DateTime.UtcNow.ToString("o"));
+                }
             }
             catch (Exception ex)
             {
@@ -199,7 +206,9 @@ namespace ProcessCoreOptimizer.WPF.Services
             }
             catch
             {
-                return false;
+                // Fail-closed: an unreadable path is treated as unsafe in a
+                // destructive operation, never as implicitly safe.
+                return true;
             }
         }
 

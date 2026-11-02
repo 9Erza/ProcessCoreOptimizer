@@ -56,7 +56,8 @@ public sealed class ResetFirstRunTests
         Assert.IsTrue(Directory.Exists(sub), "Non-empty user directory must survive.");
         Assert.IsTrue(File.Exists(Path.Combine(root, "ProcessCoreOptimizer.log")), "Active log handle cannot be deleted; it is truncated post-wipe.");
         Assert.IsNotNull(result.ActiveLogPath);
-        Assert.IsTrue(File.Exists(Path.Combine(root, AppPaths.FactoryResetStampFileName)), "Reset stamp must be left for the legacy guard.");
+        Assert.IsTrue(File.Exists(Path.Combine(root, AppPaths.LegacySuppressStampFileName("settings.json"))), "Reset stamp must be left for the legacy guard.");
+        Assert.IsTrue(File.Exists(Path.Combine(root, AppPaths.LegacySuppressStampFileName("profiles.json"))), "Reset stamp must be left for the legacy guard.");
         Assert.IsNull(result.StartupRemovalError);
     }
 
@@ -114,8 +115,9 @@ public sealed class ResetFirstRunTests
 
         // A legacy file appearing afterwards must NOT be reimported on the next launch.
         AppPaths.MigrateLegacyFileIfNeeded("settings.json");
-        Assert.IsFalse(File.Exists(Path.Combine(root, "settings.json")), "Stamp must suppress the legacy reimport once.");
-        Assert.IsFalse(File.Exists(Path.Combine(root, AppPaths.FactoryResetStampFileName)), "Stamp is one-shot.");
+        Assert.IsFalse(File.Exists(Path.Combine(root, "settings.json")), "Stamp must suppress the legacy reimport.");
+        Assert.IsTrue(File.Exists(Path.Combine(root, AppPaths.LegacySuppressStampFileName("settings.json"))), "Stamp persists for durability.");
+        Assert.IsTrue(File.Exists(Path.Combine(root, AppPaths.LegacySuppressStampFileName("profiles.json"))), "The profiles stamp is independent.");
     }
 
     [TestMethod]

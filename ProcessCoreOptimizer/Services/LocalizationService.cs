@@ -131,6 +131,13 @@ namespace ProcessCoreOptimizer.WPF.Services
                 res["StrUnknown"] = isPl ? "Nieznany" : "Unknown";
                 res["StrApplyPreset"] = isPl ? "Zastosuj" : "Apply";
                 res["StrRestoreSettings"] = isPl ? "Przywróć sesję" : "Restore session";
+                res["StrDeveloper"] = isPl ? "Autor" : "Developer";
+                res["StrSourceCode"] = isPl ? "Kod źródłowy" : "Source Code";
+                res["StrSupportDev"] = isPl ? "Wesprzyj rozwój" : "Support Development";
+                res["StrAuthorTooltip"] = isPl ? "GitHub autora — 9Erza" : "Developer GitHub — 9Erza";
+                res["StrRepoTooltip"] = isPl ? "Repozytorium projektu — Process Core Optimizer" : "Project Repository — Process Core Optimizer";
+                res["StrSupportTooltip"] = isPl ? "Postaw kawę — Wesprzyj rozwój" : "Buy Me a Coffee — Support Development";
+                res["StrLinkOpenFailed"] = isPl ? "Nie udało się otworzyć strony w przeglądarce." : "Could not open the link in your browser.";
             }
             catch (Exception ex)
             {

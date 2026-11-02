@@ -1,6 +1,7 @@
 <UserControl x:Class="ProcessCoreOptimizer.WPF.Views.SettingsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ap="clr-namespace:System.Windows.Automation;assembly=PresentationCore">
     <Border Style="{StaticResource PcoCard}" Grid.ColumnSpan="2">
         <Grid>
             <Grid.RowDefinitions>
@@ -124,11 +125,62 @@
 
                     <!-- About -->
                     <TextBlock Text="{DynamicResource StrSetGroupAbout}" Style="{StaticResource PcoSectionHeader}"/>
+                    <TextBlock Text="{DynamicResource StrAboutLine}" Style="{StaticResource PcoMutedText}" Margin="0,0,0,12"/>
+                    <TextBlock Text="{DynamicResource StrAboutLine}" Style="{StaticResource PcoMutedText}" Margin="0,0,0,12"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8" VerticalAlignment="Center">
+                        <Button Style="{StaticResource IconLinkButton}" Command="{Binding OpenAuthorCommand}"
+                                ToolTip="{DynamicResource StrAuthorTooltip}"
+                                ap:AutomationProperties.Name="{DynamicResource StrAuthorTooltip}"
+                                Margin="0,0,8,0" Focusable="True">
+                            <ContentControl Content="{StaticResource IconGitHub}" Focusable="False"/>
+                        </Button>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="{DynamicResource StrDeveloper}" Foreground="{StaticResource PcoMutedBrush}" FontSize="11"/>
+                            <Button Content="9Erza" Command="{Binding OpenAuthorCommand}" Style="{StaticResource LinkTextButton}"
+                                    ToolTip="{DynamicResource StrAuthorTooltip}" ap:AutomationProperties.Name="{DynamicResource StrAuthorTooltip}"/>
+                        </StackPanel>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8" VerticalAlignment="Center">
+                        <Button Style="{StaticResource IconLinkButton}" Command="{Binding OpenRepositoryCommand}"
+                                ToolTip="{DynamicResource StrRepoTooltip}"
+                                ap:AutomationProperties.Name="{DynamicResource StrRepoTooltip}"
+                                Margin="0,0,8,0" Focusable="True">
+                            <ContentControl Content="{StaticResource IconGitHub}" Focusable="False"/>
+                        </Button>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="{DynamicResource StrSourceCode}" Foreground="{StaticResource PcoMutedBrush}" FontSize="11"/>
+                            <Button Content="Process Core Optimizer" Command="{Binding OpenRepositoryCommand}" Style="{StaticResource LinkTextButton}"
+                                    ToolTip="{DynamicResource StrRepoTooltip}" ap:AutomationProperties.Name="{DynamicResource StrRepoTooltip}"/>
+                        </StackPanel>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8" VerticalAlignment="Center">
+                        <Button Style="{StaticResource IconLinkButton}" Command="{Binding OpenSupportCommand}"
+                                ToolTip="{DynamicResource StrSupportTooltip}"
+                                ap:AutomationProperties.Name="{DynamicResource StrSupportTooltip}"
+                                Margin="0,0,8,0" Focusable="True">
+                            <ContentControl Content="{StaticResource IconCoffee}" Focusable="False"/>
+                        </Button>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="{DynamicResource StrSupportDev}" Foreground="{StaticResource PcoMutedBrush}" FontSize="11"/>
+                            <Button Content="Buy Me a Coffee" Command="{Binding OpenSupportCommand}" Style="{StaticResource LinkTextButton}"
+                                    ToolTip="{DynamicResource StrSupportTooltip}" ap:AutomationProperties.Name="{DynamicResource StrSupportTooltip}"/>
+                        </StackPanel>
+                    </StackPanel>
+                    <TextBlock Text="{Binding ExternalLinkErrorText}" Foreground="{StaticResource PcoRedBrush}" FontSize="12" Margin="0,0,0,8" TextWrapping="Wrap">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ExternalLinkErrorText}" Value="{x:Null}">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
                     <TextBlock Foreground="{StaticResource PcoMutedBrush}" FontSize="12" Margin="0,0,0,20" TextWrapping="Wrap">
                         <Run Text="Process Core Optimizer v"/>
                         <Run Text="{Binding AppVersion, Mode=OneWay}"/>
-                        <LineBreak/>
-                        <Run Text="{DynamicResource StrAboutLine}"/>
                     </TextBlock>
                 </StackPanel>
             </ScrollViewer>
