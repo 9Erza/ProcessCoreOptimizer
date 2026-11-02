@@ -50,11 +50,6 @@ namespace ProcessCoreOptimizer.WPF.Services
             }
         }
 
-        public virtual bool SetProcessAffinity(int pid, long mask)
-        {
-            return SetProcessAffinity(pid, mask, expected: null, expectedName: null, expectedPath: null);
-        }
-
         public virtual bool SetProcessAffinity(int pid, long mask, ProcessInstanceKey? expected, string? expectedName, string? expectedPath)
         {
             if (mask == 0) return false;
@@ -81,11 +76,6 @@ namespace ProcessCoreOptimizer.WPF.Services
                 _logger.Warn($"Failed to set CPU affinity for PID {pid}: {ex.Message}");
                 return false;
             }
-        }
-
-        public virtual bool SetPriority(int pid, ProcessPriorityClass priority)
-        {
-            return SetPriority(pid, priority, expected: null, expectedName: null, expectedPath: null);
         }
 
         public virtual bool SetPriority(int pid, ProcessPriorityClass priority, ProcessInstanceKey? expected, string? expectedName, string? expectedPath)
@@ -173,16 +163,12 @@ namespace ProcessCoreOptimizer.WPF.Services
             }
         }
 
-        public virtual string ApplyCoreOptimization(int pid, long mask, OptimizationMode mode, Dictionary<int, uint> cpuSetMap)
-        {
-            return ApplyCoreOptimization(pid, mask, mode, cpuSetMap, expected: null, expectedName: null, expectedPath: null);
-        }
-
         public virtual string ApplyCoreOptimization(
             int pid, long mask, OptimizationMode mode, Dictionary<int, uint> cpuSetMap,
             ProcessInstanceKey? expected, string? expectedName, string? expectedPath)
         {
-            if (mask == 0) return "ERR_EMPTY_MASK";
+            string? maskError = ValidateCoreMask(mask, cpuSetMap);
+            if (maskError != null) return maskError;
 
 #pragma warning disable CS0618
             if (mode == OptimizationMode.Exclusive)
@@ -223,9 +209,19 @@ namespace ProcessCoreOptimizer.WPF.Services
             }
 
             proc.ProcessorAffinity = (IntPtr)mask;
-            ClearCpuSets(pid, expected, expectedName, expectedPath);
-            return "OK_AFFINITY";
+            // Affinity and CPU Sets are independent mechanisms: the OS keeps stale
+            // CPU Sets unless we clear them. A failed clear must stay visible instead
+            // of hiding behind a plain OK_AFFINITY.
+            bool cleared = ClearCpuSets(pid, expected, expectedName, expectedPath);
+            return ResolveAffinityResult(cleared);
         }
+
+        /// <summary>
+        /// Testable mapping of the affinity outcome. A failed CPU Sets cleanup is
+        /// still a success for the affinity itself, but the caller must see it.
+        /// </summary>
+        public static string ResolveAffinityResult(bool cpuSetsCleared) =>
+            cpuSetsCleared ? "OK_AFFINITY" : "OK_AFFINITY_CPUSETS_NOT_CLEARED";
 
         private string ApplyCpuSetsMode(int pid, long mask, Dictionary<int, uint> cpuSetMap, ProcessInstanceKey? expected, string? expectedName, string? expectedPath)
         {
@@ -274,10 +270,10 @@ namespace ProcessCoreOptimizer.WPF.Services
             }
         }
 
-        private void ClearCpuSets(int pid, ProcessInstanceKey? expected = null, string? expectedName = null, string? expectedPath = null)
+        private bool ClearCpuSets(int pid, ProcessInstanceKey? expected = null, string? expectedName = null, string? expectedPath = null)
         {
             IntPtr hProc = NativeMethods.OpenProcess(NativeMethods.PROCESS_SET_LIMITED_INFORMATION, false, pid);
-            if (hProc == IntPtr.Zero) return;
+            if (hProc == IntPtr.Zero) return false;
 
             try
             {
@@ -288,20 +284,53 @@ namespace ProcessCoreOptimizer.WPF.Services
                         || expected.Value.StartTimeUtc == default
                         || startUtc != expected.Value.StartTimeUtc)
                     {
-                        return;
+                        return false;
                     }
                 }
 
-                NativeMethods.SetProcessDefaultCpuSets(hProc, Array.Empty<uint>(), 0);
+                return NativeMethods.SetProcessDefaultCpuSets(hProc, Array.Empty<uint>(), 0);
             }
             catch (Exception ex)
             {
                 _logger.Debug($"Could not clear CPU Sets for PID {pid}: {ex.Message}");
+                return false;
             }
             finally
             {
                 NativeMethods.CloseHandle(hProc);
             }
+        }
+
+        /// <summary>
+        /// Validates a requested core mask against the known processor map.
+        /// Returns null when the mask may be attempted, otherwise a stable error code.
+        /// </summary>
+        public static string? ValidateCoreMask(long mask, Dictionary<int, uint> cpuSetMap)
+        {
+            if (mask == 0) return "ERR_EMPTY_MASK";
+            if ((mask & ~KnownProcessorMask(cpuSetMap)) != 0) return "ERR_MASK_OUT_OF_RANGE";
+            return null;
+        }
+
+        /// <summary>
+        /// Bitmask of processors PCO is allowed to address (group 0, max 64).
+        /// Derived from the CPU Set map when available, otherwise from ProcessorCount.
+        /// </summary>
+        public static long KnownProcessorMask(Dictionary<int, uint> cpuSetMap)
+        {
+            if (cpuSetMap.Count > 0)
+            {
+                long known = 0;
+                foreach (int index in cpuSetMap.Keys)
+                {
+                    if (index >= 0 && index < 64) known |= (1L << index);
+                }
+
+                return known;
+            }
+
+            int count = Math.Min(Math.Max(Environment.ProcessorCount, 1), 64);
+            return count >= 64 ? -1L : ((1L << count) - 1);
         }
 
         public (bool Success, long Mask, OptimizationMode Mode, string Source, string Message) GetCurrentCoreSelection(int pid, Dictionary<int, uint> cpuSetMap)
