@@ -23,6 +23,10 @@ obj/
 # Publish output
 publish/
 
+# Installer build output (binary, reproducible via tools/Build-Installer.ps1)
+installer/Output/
+installer/*.exe
+
 # OS files
 .DS_Store
 Thumbs.db
