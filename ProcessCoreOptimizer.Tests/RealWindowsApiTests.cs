@@ -21,6 +21,7 @@ public sealed class RealWindowsApiTests
     private string? _probePath;
     private Process? _probe;
     private string _probeName = string.Empty;
+    private ProcessPriorityClass? _spawnPriority;
 
     [TestInitialize]
     public void SpawnProbe()
@@ -41,7 +42,12 @@ public sealed class RealWindowsApiTests
         _probe.WaitForExit(100);
         Assert.IsFalse(_probe.HasExited, "Probe helper exited immediately.");
         System.Threading.Thread.Sleep(300);
+        _spawnPriority = new ProcessService().TryGetPriority(_probe.Id);
+        TestContext?.WriteLine($"Probe {_probeName} PID {_probe.Id} spawn priority: {_spawnPriority}");
+        Assert.IsNotNull(_spawnPriority, "Spawn priority must be readable.");
     }
+
+    public TestContext? TestContext { get; set; }
 
     [TestCleanup]
     public void KillProbe()
@@ -197,7 +203,8 @@ public sealed class RealWindowsApiTests
 
         var restored = restore.RestoreForProcess(_probeName, svc, map);
         Assert.AreEqual(1, restored.Restored, restored.Message);
-        Assert.AreEqual(ProcessPriorityClass.Normal, svc.TryGetPriority(probe.Id), "Priority must be back to pre-test Normal.");
+        var baseline = restore.ForProcess(_probeName).First();
+        Assert.AreEqual(baseline.Priority, svc.TryGetPriority(probe.Id), "Priority must be back to the captured baseline.");
 
         engine.SuspendLiveInstances(_probeName, TimeSpan.FromMinutes(5), "test restore");
         var replay = engine.ApplyProfilesForSnapshots(new[] { profile }, new[] { snapshot }, false, true);
@@ -232,6 +239,6 @@ public sealed class RealWindowsApiTests
 
         var batch = engine.ApplyProfilesForSnapshots(new[] { profile }, new[] { snapshot }, false, true);
         Assert.AreEqual(0, batch.Total, "Path-bound mismatch must apply to nothing.");
-        Assert.AreEqual(ProcessPriorityClass.Normal, svc.TryGetPriority(probe.Id), "Untouched process keeps its priority.");
+        Assert.AreEqual(_spawnPriority, svc.TryGetPriority(probe.Id), "Untouched process keeps its spawn priority.");
     }
 }
