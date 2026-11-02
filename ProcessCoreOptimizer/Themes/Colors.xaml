@@ -1,0 +1,68 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Process Core Optimizer 2.0 design tokens. Single source of truth for the palette. -->
+    <Color x:Key="PcoBg0">#121212</Color>
+    <Color x:Key="PcoBg1">#181818</Color>
+    <Color x:Key="PcoBg2">#202020</Color>
+    <Color x:Key="PcoBg3">#222222</Color>
+    <Color x:Key="PcoLogBg">#0A0A0A</Color>
+    <Color x:Key="PcoBorder">#2D2D30</Color>
+    <Color x:Key="PcoBorderSoft">#333333</Color>
+    <Color x:Key="PcoText">#E0E0E0</Color>
+    <Color x:Key="PcoTextBright">#FFFFFF</Color>
+    <Color x:Key="PcoMuted">#888888</Color>
+    <Color x:Key="PcoMuted2">#9E9E9E</Color>
+    <Color x:Key="PcoDim">#666666</Color>
+    <Color x:Key="PcoFaint">#555555</Color>
+    <Color x:Key="PcoAccent">#4A89F3</Color>
+    <Color x:Key="PcoAccentLight">#7AA8F8</Color>
+    <Color x:Key="PcoAccentDark">#1F3A5F</Color>
+    <Color x:Key="PcoGreen">#2ECC71</Color>
+    <Color x:Key="PcoRed">#E74C3C</Color>
+    <Color x:Key="PcoOrange">#F39C12</Color>
+    <Color x:Key="PcoPurple">#9B59B6</Color>
+    <Color x:Key="PcoYellow">#F1C40F</Color>
+    <Color x:Key="PcoAltRow">#1E1E1E</Color>
+    <Color x:Key="PcoSelected">#3F3F46</Color>
+    <Color x:Key="PcoControl">#252526</Color>
+
+    <SolidColorBrush x:Key="PcoBg0Brush" Color="{StaticResource PcoBg0}"/>
+    <SolidColorBrush x:Key="PcoBg1Brush" Color="{StaticResource PcoBg1}"/>
+    <SolidColorBrush x:Key="PcoBg2Brush" Color="{StaticResource PcoBg2}"/>
+    <SolidColorBrush x:Key="PcoBg3Brush" Color="{StaticResource PcoBg3}"/>
+    <SolidColorBrush x:Key="PcoLogBgBrush" Color="{StaticResource PcoLogBg}"/>
+    <SolidColorBrush x:Key="PcoBorderBrush" Color="{StaticResource PcoBorder}"/>
+    <SolidColorBrush x:Key="PcoBorderSoftBrush" Color="{StaticResource PcoBorderSoft}"/>
+    <SolidColorBrush x:Key="PcoTextBrush" Color="{StaticResource PcoText}"/>
+    <SolidColorBrush x:Key="PcoTextBrightBrush" Color="{StaticResource PcoTextBright}"/>
+    <SolidColorBrush x:Key="PcoMutedBrush" Color="{StaticResource PcoMuted}"/>
+    <SolidColorBrush x:Key="PcoMuted2Brush" Color="{StaticResource PcoMuted2}"/>
+    <SolidColorBrush x:Key="PcoDimBrush" Color="{StaticResource PcoDim}"/>
+    <SolidColorBrush x:Key="PcoFaintBrush" Color="{StaticResource PcoFaint}"/>
+    <SolidColorBrush x:Key="PcoAccentBrush" Color="{StaticResource PcoAccent}"/>
+    <SolidColorBrush x:Key="PcoAccentLightBrush" Color="{StaticResource PcoAccentLight}"/>
+    <SolidColorBrush x:Key="PcoAccentDarkBrush" Color="{StaticResource PcoAccentDark}"/>
+    <SolidColorBrush x:Key="PcoGreenBrush" Color="{StaticResource PcoGreen}"/>
+    <SolidColorBrush x:Key="PcoRedBrush" Color="{StaticResource PcoRed}"/>
+    <SolidColorBrush x:Key="PcoOrangeBrush" Color="{StaticResource PcoOrange}"/>
+    <SolidColorBrush x:Key="PcoPurpleBrush" Color="{StaticResource PcoPurple}"/>
+    <SolidColorBrush x:Key="PcoYellowBrush" Color="{StaticResource PcoYellow}"/>
+    <SolidColorBrush x:Key="PcoAltRowBrush" Color="{StaticResource PcoAltRow}"/>
+    <SolidColorBrush x:Key="PcoSelectedBrush" Color="{StaticResource PcoSelected}"/>
+    <SolidColorBrush x:Key="PcoControlBrush" Color="{StaticResource PcoControl}"/>
+
+    <!-- Shared type scale -->
+    <FontFamily x:Key="PcoFontFamily">Segoe UI</FontFamily>
+    <sys:Double xmlns:sys="clr-namespace:System;assembly=mscorlib" x:Key="PcoTitleSize">22</sys:Double>
+    <sys:Double xmlns:sys="clr-namespace:System;assembly=mscorlib" x:Key="PcoSectionSize">16</sys:Double>
+    <sys:Double xmlns:sys="clr-namespace:System;assembly=mscorlib" x:Key="PcoBodySize">14</sys:Double>
+    <sys:Double xmlns:sys="clr-namespace:System;assembly=mscorlib" x:Key="PcoSmallSize">12</sys:Double>
+    <sys:Double xmlns:sys="clr-namespace:System;assembly=mscorlib" x:Key="PcoTinySize">11</sys:Double>
+
+    <Thickness x:Key="PcoCardPadding">20</Thickness>
+    <CornerRadius x:Key="PcoCardRadius">8</CornerRadius>
+    <CornerRadius x:Key="PcoControlRadius">6</CornerRadius>
+    <CornerRadius x:Key="PcoSmallRadius">4</CornerRadius>
+
+</ResourceDictionary>

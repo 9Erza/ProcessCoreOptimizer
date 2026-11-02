@@ -1,0 +1,153 @@
+<UserControl x:Class="ProcessCoreOptimizer.WPF.Views.HardwareView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Border Style="{StaticResource PcoCard}" Grid.ColumnSpan="2">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Text="{DynamicResource StrHardwareMonitor}" FontSize="24" FontWeight="Bold" Foreground="White" Margin="0,0,0,20"/>
+
+                <Border Grid.Row="1" Background="#202020" CornerRadius="8" Padding="15" Margin="10,0,10,15" BorderBrush="#333" BorderThickness="1">
+                    <StackPanel>
+                        <CheckBox Content="{DynamicResource StrHardwareMonitorSwitch}" IsChecked="{Binding IsHardwareMonitorEnabled, Mode=TwoWay}" Margin="0,0,0,8">
+                            <CheckBox.LayoutTransform>
+                                <ScaleTransform ScaleX="1.15" ScaleY="1.15"/>
+                            </CheckBox.LayoutTransform>
+                        </CheckBox>
+                        <TextBlock Text="{DynamicResource StrBackgroundWatcherStatus}" Foreground="{StaticResource PcoGreenBrush}" FontSize="12" FontWeight="SemiBold" Margin="0,4,0,0"/>
+                        <TextBlock Text="{DynamicResource StrHardwareMonitorOffInfo}" Foreground="{StaticResource PcoMutedBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsHardwareMonitorEnabled}" Value="False">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
+
+                <UniformGrid Grid.Row="2" Columns="2" Rows="3">
+                    <UniformGrid.Style>
+                        <Style TargetType="UniformGrid">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsHardwareMonitorEnabled}" Value="False">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </UniformGrid.Style>
+                    <Border Background="#222" Margin="10" CornerRadius="8" Padding="20" BorderThickness="0,4,0,0" BorderBrush="{StaticResource PcoAccentBrush}">
+                        <StackPanel>
+                            <TextBlock Text="{DynamicResource StrCpuUsage}" Foreground="{StaticResource PcoMutedBrush}" FontSize="12" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding FullMetrics.CpuLoad, StringFormat={}{0:N1}%}" Foreground="White" FontSize="36" FontWeight="Bold" Margin="0,10"/>
+                            <ProgressBar Value="{Binding FullMetrics.CpuLoad}" Height="6" Foreground="{StaticResource PcoAccentBrush}" Background="#111" BorderThickness="0" Maximum="100"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Background="#222" Margin="10" CornerRadius="8" Padding="20" BorderThickness="0,4,0,0" BorderBrush="{StaticResource PcoAccentBrush}">
+                        <StackPanel>
+                            <TextBlock Text="{DynamicResource StrCpuTemp}" Foreground="{StaticResource PcoMutedBrush}" FontSize="12" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding FullMetrics.CpuTemp, StringFormat={}{0:N1}°C}" Foreground="White" FontSize="36" FontWeight="Bold" Margin="0,10"/>
+                            <ProgressBar Value="{Binding FullMetrics.CpuTemp}" Height="6" Foreground="{StaticResource PcoAccentBrush}" Background="#111" BorderThickness="0" Maximum="100"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Background="#222" Margin="10" CornerRadius="8" Padding="20" BorderThickness="0,4,0,0" BorderBrush="{StaticResource PcoRedBrush}">
+                        <StackPanel>
+                            <TextBlock Text="{DynamicResource StrGpuUsage}" Foreground="{StaticResource PcoMutedBrush}" FontSize="12" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding FullMetrics.GpuLoad, StringFormat={}{0:N1}%}" Foreground="White" FontSize="36" FontWeight="Bold" Margin="0,10"/>
+                            <ProgressBar Value="{Binding FullMetrics.GpuLoad}" Height="6" Foreground="{StaticResource PcoRedBrush}" Background="#111" BorderThickness="0" Maximum="100"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Background="#222" Margin="10" CornerRadius="8" Padding="20" BorderThickness="0,4,0,0" BorderBrush="{StaticResource PcoRedBrush}">
+                        <StackPanel>
+                            <TextBlock Text="{DynamicResource StrGpuTemp}" Foreground="{StaticResource PcoMutedBrush}" FontSize="12" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding FullMetrics.GpuTemp, StringFormat={}{0:N1}°C}" Foreground="White" FontSize="36" FontWeight="Bold" Margin="0,10"/>
+                            <ProgressBar Value="{Binding FullMetrics.GpuTemp}" Height="6" Foreground="{StaticResource PcoRedBrush}" Background="#111" BorderThickness="0" Maximum="100"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Background="#222" Margin="10" CornerRadius="8" Padding="20" BorderThickness="0,4,0,0" BorderBrush="{StaticResource PcoPurpleBrush}">
+                        <StackPanel>
+                            <TextBlock Text="{DynamicResource StrRamUsage}" Foreground="{StaticResource PcoMutedBrush}" FontSize="12" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding FullMetrics.RamUsagePct, StringFormat={}{0:N1}%}" Foreground="White" FontSize="36" FontWeight="Bold" Margin="0,10"/>
+                            <ProgressBar Value="{Binding FullMetrics.RamUsagePct}" Height="6" Foreground="{StaticResource PcoPurpleBrush}" Background="#111" BorderThickness="0" Maximum="100"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Background="#222" Margin="10" CornerRadius="8" Padding="20" BorderThickness="0,4,0,0" BorderBrush="{StaticResource PcoPurpleBrush}">
+                        <StackPanel>
+                            <TextBlock Text="{DynamicResource StrRamUsedAvail}" Foreground="{StaticResource PcoMutedBrush}" FontSize="12" FontWeight="Bold"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,10">
+                                <TextBlock Text="{Binding FullMetrics.RamUsedGB, StringFormat={}{0:N1}}" Foreground="White" FontSize="36" FontWeight="Bold"/>
+                                <TextBlock Text="{Binding FullMetrics.RamAvailableGB, StringFormat='/ {0:N0} GB'}" Foreground="#666" FontSize="20" Margin="8,0,0,5" VerticalAlignment="Bottom"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </UniformGrid>
+
+                <Expander Grid.Row="3" Header="{DynamicResource StrExpandHardware}" Margin="10,20,10,0" IsEnabled="{Binding IsHardwareMonitorEnabled}">
+                    <UniformGrid Columns="2" Margin="0,15,0,0">
+                        <Border Background="#121212" Margin="5" Padding="15" CornerRadius="8">
+                            <StackPanel>
+                                <TextBlock Text="{DynamicResource StrGpuDetails}" FontWeight="Bold" Foreground="{StaticResource PcoRedBrush}" Margin="0,0,0,10" FontSize="14"/>
+                                <Grid Margin="0,2">
+                                    <TextBlock Text="{DynamicResource StrVramUsage}" Foreground="{StaticResource PcoMutedBrush}"/>
+                                    <TextBlock Text="{Binding FullMetrics.VramUsagePct, StringFormat={}{0:N1}%}" HorizontalAlignment="Right"/>
+                                </Grid>
+                                <Grid Margin="0,2">
+                                    <TextBlock Text="{DynamicResource StrCoreClock}" Foreground="{StaticResource PcoMutedBrush}"/>
+                                    <TextBlock Text="{Binding FullMetrics.GpuCoreClock, StringFormat={}{0:N0} MHz}" HorizontalAlignment="Right"/>
+                                </Grid>
+                                <Grid Margin="0,2">
+                                    <TextBlock Text="{DynamicResource StrMemClock}" Foreground="{StaticResource PcoMutedBrush}"/>
+                                    <TextBlock Text="{Binding FullMetrics.GpuMemClock, StringFormat={}{0:N0} MHz}" HorizontalAlignment="Right"/>
+                                </Grid>
+                                <Grid Margin="0,2">
+                                    <TextBlock Text="{DynamicResource StrHotSpot}" Foreground="{StaticResource PcoMutedBrush}"/>
+                                    <TextBlock Text="{Binding FullMetrics.GpuHotSpot, StringFormat={}{0:N1}°C}" HorizontalAlignment="Right"/>
+                                </Grid>
+                                <Grid Margin="0,2">
+                                    <TextBlock Text="{DynamicResource StrVramTemp}" Foreground="{StaticResource PcoMutedBrush}"/>
+                                    <TextBlock Text="{Binding FullMetrics.GpuVramTemp, StringFormat={}{0:N1}°C}" HorizontalAlignment="Right"/>
+                                </Grid>
+                                <Grid Margin="0,2">
+                                    <TextBlock Text="{DynamicResource StrPowerDraw}" Foreground="{StaticResource PcoMutedBrush}"/>
+                                    <TextBlock Text="{Binding FullMetrics.GpuPower, StringFormat={}{0:N1} W}" HorizontalAlignment="Right" Foreground="{StaticResource PcoYellowBrush}" FontWeight="Bold"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                        <Border Background="#121212" Margin="5" Padding="15" CornerRadius="8">
+                            <StackPanel>
+                                <TextBlock Text="{DynamicResource StrCpuDetails}" FontWeight="Bold" Foreground="{StaticResource PcoAccentBrush}" Margin="0,0,0,10" FontSize="14"/>
+                                <Grid Margin="0,2">
+                                    <TextBlock Text="{DynamicResource StrAvgClock}" Foreground="{StaticResource PcoMutedBrush}"/>
+                                    <TextBlock Text="{Binding FullMetrics.CpuClock, StringFormat={}{0:N0} MHz}" HorizontalAlignment="Right"/>
+                                </Grid>
+                                <Grid Margin="0,2">
+                                    <TextBlock Text="{DynamicResource StrPowerDraw}" Foreground="{StaticResource PcoMutedBrush}"/>
+                                    <TextBlock Text="{Binding FullMetrics.CpuPower, StringFormat={}{0:N1} W}" HorizontalAlignment="Right" Foreground="{StaticResource PcoYellowBrush}" FontWeight="Bold"/>
+                                </Grid>
+                                <TextBlock Text="{DynamicResource StrCoreTemps}" Foreground="{StaticResource PcoMutedBrush}" Margin="0,15,0,5" FontSize="12" FontWeight="SemiBold"/>
+                                <ItemsControl ItemsSource="{Binding FullMetrics.CoreTemps}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}" FontSize="12" Foreground="#aaa" Margin="0,2,0,0"/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                    </UniformGrid>
+                </Expander>
+            </Grid>
+        </ScrollViewer>
+    </Border>
+</UserControl>

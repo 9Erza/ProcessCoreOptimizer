@@ -68,5 +68,29 @@
     <system:String x:Key="StrPowerDraw">Power Draw:</system:String>
     <system:String x:Key="StrAvgClock">Avg Clock:</system:String>
     <system:String x:Key="StrCoreTemps">Core Temperatures:</system:String>
+    <system:String x:Key="StrHardwareMonitorSwitch">Hardware monitor</system:String>
+    <system:String x:Key="StrHardwareMonitorOffInfo">Hardware monitor is disabled. Enable it only when you want live temperatures and usage metrics.</system:String>
+    <system:String x:Key="StrBackgroundWatcherStatus">Background profile watcher: active</system:String>
+
+    <system:String x:Key="StrNavCpuTopology">CPU &amp; Topology</system:String>
+    <system:String x:Key="StrDiagnostics">Diagnostics</system:String>
+    <system:String x:Key="StrProcessFilter">Filter processes...</system:String>
+    <system:String x:Key="StrProfileFilter">Filter profiles...</system:String>
+    <system:String x:Key="StrProcessDetails">Process details</system:String>
+    <system:String x:Key="StrNoSelection">Select a process or profile to see details.</system:String>
+    <system:String x:Key="StrCorePresets">Core presets</system:String>
+    <system:String x:Key="StrTopologyNote">Topology note</system:String>
+    <system:String x:Key="StrConflictsTitle">Profile conflicts</system:String>
+    <system:String x:Key="StrNoConflicts">No conflicts. Precedence: path-bound, then newest.</system:String>
+    <system:String x:Key="StrRecentOps">Recent operations</system:String>
+    <system:String x:Key="StrWatcherTitle">Watcher status</system:String>
+    <system:String x:Key="StrCaptureLive">Capture live settings</system:String>
+    <system:String x:Key="StrDuplicateProfile">Duplicate</system:String>
+    <system:String x:Key="StrExportProfiles">Export...</system:String>
+    <system:String x:Key="StrImportProfiles">Import...</system:String>
+    <system:String x:Key="StrColStatus">STATUS</system:String>
+    <system:String x:Key="StrUnknown">Unknown</system:String>
+    <system:String x:Key="StrApplyPreset">Apply</system:String>
+    <system:String x:Key="StrRestoreSettings">Restore session</system:String>
 
 </ResourceDictionary>

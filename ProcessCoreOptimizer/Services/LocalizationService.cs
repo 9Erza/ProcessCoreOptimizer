@@ -79,6 +79,26 @@ namespace ProcessCoreOptimizer.WPF.Services
                 res["StrOptimizationMode"] = isPl ? "Tryb Optymalizacji:" : "Optimization Mode:";
                 res["ModeAffinity"] = isPl ? "Koligacja (Affinity)" : "Affinity (Standard)";
                 res["ModeCpuSets"] = isPl ? "Zestawy (CPU Sets)" : "CPU Sets (Smart)";
+                res["StrNavCpuTopology"] = isPl ? "CPU i topologia" : "CPU & Topology";
+                res["StrDiagnostics"] = isPl ? "Diagnostyka" : "Diagnostics";
+                res["StrProcessFilter"] = isPl ? "Filtruj procesy..." : "Filter processes...";
+                res["StrProfileFilter"] = isPl ? "Filtruj profile..." : "Filter profiles...";
+                res["StrProcessDetails"] = isPl ? "Szczegóły procesu" : "Process details";
+                res["StrNoSelection"] = isPl ? "Wybierz proces lub profil, aby zobaczyć szczegóły." : "Select a process or profile to see details.";
+                res["StrCorePresets"] = isPl ? "Presety rdzeni" : "Core presets";
+                res["StrTopologyNote"] = isPl ? "Uwaga o topologii" : "Topology note";
+                res["StrConflictsTitle"] = isPl ? "Konflikty profili" : "Profile conflicts";
+                res["StrNoConflicts"] = isPl ? "Brak konfliktów. Kolejność: path-bound, potem najnowszy." : "No conflicts. Precedence: path-bound, then newest.";
+                res["StrRecentOps"] = isPl ? "Ostatnie operacje" : "Recent operations";
+                res["StrWatcherTitle"] = isPl ? "Status watchera" : "Watcher status";
+                res["StrCaptureLive"] = isPl ? "Przechwyć bieżące ustawienia" : "Capture live settings";
+                res["StrDuplicateProfile"] = isPl ? "Duplikuj" : "Duplicate";
+                res["StrExportProfiles"] = isPl ? "Eksportuj..." : "Export...";
+                res["StrImportProfiles"] = isPl ? "Importuj..." : "Import...";
+                res["StrColStatus"] = isPl ? "STATUS" : "STATUS";
+                res["StrUnknown"] = isPl ? "Nieznany" : "Unknown";
+                res["StrApplyPreset"] = isPl ? "Zastosuj" : "Apply";
+                res["StrRestoreSettings"] = isPl ? "Przywróć sesję" : "Restore session";
             }
             catch (Exception ex)
             {

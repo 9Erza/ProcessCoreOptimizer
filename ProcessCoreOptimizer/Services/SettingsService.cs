@@ -69,8 +69,6 @@ namespace ProcessCoreOptimizer.WPF.Services
             {
                 _logger.Error("Failed to save settings", ex);
             }
-
-            ApplyWindowsStartup(settings);
         }
 
         public bool IsRunAsAdmin()
