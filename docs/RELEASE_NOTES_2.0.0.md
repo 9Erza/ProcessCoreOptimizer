@@ -70,8 +70,10 @@ and startup registration applied only when startup settings change.
   raw CSV in gitignored `.evidence/perf`.
 - CI: restore → Release build → tests → `git diff --check`, green.
 - Local artifacts: self-contained single-file `ProcessCoreOptimizer.exe` 2.0.0
-  and `installer/Output/ProcessCoreOptimizer_Setup_2.0.0.exe` (50,784,844 bytes,
-  SHA-256 `11DE86C0…D6795D9F1`, PE 2.0.0) — see `docs/INSTALLER.md`.
+  and `installer/Output/ProcessCoreOptimizer_Setup_2.0.0.exe` (Phase 4 branch
+  build: 50,808,835 bytes, SHA-256 `05C65741…10A98D`, PE 2.0.0; FINAL artifact
+  must be rebuilt post-merge) — see `docs/INSTALLER.md` and
+  `tools/Validate-Release.ps1` (8/8 static checks green).
 - Interactive screenshots: real 2.0 UI (6 app screens + 3 wizard pages) published; no mockups.
 - Install/upgrade/uninstall on a VM: NOT RUN (no isolated VM; dev-machine
   install deliberately avoided). Multi-group hardware: NOT RUN (8-LP machine);

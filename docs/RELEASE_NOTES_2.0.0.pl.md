@@ -72,8 +72,10 @@ oraz rejestracja autostartu tylko przy zmianie ustawień startu.
   surowe CSV w ignorowanym `.evidence/perf`.
 - CI: restore → Release build → testy → `git diff --check`, zielone.
 - Artefakty lokalne: samowystarczalny jednoplikowy `ProcessCoreOptimizer.exe` 2.0.0
-  oraz `installer/Output/ProcessCoreOptimizer_Setup_2.0.0.exe` (50 784 844 bajtów,
-  SHA-256 `11DE86C0…D6795D9F1`, PE 2.0.0) — patrz `docs/INSTALLER.md`.
+  oraz `installer/Output/ProcessCoreOptimizer_Setup_2.0.0.exe` (build gałęzi Phase 4:
+  50 808 835 bajtów, SHA-256 `05C65741…10A98D`, PE 2.0.0; FINALNY artefakt MUSI
+  powstać po merge) — patrz `docs/INSTALLER.md` i `tools/Validate-Release.ps1`
+  (8/8 kontroli zielonych).
 - Interaktywne screenshoty: prawdziwe UI 2.0 (6 ekranów) opublikowane; bez mockupów.
 - Instalacja/upgrade/uninstall na VM: NIE WYKONANO (brak izolowanej VM; instalacja
   na maszynie deweloperskiej celowo uniknięta). Sprzęt multi-group: NIE WYKONANO
