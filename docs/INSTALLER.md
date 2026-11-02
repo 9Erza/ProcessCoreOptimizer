@@ -1,47 +1,55 @@
 # Installer & distribution (2.0.0)
 
-## Investigation result
+## Phase 2 investigation result (verified 2026-11-02)
 
-- The public v1.3.0 release carries one asset: `ProcessCoreOptimizer_Setup.exe`
-  (~53 MB, self-contained). It was attached to the GitHub Release manually.
-- This repository contains **no installer script** (no `.iss`, no WiX, no
-  installer workflow in `.github/` history). The AppId / ProductCode /
-  UpgradeCode of the historical installer cannot be recovered from the repo.
-- The existing `Properties/PublishProfiles/FolderProfile.pubxml` produces a
-  self-contained single-file `win-x64` build, consistent with the ~53 MB
-  compressed Setup size.
+- Public v1.3.0 asset: `ProcessCoreOptimizer_Setup.exe`, 53,727,056 bytes,
+  SHA-256 `C1AC13BE79B6999FE41D2B547C846076E00271803727C267E2BBD6805BA22F04`
+  (downloaded via `gh release download v1.3.0`, digest matches the release API).
+- PE metadata: FileVersion `1.3.0.0`, ProductVersion `1.3.0`,
+  Company `Erza`, Description `Process Core Optimizer Installer`.
+- Binary inspection (read-only, never executed): embedded markers
+  `Inno Setup Setup Data (6.7.0)` → **Inno Setup 6.7.x**, single-file self-contained payload.
+- The compiled Inno script (AppId, DefaultDirName, flags) is compressed inside
+  the Setup binary and cannot be recovered without an unpacker; none is installed
+  and running the historical installer on the dev machine is out of scope.
+- PCO is not installed on the build machine (no Uninstall registry entry to mine).
+- No installer script exists in any repo tag/commit.
 
-Conclusion: the 1.3.0 installer identity is **not reproducible from this
-repository**. Inventing new Inno/WiX identifiers and claiming silent upgrade
-compatibility would be dishonest.
+Conclusion unchanged: the 1.3.0 installer identity is **not reproducible**.
+No identifiers were invented to fake upgrade compatibility.
 
-## Safe alternative for 2.0.0 validation
+## 2.0.0 installer (new identity, built 2026-11-02)
 
-Build the portable artifact locally (no installer, no registry writes):
+- Script: `installer/ProcessCoreOptimizer.iss` (in repo, versioned).
+- AppId (new, deliberate): `{6AA13087-A3D7-4501-9AAD-52D4CAC7668F}`
+  (not the FrameHub ID, not a guess at the 1.3.0 ID).
+- Built with Inno Setup 6.7.3 (`tools/Build-Installer.ps1`: publish + ISCC + SHA-256).
+- Output: `installer/Output/ProcessCoreOptimizer_Setup_2.0.0.exe`
+  (gitignored build artifact; reproducible on demand).
+  - Size: 50,784,844 bytes.
+  - SHA-256: `11DE86C0EC3C040DA1E7577F375BEF998A950B5D4BF4B75B21F86ACD6795D9F1`
+  - PE: FileVersion `2.0.0`, ProductVersion `2.0.0`, Company `Eryk / 9Erza`.
+- Payload: self-contained single-file `ProcessCoreOptimizer.exe` (+PDB),
+  Start Menu shortcut, optional desktop icon, admin install to
+  `{autopf}\Process Core Optimizer`, proper Uninstall entry.
+- User data (`%APPDATA%\ProcessCoreOptimizer`) is never touched by
+  install/uninstall: profiles/settings survive.
 
-```powershell
-dotnet publish ProcessCoreOptimizer/ProcessCoreOptimizer.csproj -c Release -p:PublishProfile=FolderProfile
-```
+## Compatibility & test status
 
-Output: `ProcessCoreOptimizer/bin/Release/net10.0-windows/publish/win-x64/ProcessCoreOptimizer.exe`
-(self-contained, single file, requires no .NET runtime on target).
-
-Verified 2.0.0 artifact (local build on maintainer machine):
-
-- FileVersion: `2.0.0.0`
-- ProductVersion: `2.0.0+<commit-sha>`
-- SHA-256: recorded in the release PR / maintainer handoff, recomputed per build
-  (hashes are build-specific because the commit SHA is embedded in ProductVersion).
+- **Not advertised as an in-place upgrade over 1.3.0.** Different AppId means
+  side-by-side entries if 1.3.0 is kept; recommended path: uninstall 1.3.0
+  first (data preserved), then install 2.0.0.
+- Install / upgrade-1.3→2.0 / uninstall scenarios: **NOT RUN** — no isolated VM
+  available; installing on the dev machine was deliberately avoided.
+- Upgrade safety net (even untested): versioned script + data-preserving
+  uninstall + migration-tolerant loaders (v1.3 profiles/settings load as-is).
 
 ## Before any public 2.0.0 release
 
-1. Maintainer provides the historical Inno Setup project (or approves a fresh
-   identity with a documented break from 1.3.0 upgrade path).
-2. Build the installer from the published EXE above; verify install,
-   upgrade from 1.3.0, uninstall, and that `%APPDATA%\ProcessCoreOptimizer`
-   data survives.
-3. Attach the installer as the Release asset, then let the in-app updater
-   (releases-aware since 2.0.0) pick it up.
+1. Run install/upgrade/uninstall on a clean VM snapshot and record results here.
+2. Attach the verified `ProcessCoreOptimizer_Setup_2.0.0.exe` as the Release asset.
+3. The in-app updater (releases-aware) will then pick it up; no false positives before that.
 
 **Do not publish a GitHub Release, installer, or version bump from automation
 without explicit maintainer approval.**
