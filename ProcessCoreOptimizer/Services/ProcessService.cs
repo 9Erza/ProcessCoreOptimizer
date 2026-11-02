@@ -232,6 +232,21 @@ namespace ProcessCoreOptimizer.WPF.Services
         public static string ResolveAffinityResult(bool cpuSetsCleared) =>
             cpuSetsCleared ? "OK_AFFINITY" : "OK_AFFINITY_CPUSETS_NOT_CLEARED";
 
+        /// <summary>
+        /// Clears explicit CPU Sets of a verified instance (restores the
+        /// no-explicit-sets state). Refuses recycled PIDs like every mutation.
+        /// </summary>
+        public virtual bool ClearProcessCpuSets(int pid, ProcessMutationTarget target)
+        {
+            if (!target.IsValid || target.ProcessId != pid)
+            {
+                _logger.Warn($"Refusing CPU Sets clear for PID {pid}: incomplete mutation identity.");
+                return false;
+            }
+
+            return ClearCpuSets(pid, target);
+        }
+
         private string ApplyCpuSetsMode(int pid, long mask, Dictionary<int, uint> cpuSetMap, ProcessMutationTarget target)
         {
             if (cpuSetMap.Count == 0)

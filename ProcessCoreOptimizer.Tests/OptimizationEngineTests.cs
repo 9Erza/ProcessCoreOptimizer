@@ -13,9 +13,12 @@ internal sealed class FakeProcessService : ProcessService
     public int CoreCalls;
     public int PriorityCalls;
     public int AffinityCalls;
+    public int ClearCpuSetsCalls;
+    public OptimizationMode LastCoreMode = OptimizationMode.Affinity;
     public Func<int, long, OptimizationMode, Dictionary<int, uint>, string>? CoreBehavior;
     public Func<int, ProcessPriorityClass, bool>? PriorityBehavior;
     public Func<int, long, bool>? AffinityBehavior;
+    public Func<int, bool>? ClearCpuSetsBehavior;
 
     public override string ApplyCoreOptimization(
         int pid, long mask, OptimizationMode mode, Dictionary<int, uint> cpuSetMap,
@@ -23,6 +26,7 @@ internal sealed class FakeProcessService : ProcessService
     {
         CoreCalls++;
         if (!target.IsValid || target.ProcessId != pid) return "ERR_IDENTITY_MISMATCH";
+        LastCoreMode = mode;
         string? validationError = ProcessService.ValidateCoreMask(mask, cpuSetMap);
         if (validationError != null) return validationError;
         if (CoreBehavior != null) return CoreBehavior(pid, mask, mode, cpuSetMap);
@@ -44,6 +48,14 @@ internal sealed class FakeProcessService : ProcessService
         if (!target.IsValid || target.ProcessId != pid) return false;
         if (AffinityBehavior != null) return AffinityBehavior(pid, mask);
         return mask != 0;
+    }
+
+    public override bool ClearProcessCpuSets(int pid, ProcessMutationTarget target)
+    {
+        ClearCpuSetsCalls++;
+        if (!target.IsValid || target.ProcessId != pid) return false;
+        if (ClearCpuSetsBehavior != null) return ClearCpuSetsBehavior(pid);
+        return true;
     }
 }
 

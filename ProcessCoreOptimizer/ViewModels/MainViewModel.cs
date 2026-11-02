@@ -320,7 +320,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             ConfigureLoggerFromSettings();
 
             _processScannerService = new ProcessScannerService(_processService);
-            _optimizationService = new OptimizationService(_processService, () => _cpuSetMap);
+            _optimizationService = new OptimizationService(_processService, () => _cpuSetMap, _sessionRestore);
             _profileWatcher = new ProfileWatcherService(
                 _processScannerService,
                 _optimizationService,
@@ -642,7 +642,6 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 UpdatedAt = DateTime.UtcNow
             };
 
-            CaptureSessionBaseline(SelectedProcess.Name);
             int affected = ApplyProfileToRunningProcesses(temporaryProfile, force: true);
             SelectedProcess.IsOptimized = affected > 0;
             SelectedProcess.ModeTag = affected > 0 ? GetModeTag(mode) : string.Empty;
@@ -686,7 +685,6 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             _profiles = _profileService.LoadProfiles();
             RefreshSavedProfilesView();
 
-            CaptureSessionBaseline(SelectedProcess.Name);
             int affected = ApplyProfileToRunningProcesses(newProfile, force: true);
             SelectedProcess.IsOptimized = true;
             SelectedProcess.ModeTag = GetModeTag(mode);
@@ -726,7 +724,6 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             ClearAppliedProfileCache(processName);
 
             var profileToApply = _profiles.FirstOrDefault(p => p.ProcessName.Equals(processName, StringComparison.OrdinalIgnoreCase));
-            CaptureSessionBaseline(processName);
             int affected = profileToApply != null ? ApplyProfileToRunningProcesses(profileToApply, force: true) : 0;
 
             var activeProcess = Processes.FirstOrDefault(p => p.Name.Equals(processName, StringComparison.OrdinalIgnoreCase));
@@ -763,53 +760,17 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             SelectedSavedProfile = null;
         }
 
-        private void CaptureSessionBaseline(string processName)
-        {
-            try
-            {
-                Process[] candidates = Process.GetProcessesByName(ProfileService.NormalizeProcessName(processName));
-                try
-                {
-                    foreach (var proc in candidates)
-                    {
-                        try
-                        {
-                            if (proc.HasExited) continue;
-                            var key = ProcessScannerService.CreateInstanceKey(proc);
-                            string? path = ProcessIdentityValidator.TryGetProcessPath(proc);
-                            long? mask = null;
-                            try
-                            {
-                                var selection = _processService.GetCurrentCoreSelection(proc.Id, _cpuSetMap);
-                                if (selection.Success && selection.Mask != 0) mask = selection.Mask;
-                            }
-                            catch { }
-
-                            ProcessPriorityClass? prio = null;
-                            try { prio = _processService.TryGetPriority(proc.Id); } catch { }
-
-                            if (mask.HasValue || prio.HasValue)
-                            {
-                                _sessionRestore.Capture(key, proc.ProcessName, path, mask, prio);
-                            }
-                        }
-                        catch { }
-                    }
-                }
-                finally
-                {
-                    foreach (var p in candidates) p.Dispose();
-                }
-            }
-            catch { }
-        }
-
         private void RestoreSessionSettings()
         {
             if (SelectedProcess == null) return;
             var result = _sessionRestore.RestoreForProcess(SelectedProcess.Name, _processService, _cpuSetMap);
+            // The watcher must not immediately re-apply the profile against the
+            // user's intent: suspend automatic application for these instances.
+            // Suspensions expire on their own; nothing persists.
+            _optimizationService.SuspendLiveInstances(SelectedProcess.Name, TimeSpan.FromMinutes(5), "manual session restore");
             ClearAppliedProfileCache(SelectedProcess.Name);
-            AddLog($"Session restore for '{SelectedProcess.Name}': {result.Message}");
+            AddLog($"Session restore for '{SelectedProcess.Name}': {result.Message} Automatic re-apply suspended for 5 minutes.");
+            RefreshWatcherStatus();
         }
 
         private void UpdateCoreSelectionFromAffinity(string processName)

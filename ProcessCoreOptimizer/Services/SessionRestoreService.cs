@@ -8,9 +8,12 @@ using System.Linq;
 namespace ProcessCoreOptimizer.WPF.Services
 {
     /// <summary>
-    /// Session-only restore of pre-optimization process settings. Entries live in
-    /// memory, are bounded, and restore only after re-validating the live identity
-    /// (PID + start time + name + path). Never restores into a recycled PID.
+    /// Session-only restore of pre-optimization process settings (affinity, CPU Sets,
+    /// priority). Entries live in memory, are bounded, and capture the baseline only
+    /// once — never overwritten by an already-optimized state. Restore re-validates
+    /// the live identity per instance and reports partial success honestly.
+    /// Restore order: affinity first (it clears CPU Sets), then CPU Sets
+    /// (apply or clear back to no-explicit-sets), then priority.
     /// </summary>
     public sealed class SessionRestoreService
     {
@@ -22,22 +25,80 @@ namespace ProcessCoreOptimizer.WPF.Services
 
         public void Capture(ProcessInstanceKey key, string processName, string? executablePath, long? affinityMask, ProcessPriorityClass? priority)
         {
+            CaptureFull(key, processName, executablePath, affinityMask, cpuSetsObserved: false, cpuSetMask: null, priority);
+        }
+
+        private void CaptureFull(
+            ProcessInstanceKey key, string processName, string? executablePath,
+            long? affinityMask, bool cpuSetsObserved, long? cpuSetMask, ProcessPriorityClass? priority)
+        {
             if (key.ProcessId <= 0 || key.StartTimeUtc == default) return;
+            if (affinityMask is null or 0 && !cpuSetsObserved && priority is null) return;
             lock (_lock)
             {
-                _entries.RemoveAll(e => e.Key.Equals(key));
+                if (_entries.Any(e => e.Key.Equals(key))) return; // First baseline wins.
                 _entries.Add(new SessionRestoreEntry
                 {
                     Key = key,
                     ProcessName = processName,
                     ExecutablePath = executablePath,
                     AffinityMask = affinityMask,
+                    CpuSetsObserved = cpuSetsObserved,
+                    CpuSetMask = cpuSetMask,
                     Priority = priority,
                     CapturedAtUtc = DateTime.UtcNow
                 });
 
                 while (_entries.Count > MaxEntries) _entries.RemoveAt(0);
             }
+        }
+
+        /// <summary>
+        /// Best-effort baseline capture from live OS state. Stores only when no
+        /// baseline exists for the key and at least one value was readable.
+        /// </summary>
+        public bool TryCaptureBaseline(ProcessInstanceKey key, string processName, string? executablePath, ProcessService processService, Dictionary<int, uint> cpuSetMap)
+        {
+            if (key.ProcessId <= 0 || key.StartTimeUtc == default) return false;
+            lock (_lock)
+            {
+                if (_entries.Any(e => e.Key.Equals(key))) return false;
+            }
+
+            long? affinityMask = null;
+            bool cpuSetsObserved = false;
+            long? cpuSetMask = null;
+            ProcessPriorityClass? priority = null;
+
+            try
+            {
+                var selection = processService.GetCurrentCoreSelection(key.ProcessId, cpuSetMap);
+                if (selection.Success && selection.Mask != 0)
+                {
+                    if (selection.Source == "CpuSets")
+                    {
+                        cpuSetsObserved = true;
+                        cpuSetMask = selection.Mask;
+                    }
+                    else
+                    {
+                        affinityMask = selection.Mask;
+                        cpuSetsObserved = true; // Readable selection with no explicit sets.
+                    }
+                }
+            }
+            catch { }
+
+            try { priority = processService.TryGetPriority(key.ProcessId); } catch { }
+
+            if (affinityMask is null or 0 && !cpuSetsObserved && priority is null) return false;
+            CaptureFull(key, processName, executablePath, affinityMask, cpuSetsObserved, cpuSetMask, priority);
+            return true;
+        }
+
+        public bool HasBaseline(ProcessInstanceKey key)
+        {
+            lock (_lock) return _entries.Any(e => e.Key.Equals(key));
         }
 
         public IReadOnlyList<SessionRestoreEntry> ForProcess(string processName)
@@ -102,8 +163,6 @@ namespace ProcessCoreOptimizer.WPF.Services
                         continue;
                     }
 
-                    bool restoredAny = false;
-
                     if (!ProcessMutationTarget.TryCreate(
                             entry.Key.ProcessId, entry.Key.StartTimeUtc,
                             entry.ProcessName, entry.ExecutablePath,
@@ -113,50 +172,80 @@ namespace ProcessCoreOptimizer.WPF.Services
                         continue;
                     }
 
-                    if (entry.AffinityMask.HasValue && entry.AffinityMask.Value != 0)
+                    bool affinityOk = true, cpuSetsOk = true, priorityOk = true;
+                    bool wantsAffinity = entry.AffinityMask.HasValue && entry.AffinityMask.Value != 0;
+                    bool wantsCpuSets = entry.CpuSetsObserved;
+                    bool wantsPriority = entry.Priority.HasValue;
+
+                    // 1. Affinity first: the OS call clears CPU Sets as a side effect.
+                    if (wantsAffinity)
                     {
                         try
                         {
-                            if (processService.SetProcessAffinity(proc.Id, entry.AffinityMask.Value, target))
-                            {
-                                restoredAny = true;
-                            }
-                            else
-                            {
-                                result.Failed++;
-                            }
+                            affinityOk = processService.SetProcessAffinity(proc.Id, entry.AffinityMask!.Value, target);
                         }
                         catch (Exception ex)
                         {
                             _logger.Debug($"Restore affinity failed for PID {proc.Id}: {ex.Message}");
-                            result.Failed++;
+                            affinityOk = false;
                         }
                     }
 
-                    if (entry.Priority.HasValue)
+                    // 2. CPU Sets: re-apply captured sets, or clear back to
+                    // no-explicit-sets when the baseline had none. Unknown stays untouched.
+                    if (wantsCpuSets)
                     {
                         try
                         {
-                            if (processService.SetPriority(proc.Id, entry.Priority.Value, target))
+                            if (entry.CpuSetMask.HasValue && entry.CpuSetMask.Value != 0)
                             {
-                                restoredAny = true;
+                                string setsResult = processService.ApplyCoreOptimization(
+                                    proc.Id, entry.CpuSetMask.Value, OptimizationMode.CpuSets, cpuSetMap, target);
+                                cpuSetsOk = setsResult.StartsWith("OK", StringComparison.OrdinalIgnoreCase);
                             }
                             else
                             {
-                                result.Failed++;
+                                cpuSetsOk = processService.ClearProcessCpuSets(proc.Id, target);
                             }
                         }
                         catch (Exception ex)
                         {
-                            _logger.Debug($"Restore priority failed for PID {proc.Id}: {ex.Message}");
-                            result.Failed++;
+                            _logger.Debug($"Restore CPU Sets failed for PID {proc.Id}: {ex.Message}");
+                            cpuSetsOk = false;
                         }
                     }
 
-                    if (restoredAny) result.Restored++;
+                    // 3. Priority is independent of core placement.
+                    if (wantsPriority)
+                    {
+                        try
+                        {
+                            priorityOk = processService.SetPriority(proc.Id, entry.Priority!.Value, target);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.Debug($"Restore priority failed for PID {proc.Id}: {ex.Message}");
+                            priorityOk = false;
+                        }
+                    }
+
+                    bool allOk = (!wantsAffinity || affinityOk)
+                        && (!wantsCpuSets || cpuSetsOk)
+                        && (!wantsPriority || priorityOk);
+                    bool anyOk = (wantsAffinity && affinityOk)
+                        || (wantsCpuSets && cpuSetsOk)
+                        || (wantsPriority && priorityOk);
+
+                    if (allOk) result.Restored++;
+                    else if (anyOk) result.PartiallyRestored++;
+                    else result.Failed++;
+
+                    if (wantsAffinity && affinityOk) result.AffinityRestored++;
+                    if (wantsCpuSets && cpuSetsOk) result.CpuSetsRestored++;
+                    if (wantsPriority && priorityOk) result.PriorityRestored++;
                 }
 
-                result.Message = $"Restored {result.Restored} instance(s), {result.Failed} failed, {result.Skipped} skipped (no verified baseline).";
+                result.Message = $"Restored {result.Restored} instance(s), {result.PartiallyRestored} partial, {result.Failed} failed, {result.Skipped} skipped (no verified baseline).";
                 return result;
             }
             finally
@@ -172,6 +261,9 @@ namespace ProcessCoreOptimizer.WPF.Services
         public string ProcessName { get; set; } = string.Empty;
         public string? ExecutablePath { get; set; }
         public long? AffinityMask { get; set; }
+        /// <summary>True when the baseline read could determine the sets state (even "none").</summary>
+        public bool CpuSetsObserved { get; set; }
+        public long? CpuSetMask { get; set; }
         public ProcessPriorityClass? Priority { get; set; }
         public DateTime CapturedAtUtc { get; set; }
     }
@@ -180,8 +272,12 @@ namespace ProcessCoreOptimizer.WPF.Services
     {
         public string ProcessName { get; set; } = string.Empty;
         public int Restored { get; set; }
+        public int PartiallyRestored { get; set; }
         public int Failed { get; set; }
         public int Skipped { get; set; }
+        public int AffinityRestored { get; set; }
+        public int CpuSetsRestored { get; set; }
+        public int PriorityRestored { get; set; }
         public string Message { get; set; } = string.Empty;
     }
 }
