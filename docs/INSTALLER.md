@@ -26,12 +26,17 @@ No identifiers were invented to fake upgrade compatibility.
 - Built with Inno Setup 6.7.3 (`tools/Build-Installer.ps1`: publish + ISCC + SHA-256).
 - Output: `installer/Output/ProcessCoreOptimizer_Setup_2.0.0.exe`
   (gitignored build artifact; reproducible on demand).
-  - Phase 4 branch build: 50,808,835 bytes,
-    SHA-256: `05C657412E3EE9CCAFF6919E590005EBFF14681BDC6D5F6AD17901A8BB10A98D`,
+  - Phase 4 final build from `main` 835fa1e: 50,800,314 bytes,
+    SHA-256: `8F8BDE7A00B06072FE0E634BC0D671AC58231021363A2C4A3A668AF2711D34E1`,
     PE FileVersion `2.0.0`.
+  - Earlier branch builds differ by embedded commit SHA only (expected).
   - The FINAL release-candidate installer MUST be rebuilt after the final
     merge from `main` (commit SHA lands in ProductVersion metadata), then
-    re-validated with `tools/Validate-Release.ps1`.
+    re-validated with `tools/Validate-Release.ps1` — done for this state, see below.
+- Final manifest (main 835fa1e): Setup 50,800,314 B,
+  SHA-256 `8F8BDE7A00B06072FE0E634BC0D671AC58231021363A2C4A3A668AF2711D34E1`,
+  AppId `{6AA13087-A3D7-4501-9AAD-52D4CAC7668F}`, ICO `7FAF4AF8…`,
+  validation 8/8 PASS (static; install/uninstall NOT RUN).
 - Icon: original PCO ICO (`processcoreoptimizer.ico`, SHA-256
   `7FAF4AF810335B4604C4C300A…`, 6 sizes 16–256) used as `SetupIconFile`,
   app `ApplicationIcon`, window icons and tray source — verified in the
