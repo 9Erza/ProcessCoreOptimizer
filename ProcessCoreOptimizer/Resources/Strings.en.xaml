@@ -124,5 +124,12 @@
     <system:String x:Key="StrUnknown">Unknown</system:String>
     <system:String x:Key="StrApplyPreset">Apply</system:String>
     <system:String x:Key="StrRestoreSettings">Restore session</system:String>
+    <system:String x:Key="StrDeveloper">Developer</system:String>
+    <system:String x:Key="StrSourceCode">Source Code</system:String>
+    <system:String x:Key="StrSupportDev">Support Development</system:String>
+    <system:String x:Key="StrAuthorTooltip">Developer GitHub — 9Erza</system:String>
+    <system:String x:Key="StrRepoTooltip">Project Repository — Process Core Optimizer</system:String>
+    <system:String x:Key="StrSupportTooltip">Buy Me a Coffee — Support Development</system:String>
+    <system:String x:Key="StrLinkOpenFailed">Could not open the link in your browser.</system:String>
 
 </ResourceDictionary>

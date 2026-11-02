@@ -18,7 +18,7 @@
 Conclusion unchanged: the 1.3.0 installer identity is **not reproducible**.
 No identifiers were invented to fake upgrade compatibility.
 
-## 2.0.0 installer (new identity, built 2026-11-02)
+## 2.0.0 installer (new identity, Phase 4 branch build 2026-11-02)
 
 - Script: `installer/ProcessCoreOptimizer.iss` (in repo, versioned).
 - AppId (new, deliberate): `{6AA13087-A3D7-4501-9AAD-52D4CAC7668F}`
@@ -26,9 +26,16 @@ No identifiers were invented to fake upgrade compatibility.
 - Built with Inno Setup 6.7.3 (`tools/Build-Installer.ps1`: publish + ISCC + SHA-256).
 - Output: `installer/Output/ProcessCoreOptimizer_Setup_2.0.0.exe`
   (gitignored build artifact; reproducible on demand).
-  - Size: 50,784,844 bytes.
-  - SHA-256: `11DE86C0EC3C040DA1E7577F375BEF998A950B5D4BF4B75B21F86ACD6795D9F1`
-  - PE: FileVersion `2.0.0`, ProductVersion `2.0.0`, Company `Eryk / 9Erza`.
+  - Phase 4 branch build: 50,808,835 bytes,
+    SHA-256: `05C657412E3EE9CCAFF6919E590005EBFF14681BDC6D5F6AD17901A8BB10A98D`,
+    PE FileVersion `2.0.0`.
+  - The FINAL release-candidate installer MUST be rebuilt after the final
+    merge from `main` (commit SHA lands in ProductVersion metadata), then
+    re-validated with `tools/Validate-Release.ps1`.
+- Icon: original PCO ICO (`processcoreoptimizer.ico`, SHA-256
+  `7FAF4AF810335B4604C4C300A…`, 6 sizes 16–256) used as `SetupIconFile`,
+  app `ApplicationIcon`, window icons and tray source — verified in the
+  binary, on taskbar/title bar, and in screenshots (`.evidence/gui/`).
 - Payload: self-contained single-file `ProcessCoreOptimizer.exe` (+PDB),
   Start Menu shortcut, optional desktop icon, admin install to
   `{autopf}\Process Core Optimizer`, proper Uninstall entry.

@@ -18,6 +18,7 @@ namespace ProcessCoreOptimizer.WPF.Views
 
         private readonly System.Windows.Forms.NotifyIcon _notifyIcon;
         private readonly MainViewModel _viewModel;
+        private System.Drawing.Icon? _trayIcon;
         private bool _isExplicitClose = false;
 
         #endregion
@@ -49,36 +50,91 @@ namespace ProcessCoreOptimizer.WPF.Views
 
         /// <summary>
         /// Configures the System Tray (NotifyIcon) appearance, context menu, and localization.
+        /// Loads the original PCO icon from embedded resources first, falls back to
+        /// the executable's associated icon, and finally to a system icon.
+        /// The created icon is owned here and disposed on close (no GDI leak,
+        /// no redundant NotifyIcon instances: exactly one per process lifetime).
         /// </summary>
         private void InitializeSystemTray()
         {
-            try
-            {
-                using (var process = System.Diagnostics.Process.GetCurrentProcess())
-                {
-                    string? exePath = null;
-                    try { exePath = process.MainModule?.FileName; } catch { exePath = null; }
-                    _notifyIcon.Icon = !string.IsNullOrWhiteSpace(exePath)
-                        ? System.Drawing.Icon.ExtractAssociatedIcon(exePath)
-                        : System.Drawing.SystemIcons.Application;
-                }
-            }
-            catch
-            {
-                _notifyIcon.Icon = System.Drawing.SystemIcons.Application;
-            }
+            _trayIcon = LoadTrayIcon();
+            _notifyIcon.Icon = _trayIcon ?? System.Drawing.SystemIcons.Application;
 
             _notifyIcon.Text = "Process Core Optimizer";
             _notifyIcon.Visible = true;
             _notifyIcon.DoubleClick += (s, args) => ShowApplication();
 
-            _notifyIcon.ContextMenuStrip = new System.Windows.Forms.ContextMenuStrip();
+            RebuildTrayMenu();
+
+            _notifyIcon.BalloonTipClicked += (s, args) => ShowApplication();
+        }
+
+        private static System.Drawing.Icon? LoadTrayIcon()
+        {
+            try
+            {
+                var stream = System.Windows.Application.GetResourceStream(
+                    new Uri("pack://application:,,,/Images/processcoreoptimizer.ico"))?.Stream;
+                if (stream != null)
+                {
+                    using (stream)
+                    {
+                        return new System.Drawing.Icon(stream);
+                    }
+                }
+            }
+            catch
+            {
+                // Fall through to executable-based lookup.
+            }
+
+            try
+            {
+                using var process = System.Diagnostics.Process.GetCurrentProcess();
+                string? exePath = null;
+                try { exePath = process.MainModule?.FileName; } catch { exePath = null; }
+                if (!string.IsNullOrWhiteSpace(exePath))
+                {
+                    return System.Drawing.Icon.ExtractAssociatedIcon(exePath);
+                }
+            }
+            catch
+            {
+                // Final fallback is applied by the caller.
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Rebuilds tray menu labels after a language change (menu texts are
+        /// otherwise frozen at startup language).
+        /// </summary>
+        public void ApplyTrayLanguage()
+        {
+            try
+            {
+                RebuildTrayMenu();
+            }
+            catch
+            {
+                // Tray menu refresh is best-effort; the app keeps working.
+            }
+        }
+
+        private void RebuildTrayMenu()
+        {
+            var menu = new System.Windows.Forms.ContextMenuStrip();
 
             string openText = _viewModel.AppSettings.Language == "pl" ? "Otwórz Process Core Optimizer" : "Open Process Core Optimizer";
             string exitText = _viewModel.AppSettings.Language == "pl" ? "Zakończ" : "Exit";
 
-            _notifyIcon.ContextMenuStrip.Items.Add(openText, null, (s, e) => ShowApplication());
-            _notifyIcon.ContextMenuStrip.Items.Add(exitText, null, (s, e) => CloseApplication());
+            menu.Items.Add(openText, null, (s, e) => ShowApplication());
+            menu.Items.Add(exitText, null, (s, e) => CloseApplication());
+
+            var previous = _notifyIcon.ContextMenuStrip;
+            _notifyIcon.ContextMenuStrip = menu;
+            previous?.Dispose();
         }
 
         #endregion
@@ -120,14 +176,22 @@ namespace ProcessCoreOptimizer.WPF.Views
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            bool startHidden = _viewModel.AppSettings.StartupWindowMode != Models.StartupWindowMode.Normal
-                || ProcessCoreOptimizer.WPF.App.StartupOptions.StartMinimized
+            bool startTray = _viewModel.AppSettings.StartupWindowMode == Models.StartupWindowMode.Tray
                 || ProcessCoreOptimizer.WPF.App.StartupOptions.StartToTray;
+            bool startMinimized = _viewModel.AppSettings.StartupWindowMode == Models.StartupWindowMode.Minimized
+                || ProcessCoreOptimizer.WPF.App.StartupOptions.StartMinimized;
 
-            if (startHidden)
+            if (startTray)
+            {
+                // Tray mode: no main window at all, only the tray icon.
+                // MinimizeToTray does not gate this: Tray is an explicit choice.
+                this.WindowState = WindowState.Minimized;
+                this.Hide();
+            }
+            else if (startMinimized)
             {
                 this.WindowState = WindowState.Minimized;
-                if (_viewModel.AppSettings.MinimizeToTray || ProcessCoreOptimizer.WPF.App.StartupOptions.StartToTray)
+                if (_viewModel.AppSettings.MinimizeToTray)
                 {
                     this.Hide();
                 }
@@ -140,12 +204,27 @@ namespace ProcessCoreOptimizer.WPF.Views
             if (!_viewModel.NeedsFirstRunWizard) return;
             try
             {
+                // The wizard must be visible even for Tray startup: bring the
+                // main window forward first so the modal has a visible owner.
+                if (!IsVisible)
+                {
+                    Show();
+                    WindowState = WindowState.Normal;
+                }
+
                 LoggerService.Instance.Info("First-run: creating wizard window.");
                 var wizard = new FirstRunWindow { Owner = this };
                 LoggerService.Instance.Info("First-run: showing wizard dialog.");
                 bool? result = wizard.ShowDialog();
                 LoggerService.Instance.Info($"First-run: dialog closed with result={result}.");
                 _viewModel.ReloadSettingsFromDisk();
+
+                // Respect a Tray choice made inside the wizard.
+                if (_viewModel.AppSettings.StartupWindowMode == Models.StartupWindowMode.Tray)
+                {
+                    WindowState = WindowState.Minimized;
+                    Hide();
+                }
             }
             catch (Exception ex)
             {
@@ -188,6 +267,8 @@ namespace ProcessCoreOptimizer.WPF.Views
             {
                 _notifyIcon.Visible = false;
                 _notifyIcon.Dispose();
+                try { _trayIcon?.Dispose(); } catch { }
+                _trayIcon = null;
                 _viewModel.Dispose();
                 base.OnClosing(e);
             }

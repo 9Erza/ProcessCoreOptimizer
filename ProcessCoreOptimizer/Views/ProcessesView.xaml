@@ -41,7 +41,7 @@
                             </DataTemplate>
                         </DataGridTextColumn.HeaderTemplate>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Binding="{Binding InstanceCount}" Width="52">
+                    <DataGridTextColumn Binding="{Binding InstanceCount}" Width="64">
                         <DataGridTextColumn.HeaderTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{DynamicResource StrColInstances}" />

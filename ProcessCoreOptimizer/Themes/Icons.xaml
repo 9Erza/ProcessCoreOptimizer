@@ -1,0 +1,34 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Original PCO vector glyphs (no third-party assets, no emoji).
+         x:Shared="False" so each usage gets its own instance.
+         Strokes bind to the host Button Foreground and follow hover/focus. -->
+
+    <Grid x:Key="IconGitHub" x:Shared="False" Width="16" Height="16">
+        <Ellipse Width="15" Height="15"
+                 Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                 StrokeThickness="1.6" Fill="Transparent"/>
+        <Path Data="M6.5,5.2 L3.8,8 L6.5,10.8 M9.5,5.2 L12.2,8 L9.5,10.8"
+              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+              StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+              StrokeLineJoin="Round" Fill="Transparent"/>
+    </Grid>
+
+    <Grid x:Key="IconCoffee" x:Shared="False" Width="16" Height="16">
+        <Rectangle Width="7" Height="5.2" RadiusX="1.2" RadiusY="1.2"
+                   HorizontalAlignment="Left" VerticalAlignment="Top" Margin="3,6,0,0"
+                   Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                   StrokeThickness="1.5" Fill="Transparent"/>
+        <Path Data="M10,7.2 h1.6 a1.4,1.4 0 0 1 0,2.8 h-1.6"
+              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+              StrokeThickness="1.5" StrokeStartLineCap="Round" Fill="Transparent"/>
+        <Line X1="2.6" Y1="13.4" X2="13.4" Y2="13.4"
+              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+              StrokeThickness="1.5" StrokeStartLineCap="Round"/>
+        <Path Data="M6,4.6 c-0.6,-0.7 0.6,-1.1 0,-2 M8.4,4.6 c-0.6,-0.7 0.6,-1.1 0,-2"
+              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+              StrokeThickness="1.2" StrokeStartLineCap="Round" Fill="Transparent"/>
+    </Grid>
+
+</ResourceDictionary>

@@ -86,10 +86,17 @@ and shown; the engine resolves them deterministically, never randomly.
 - `UserDataResetService` (root-scoped): restore-defaults preserves language;
   factory reset requires typed `RESET`, quiesces the engine, refuses links and
   escaping paths, deletes only allowlisted files, never reimports legacy files
-  (one-shot stamp consumed by `MigrateLegacyFileIfNeeded`), removes startup
+  (persistent per-file `.nolegacy.*` suppression stamps checked by
+  `MigrateLegacyFileIfNeeded`), removes startup
   separately with its own error channel, truncates the held log afterwards.
 - `OnboardingResolver`: fresh installs (and post-wipe launches) show the
   3-page first-run wizard; legacy data upgrades silently; interrupted runs resume.
+- `ExternalLinks` (allowlisted author/repository/support URLs, injectable launcher,
+  no telemetry) with original vector glyphs (`Themes/Icons.xaml`), sidebar icon
+  buttons and an About section with tooltips + automation names.
+- Window icons (`Icon=` on MainWindow/FirstRunWindow) and the tray icon load from
+  the original embedded ICO with ownership/disposal discipline; the tray menu is
+  rebuilt on language change; Tray startup always hides, Minimized honors MinimizeToTray.
 
 ## Limits (by design)
 

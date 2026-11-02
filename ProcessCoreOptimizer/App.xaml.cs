@@ -118,9 +118,12 @@ namespace ProcessCoreOptimizer.WPF
                 _singleInstanceMutex = new Mutex(initiallyOwned: true, SingleInstanceMutexName, out bool createdNew);
                 if (!createdNew)
                 {
-                    // Another instance appeared meanwhile; stay alive without the mutex.
+                    // Another instance (the successor or a foreign launch) owns the
+                    // mutex now. Staying alive without it would allow two active
+                    // watchers, so this process steps aside instead.
                     try { _singleInstanceMutex.Dispose(); } catch { }
                     _singleInstanceMutex = null;
+                    try { Current.Shutdown(); } catch { }
                 }
             }
             catch

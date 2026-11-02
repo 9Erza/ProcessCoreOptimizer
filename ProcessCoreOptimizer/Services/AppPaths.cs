@@ -10,7 +10,10 @@ namespace ProcessCoreOptimizer.WPF.Services
     /// </summary>
     public static class AppPaths
     {
-        public const string FactoryResetStampFileName = ".factory-reset-stamp";
+        public const string LegacySuppressStampPrefix = ".nolegacy.";
+
+        public static string LegacySuppressStampFileName(string fileName) =>
+            LegacySuppressStampPrefix + fileName;
 
         public static string UserDataDirectory
         {
@@ -50,12 +53,13 @@ namespace ProcessCoreOptimizer.WPF.Services
         {
             Directory.CreateDirectory(UserDataDirectory);
 
-            // A factory reset leaves a one-shot stamp: consume it and skip the
-            // legacy import once, so wiped data is never silently resurrected.
-            string stampPath = Path.Combine(UserDataDirectory, FactoryResetStampFileName);
+            // A factory reset leaves persistent per-file stamps so later launches
+            // never silently reimport wiped data. Each stamp is checked only by
+            // its own file's migration, making the decision order-independent.
+            // Stamps persist until the user deletes them explicitly.
+            string stampPath = Path.Combine(UserDataDirectory, LegacySuppressStampFileName(fileName));
             if (File.Exists(stampPath))
             {
-                try { File.Delete(stampPath); } catch { }
                 return;
             }
 

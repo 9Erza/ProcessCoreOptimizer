@@ -124,5 +124,12 @@
     <system:String x:Key="StrUnknown">Nieznany</system:String>
     <system:String x:Key="StrApplyPreset">Zastosuj</system:String>
     <system:String x:Key="StrRestoreSettings">Przywróć sesję</system:String>
+    <system:String x:Key="StrDeveloper">Autor</system:String>
+    <system:String x:Key="StrSourceCode">Kod źródłowy</system:String>
+    <system:String x:Key="StrSupportDev">Wesprzyj rozwój</system:String>
+    <system:String x:Key="StrAuthorTooltip">GitHub autora — 9Erza</system:String>
+    <system:String x:Key="StrRepoTooltip">Repozytorium projektu — Process Core Optimizer</system:String>
+    <system:String x:Key="StrSupportTooltip">Postaw kawę — Wesprzyj rozwój</system:String>
+    <system:String x:Key="StrLinkOpenFailed">Nie udało się otworzyć strony w przeglądarce.</system:String>
 
 </ResourceDictionary>
