@@ -853,7 +853,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         {
             if (batch.Total == 0) return;
 
-            foreach (var result in batch.Results.Where(r => r.Success))
+            foreach (var result in batch.Results.Where(r => r.Status.IsSuccess()))
             {
                 string message = BuildOptimizationLogMessage(result, source, success: true);
                 LoggerService.Instance.Info(message);
@@ -872,11 +872,12 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
 
         private static bool IsActionableOptimizationFailure(OptimizationResult result)
         {
-            if (result.Success) return false;
-            if (string.Equals(result.Message, "SKIPPED_ALREADY_APPLIED", StringComparison.OrdinalIgnoreCase)) return false;
-            if (string.Equals(result.Message, "SKIPPED_IDENTITY_MISMATCH", StringComparison.OrdinalIgnoreCase)) return false;
-            if (string.Equals(result.Message, "SKIPPED_PROTECTED", StringComparison.OrdinalIgnoreCase)) return false;
-            return true;
+            // Skips are routine watcher outcomes, not failures worth surfacing.
+            // Partial application IS actionable: it tells the user which half failed.
+            return result.Status is OperationStatus.Failed
+                or OperationStatus.PartiallyApplied
+                or OperationStatus.SkippedNoPermission
+                or OperationStatus.Unsupported;
         }
 
         private bool ShouldLogOptimizationDiagnostic(OptimizationResult result, TimeSpan throttleWindow)
@@ -904,10 +905,11 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
 
             if (success)
             {
-                return $"Applied profile '{profileName}' via {source}: PID={result.ProcessId}, mode={GetModeTag(result.Mode)}, priority={TranslatePriority(result.Priority)}, {coreStatus}, {priorityStatus}.";
+                string qualifier = result.Status == OperationStatus.PartiallyApplied ? " (partial: one half failed, will retry)" : string.Empty;
+                return $"Applied profile '{profileName}' via {source}: PID={result.ProcessId}, mode={GetModeTag(result.Mode)}, priority={TranslatePriority(result.Priority)}, {coreStatus}, {priorityStatus}{qualifier}.";
             }
 
-            return $"Failed to apply profile '{profileName}' via {source}: PID={result.ProcessId}, mode={GetModeTag(result.Mode)}, priority={TranslatePriority(result.Priority)}, reason={result.Message}.{adminHint}";
+            return $"Failed to apply profile '{profileName}' via {source}: PID={result.ProcessId}, mode={GetModeTag(result.Mode)}, priority={TranslatePriority(result.Priority)}, status={result.Status}, reason={result.Message}.{adminHint}";
         }
 
         private void AddLog(string message)

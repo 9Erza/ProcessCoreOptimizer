@@ -112,7 +112,11 @@ namespace ProcessCoreOptimizer.WPF.Services
                     ProcessName = processName,
                     Mode = NormalizeOptimizationMode(profile.OptimizationMode),
                     Priority = PriorityService.Normalize(profile.Priority, allowRealtimePriority),
-                    Message = "SKIPPED_PROTECTED"
+                    Message = "SKIPPED_PROTECTED",
+                    Status = OperationStatus.SkippedProtected,
+                    Retryable = false,
+                    RequestedCore = profile.ApplyCoreOptimization,
+                    RequestedPriority = profile.ApplyPriority
                 };
             }
 
@@ -125,7 +129,11 @@ namespace ProcessCoreOptimizer.WPF.Services
                     ProcessName = processName,
                     Mode = NormalizeOptimizationMode(profile.OptimizationMode),
                     Priority = PriorityService.Normalize(profile.Priority, allowRealtimePriority),
-                    Message = "SKIPPED_IDENTITY_MISMATCH"
+                    Message = "SKIPPED_IDENTITY_MISMATCH",
+                    Status = OperationStatus.SkippedIdentityMismatch,
+                    Retryable = false,
+                    RequestedCore = profile.ApplyCoreOptimization,
+                    RequestedPriority = profile.ApplyPriority
                 };
             }
 
@@ -144,7 +152,11 @@ namespace ProcessCoreOptimizer.WPF.Services
                         ProcessName = processName,
                         Mode = mode,
                         Priority = priority,
-                        Message = "SKIPPED_ALREADY_APPLIED"
+                        Message = "SKIPPED_ALREADY_APPLIED",
+                        Status = OperationStatus.SkippedAlreadyApplied,
+                        Retryable = false,
+                        RequestedCore = profile.ApplyCoreOptimization,
+                        RequestedPriority = profile.ApplyPriority
                     };
                 }
             }
@@ -172,15 +184,21 @@ namespace ProcessCoreOptimizer.WPF.Services
                     key.ProcessId, parsedPriority,
                     key, ProfileService.NormalizeProcessName(processName), profile.ExecutablePath);
                 priorityMessage = priorityApplied ? "OK_PRIORITY" : "ERR_PRIORITY";
+                requiresAdmin |= !priorityApplied && IsAccessDeniedPriority(key.ProcessId);
             }
 
             bool success = coreApplied || priorityApplied;
             bool allRequested = (!profile.ApplyCoreOptimization || coreApplied)
                 && (!profile.ApplyPriority || priorityApplied);
 
+            OperationStatus status = ResolveStatus(
+                success, allRequested, requiresAdmin,
+                profile.ApplyCoreOptimization, profile.ApplyPriority,
+                coreMessage, priorityMessage);
+
             lock (_cacheLock)
             {
-                if (success && allRequested)
+                if (status == OperationStatus.FullyApplied)
                 {
                     _appliedProfileSignatures[key] = signature;
                 }
@@ -207,8 +225,62 @@ namespace ProcessCoreOptimizer.WPF.Services
                 CoreApplied = coreApplied,
                 PriorityApplied = priorityApplied,
                 RequiresAdmin = requiresAdmin,
-                Win32Error = win32Error
+                Win32Error = win32Error,
+                Status = status,
+                Retryable = status.IsRetryable(),
+                RequestedCore = profile.ApplyCoreOptimization,
+                RequestedPriority = profile.ApplyPriority
             };
+        }
+
+        /// <summary>
+        /// Testable status mapping. Pure failure + elevation evidence becomes
+        /// SkippedNoPermission (retry without elevation is pointless); invalid
+        /// requests become Unsupported; anything attempted-but-incomplete stays
+        /// Failed/PartiallyApplied so the watcher retries.
+        /// </summary>
+        public static OperationStatus ResolveStatus(
+            bool success, bool allRequested, bool requiresAdmin,
+            bool requestedCore, bool requestedPriority,
+            string coreMessage, string priorityMessage)
+        {
+            if (success && allRequested) return OperationStatus.FullyApplied;
+            if (success) return OperationStatus.PartiallyApplied;
+            if (requiresAdmin) return OperationStatus.SkippedNoPermission;
+            if (!requestedCore && !requestedPriority) return OperationStatus.Unsupported;
+            if (IsValidationError(coreMessage) && (!requestedPriority || priorityMessage == "SKIPPED_PRIORITY"))
+                return OperationStatus.Unsupported;
+            return OperationStatus.Failed;
+        }
+
+        private static bool IsValidationError(string coreMessage) =>
+            coreMessage.StartsWith("ERR_EMPTY_MASK", StringComparison.OrdinalIgnoreCase)
+            || coreMessage.StartsWith("ERR_MASK_OUT_OF_RANGE", StringComparison.OrdinalIgnoreCase)
+            || coreMessage.StartsWith("ERR_UNKNOWN_MODE", StringComparison.OrdinalIgnoreCase)
+            || coreMessage.StartsWith("ERR_CPUSET_MAP_EMPTY", StringComparison.OrdinalIgnoreCase)
+            || coreMessage.StartsWith("ERR_NO_VALID_CPUSETS", StringComparison.OrdinalIgnoreCase);
+
+        private bool IsAccessDeniedPriority(int pid)
+        {
+            // Best-effort elevation hint: only when the OS reports access-denied.
+            // Never invents RequiresAdmin for generic failures.
+            try
+            {
+                IntPtr hProc = Helpers.NativeMethods.OpenProcess(
+                    Helpers.NativeMethods.PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
+                if (hProc == IntPtr.Zero)
+                {
+                    int error = System.Runtime.InteropServices.Marshal.GetLastWin32Error();
+                    return error == 5;
+                }
+
+                Helpers.NativeMethods.CloseHandle(hProc);
+                return false;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         public void ClearProfileCacheForProcess(string processName)
