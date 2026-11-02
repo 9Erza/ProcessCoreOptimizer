@@ -12,13 +12,33 @@
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4?style=flat-square)
 [![CI](https://github.com/9Erza/ProcessCoreOptimizer/actions/workflows/ci.yml/badge.svg)](https://github.com/9Erza/ProcessCoreOptimizer/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-2EA44F?style=flat-square)](LICENSE)
-![Release](https://img.shields.io/badge/release-v1.3.0-EAB45D?style=flat-square)
+![Release](https://img.shields.io/badge/release-v2.0.0-EAB45D?style=flat-square)
 
 </div>
 
 > [!NOTE]
-> **Version: v1.3.0.** A focused, standalone utility for process CPU management.
+> **Version: v2.0.0.** A focused, standalone utility for process CPU management.
 > No hidden tweaks, no background bloat — every change is explicit, reversible and logged.
+
+## What's new in 2.0
+
+- **Engine 2.0:** identity-gated mutations (PID + start time + name + path),
+  no PID-only paths, explicit operation outcomes
+  (`FullyApplied` / `PartiallyApplied` / `Failed` / skips), mask validation,
+  honest Affinity-vs-CPU-Sets semantics.
+- **Profiles 2.0:** deterministic conflict detection (path-bound wins),
+  duplicate / import / export, capture-live-settings drafts, per-instance
+  history, background watcher as a dedicated service.
+- **CPU & Topology tab:** Unknown-state honesty, named core presets,
+  multi-group detection, snapshot EXE paths, process details, filters.
+- **Diagnostics tab:** watcher status, recent operations, conflicts, log.
+- **Reliability:** session restore of pre-optimization settings, updater that
+  notifies only for published releases with an installer asset, startup
+  registration only on startup-setting changes, central `version.txt` versioning.
+- **Tests:** 72 MSTest cases, green CI (build + tests + `git diff --check`).
+
+See [CHANGELOG.md](CHANGELOG.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+and [docs/RELEASE_NOTES_2.0.0.md](docs/RELEASE_NOTES_2.0.0.md).
 
 ## What is Process Core Optimizer?
 
@@ -54,8 +74,10 @@ Performance gains are workload-dependent and are **never promised**.
 - **Windows CPU Sets** — softer scheduling hint via `SetProcessDefaultCpuSets`.
 - **Saved profiles** — per-process (optionally path-bound) Affinity / CPU Sets / priority presets.
 - **Automatic watcher** — lightweight background loop that applies enabled profiles to newly started processes.
-- **Identity-safe mutations** — PID + start time + process name (+ EXE path when bound) re-validated before every OS write; recycled PIDs are refused, never guessed.
-- **P/E-core and SMT awareness** — topology from Windows CPU Sets with `[P] / [T] / [E]` labels where supported.
+- **Identity-safe mutations** — PID + start time + process name (+ EXE path when bound) re-validated before every OS write; recycled PIDs are refused, never guessed; no PID-only mutation paths exist.
+- **Honest operation outcomes** — full vs partial vs failed vs skipped, with retry semantics; partial success is never cached as done.
+- **P/E-core and SMT awareness** with an honest Unknown state when firmware data is missing, plus named core presets (All / P-cores / E-cores / physical-without-SMT) shown only when valid.
+- **Session restore** — one-click return to pre-optimization affinity/priority, identity-verified per instance.
 - **Quick core tools** — select all, clear all, disable SMT/HT threads, disable E-cores.
 - **Optional hardware telemetry** — CPU / GPU / RAM via LibreHardwareMonitor, lazy and off by default.
 - **Bilingual UI** — English / Polski, switchable in-app.
@@ -172,7 +194,7 @@ Legacy files next to the EXE are migrated one-way on first launch.
       </td>
     </tr>
   </table>
-  <p align="center"><i>Screenshots reflect v1.3.0 UI. The layout is intentionally conservative — no gaming overlays.</i></p>
+  <p align="center"><i>Screenshots reflect the 1.3.x UI. The 2.0 layout (CPU &amp; Topology, Diagnostics, presets, details) was built in a headless environment — updated screenshots will be captured from a GUI session and are intentionally not synthesized here.</i></p>
 </details>
 
 ---
@@ -197,10 +219,18 @@ dotnet build ProcessCoreOptimizer.slnx -c Release
 dotnet test ProcessCoreOptimizer.Tests/ProcessCoreOptimizer.Tests.csproj -c Release
 ```
 
+Portable artifact (self-contained single file, no runtime needed on target):
+
+```powershell
+dotnet publish ProcessCoreOptimizer/ProcessCoreOptimizer.csproj -c Release -p:PublishProfile=FolderProfile
+```
+
 - Solution: `ProcessCoreOptimizer.slnx` (primary). `ProcessCoreOptimizer/ProcessCoreOptimizer.sln` is legacy.
+- Version source of truth: `version.txt`, propagated via `Directory.Build.props` to MSBuild, PE metadata, UI and updater.
 - Target: `net10.0-windows`, `win-x64`, WPF + WinForms (tray icon).
-- Tests: MSTest, 30+ cases, no real processes are mutated (fake backend + read-only self-PID checks).
+- Tests: MSTest, 72 cases, no real processes are mutated (fake backend + read-only self-PID checks).
 - CI: `.github/workflows/ci.yml` — restore, Release build, tests, `git diff --check`.
+- Installer status: the historical `Setup.exe` identity is not reproducible from this repo (see [docs/INSTALLER.md](docs/INSTALLER.md)). No release is published without maintainer approval.
 
 ---
 
@@ -230,9 +260,9 @@ Neither project is abandoned; they have different jobs.
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md). Current public version: **v1.3.0**.
-New engine work is tracked under `Unreleased` until the next tagged release.
-No release, installer or version bump is published from this branch without explicit approval.
+See [CHANGELOG.md](CHANGELOG.md). Current version: **v2.0.0**.
+Technical overview: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+No release, installer or version bump is published from automation without explicit approval.
 
 ---
 
