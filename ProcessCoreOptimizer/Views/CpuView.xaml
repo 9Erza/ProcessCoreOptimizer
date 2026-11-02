@@ -1,0 +1,86 @@
+<UserControl x:Class="ProcessCoreOptimizer.WPF.Views.CpuView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Border Style="{StaticResource PcoCard}" Margin="0,0,25,0">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <TextBlock Text="{DynamicResource StrCpuCores}" Style="{StaticResource PcoTitle}"/>
+
+                <Border Background="{StaticResource PcoBg3Brush}" CornerRadius="6" Padding="12" Margin="0,0,0,12" BorderThickness="1" BorderBrush="{StaticResource PcoBorderBrush}">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding TopologyLimitation}" Value="{x:Null}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <StackPanel>
+                        <TextBlock Text="{DynamicResource StrTopologyNote}" FontWeight="Bold" FontSize="12" Foreground="{StaticResource PcoOrangeBrush}" Margin="0,0,0,4"/>
+                        <TextBlock Text="{Binding TopologyLimitation}" Style="{StaticResource PcoMutedText}"/>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Text="{DynamicResource StrCorePresets}" Style="{StaticResource PcoSectionHeader}"/>
+                <ItemsControl ItemsSource="{Binding CorePresets}" Margin="0,0,0,8">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Margin="0,0,0,6" Padding="10" Background="{StaticResource PcoBg3Brush}" CornerRadius="6" BorderThickness="1" BorderBrush="{StaticResource PcoBorderSoftBrush}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="{Binding DisplayName}" Foreground="{StaticResource PcoTextBrightBrush}" FontWeight="SemiBold" FontSize="13"/>
+                                        <TextBlock Text="{Binding Description}" Style="{StaticResource PcoMutedText}"/>
+                                        <TextBlock Text="{Binding UnavailableReason}" Foreground="{StaticResource PcoOrangeBrush}" FontSize="11">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsAvailable}" Value="False">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </StackPanel>
+                                    <Button Grid.Column="1" Content="{DynamicResource StrApplyPreset}" Style="{StaticResource SmallFilterButton}" Padding="12,0" Margin="10,0,0,0"
+                                            Command="{Binding DataContext.ApplyCorePresetCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding Id}" IsEnabled="{Binding IsAvailable}"/>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <TextBlock Text="{DynamicResource StrCpuCores}" Style="{StaticResource PcoSectionHeader}"/>
+                <ItemsControl ItemsSource="{Binding Cores}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Columns="2"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Margin="4" Padding="10" Background="{StaticResource PcoBg3Brush}" CornerRadius="6" BorderThickness="1" BorderBrush="{StaticResource PcoBorderSoftBrush}">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <CheckBox Grid.Row="0" IsChecked="{Binding IsChecked}" Content="{Binding DisplayName}"/>
+                                    <ProgressBar Grid.Row="1" Value="{Binding LoadUsage}" Maximum="100" Height="4" Margin="0,8,0,0" Foreground="{StaticResource PcoAccentBrush}" Background="#111" BorderThickness="0"/>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </ScrollViewer>
+    </Border>
+</UserControl>

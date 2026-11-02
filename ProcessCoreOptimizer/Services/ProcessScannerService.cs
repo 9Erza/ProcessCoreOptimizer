@@ -113,6 +113,7 @@ namespace ProcessCoreOptimizer.WPF.Services
                 double totalCpu = 0;
                 ProcessPriorityClass priority = ProcessPriorityClass.Normal;
                 var instances = new List<ProcessInstanceKey>();
+                var observedPaths = new List<string?>();
                 int firstPid = 0;
 
                 foreach (var process in group)
@@ -125,6 +126,7 @@ namespace ProcessCoreOptimizer.WPF.Services
                         var key = CreateInstanceKey(process);
                         instances.Add(key);
                         activeInstances.Add(key);
+                        observedPaths.Add(ProcessIdentityValidator.TryGetProcessPath(process));
 
                         if (includeResources)
                         {
@@ -159,7 +161,8 @@ namespace ProcessCoreOptimizer.WPF.Services
                     TotalMemoryBytes = totalMemory,
                     CpuUsagePercent = totalCpu,
                     Priority = priority,
-                    Instances = instances
+                    Instances = instances,
+                    ExecutablePath = ResolveGroupPath(observedPaths)
                 });
             }
 
@@ -183,6 +186,21 @@ namespace ProcessCoreOptimizer.WPF.Services
             }
 
             return new ProcessInstanceKey(process.Id, startTimeUtc);
+        }
+
+        /// <summary>
+        /// Testable group-path rule: one unique readable path wins, disagreement
+        /// or fully-denied reads yield null (never a guess).
+        /// </summary>
+        public static string? ResolveGroupPath(IEnumerable<string?> observedPaths)
+        {
+            var distinct = observedPaths
+                .Where(p => !string.IsNullOrWhiteSpace(p))
+                .Select(p => ProfileService.NormalizeExecutablePath(p))
+                .Where(p => p != null)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            return distinct.Count == 1 ? distinct[0] : null;
         }
 
         private void CleanupCpuCache(HashSet<ProcessInstanceKey> activeInstances)

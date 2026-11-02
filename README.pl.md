@@ -12,13 +12,33 @@
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4?style=flat-square)
 [![CI](https://github.com/9Erza/ProcessCoreOptimizer/actions/workflows/ci.yml/badge.svg)](https://github.com/9Erza/ProcessCoreOptimizer/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-2EA44F?style=flat-square)](LICENSE)
-![Release](https://img.shields.io/badge/release-v1.3.0-EAB45D?style=flat-square)
+![Release](https://img.shields.io/badge/release-v2.0.0-EAB45D?style=flat-square)
 
 </div>
 
 > [!NOTE]
-> **Wersja: v1.3.0.** Lekkie, samodzielne narzędzie do zarządzania CPU procesów.
+> **Wersja: v2.0.0.** Lekkie, samodzielne narzędzie do zarządzania CPU procesów.
 > Bez ukrytych optymalizacji i zbędnego obciążenia — każda zmiana jest jawna, odwracalna i logowana.
+
+## Co nowego w 2.0
+
+- **Silnik 2.0:** mutacje z bramką tożsamości (PID + czas startu + nazwa + ścieżka),
+  brak ścieżek PID-only, jawne wyniki operacji
+  (`FullyApplied` / `PartiallyApplied` / `Failed` / pominięcia), walidacja masek,
+  uczciwa semantyka Affinity vs CPU Sets.
+- **Profile 2.0:** deterministyczne wykrywanie konfliktów (path-bound wygrywa),
+  duplikowanie / import / eksport, szkice z bieżących ustawień, historia operacji,
+  watcher jako wydzielony serwis.
+- **Zakładka CPU i topologia:** uczciwy stan Unknown, nazwane presety rdzeni,
+  wykrywanie wielu grup, ścieżki EXE w snapshotach, szczegóły procesów, filtry.
+- **Zakładka Diagnostyka:** status watchera, ostatnie operacje, konflikty, log.
+- **Niezawodność:** przywracanie ustawień sprzed optymalizacji, aktualizator
+  powiadamiający tylko o opublikowanych wydaniach z assetem instalatora,
+  rejestracja autostartu tylko przy zmianie ustawień startu, centralne wersjonowanie `version.txt`.
+- **Testy:** 72 przypadki MSTest, zielone CI (build + testy + `git diff --check`).
+
+Zobacz [CHANGELOG.md](CHANGELOG.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+i [docs/RELEASE_NOTES_2.0.0.pl.md](docs/RELEASE_NOTES_2.0.0.pl.md).
 
 ## Czym jest Process Core Optimizer?
 
@@ -53,8 +73,10 @@ Wzrost wydajności zależy od obciążenia i **nie jest gwarantowany**.
 - **Windows CPU Sets** — miękka wskazówka szeregowania przez `SetProcessDefaultCpuSets`.
 - **Zapisane profile** — presety Affinity / CPU Sets / priorytetu per-proces (opcjonalnie przypięte do ścieżki EXE).
 - **Automatyczny watcher** — lekka pętla w tle stosuje włączone profile do nowo startujących procesów.
-- **Bezpieczne mutacje** — PID + czas startu + nazwa procesu (+ ścieżka EXE dla profili path-bound) weryfikowane przed każdym zapisem do OS; zrecyklingowane PID-y są odrzucane, nie zgadywane.
-- **Świadomość P/E-core i SMT** — topologia z Windows CPU Sets z etykietami `[P] / [T] / [E]`, gdzie wspierane.
+- **Bezpieczne mutacje** — PID + czas startu + nazwa procesu (+ ścieżka EXE dla profili path-bound) weryfikowane przed każdym zapisem do OS; zrecyklingowane PID-y są odrzucane, nie zgadywane; nie istnieją ścieżki mutacji PID-only.
+- **Uczciwe wyniki operacji** — pełny vs częściowy vs nieudany vs pominięty, z semantyką retry; częściowy sukces nigdy nie jest cachowany jako wykonany.
+- **Świadomość P/E-core i SMT** z uczciwym stanem Unknown przy braku danych z firmware oraz nazwanymi presetami rdzeni (All / P-cores / E-cores / physical-without-SMT), pokazywanymi tylko gdy poprawne.
+- **Przywracanie sesji** — powrót do affinity/priorytetu sprzed optymalizacji jednym kliknięciem, z weryfikacją tożsamości instancji.
 - **Szybkie narzędzia rdzeni** — zaznacz wszystkie, wyczyść, wyłącz wątki SMT/HT, wyłącz E-cores.
 - **Opcjonalna telemetria** — CPU / GPU / RAM przez LibreHardwareMonitor, leniwa i domyślnie wyłączona.
 - **Dwujęzyczny UI** — English / Polski, przełączany w aplikacji.
@@ -171,7 +193,7 @@ Starsze pliki obok EXE są migrowane jednokierunkowo przy pierwszym starcie.
       </td>
     </tr>
   </table>
-  <p align="center"><i>Zrzuty odpowiadają UI v1.3.0. Układ jest celowo zachowawczy — bez gamingowych nakładek.</i></p>
+  <p align="center"><i>Zrzuty pokazują UI 1.3.x. Układ 2.0 (CPU i topologia, Diagnostyka, presety, szczegóły) powstał w środowisku headless — aktualne screenshoty zostaną wykonane z sesji GUI i celowo nie są tu syntetyzowane.</i></p>
 </details>
 
 ---
@@ -196,10 +218,18 @@ dotnet build ProcessCoreOptimizer.slnx -c Release
 dotnet test ProcessCoreOptimizer.Tests/ProcessCoreOptimizer.Tests.csproj -c Release
 ```
 
+Przenośny artefakt (samowystarczalny jeden plik, runtime na docelowym PC zbędny):
+
+```powershell
+dotnet publish ProcessCoreOptimizer/ProcessCoreOptimizer.csproj -c Release -p:PublishProfile=FolderProfile
+```
+
 - Solution: `ProcessCoreOptimizer.slnx` (główny). `ProcessCoreOptimizer/ProcessCoreOptimizer.sln` to legacy.
+- Źródło wersji: `version.txt`, propagowane przez `Directory.Build.props` do MSBuild, metadanych PE, UI i aktualizatora.
 - Target: `net10.0-windows`, `win-x64`, WPF + WinForms (ikona tray).
-- Testy: MSTest, 30+ przypadków, bez modyfikowania prawdziwych procesów (fałszywy backend + read-only self-PID).
+- Testy: MSTest, 72 przypadki, bez modyfikowania prawdziwych procesów (fałszywy backend + read-only self-PID).
 - CI: `.github/workflows/ci.yml` — restore, Release build, testy, `git diff --check`.
+- Status instalatora: historyczna tożsamość `Setup.exe` nie jest odtwarzalna z tego repo (patrz [docs/INSTALLER.md](docs/INSTALLER.md)). Bez zgody opiekuna nie publikujemy wydania.
 
 ---
 
@@ -229,9 +259,9 @@ benchmarki PresentMon, Companion).
 
 ## Changelog
 
-Zobacz [CHANGELOG.md](CHANGELOG.md). Aktualna publiczna wersja: **v1.3.0**.
-Nowe prace nad silnikiem są śledzone w sekcji `Unreleased` do kolejnego tagowanego wydania.
-Bez wyraźnej zgody nie publikujemy z tej gałęzi release, instalatora ani podbicia wersji.
+Zobacz [CHANGELOG.md](CHANGELOG.md). Aktualna wersja: **v2.0.0**.
+Przegląd techniczny: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Bez wyraźnej zgody nie publikujemy z automatyzacji release, instalatora ani podbicia wersji.
 
 ---
 

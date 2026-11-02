@@ -20,7 +20,8 @@ internal sealed class FakeProcessService : ProcessService
         ProcessInstanceKey? expected, string? expectedName, string? expectedPath)
     {
         CoreCalls++;
-        if (mask == 0) return "ERR_EMPTY_MASK";
+        string? validationError = ProcessService.ValidateCoreMask(mask, cpuSetMap);
+        if (validationError != null) return validationError;
         if (CoreBehavior != null) return CoreBehavior(pid, mask, mode, cpuSetMap);
         return "OK_AFFINITY";
     }

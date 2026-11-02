@@ -16,6 +16,18 @@ namespace ProcessCoreOptimizer.WPF.Models
         public byte EfficiencyClass { get; set; }
         public string TypeTag { get; set; } = "[P]";
 
+        /// <summary>
+        /// Windows CPU Set ID backing this logical processor, when known.
+        /// Null for fallback topologies built without CPU Set data.
+        /// </summary>
+        public uint? CpuSetId { get; set; }
+
+        /// <summary>
+        /// True when P/E/SMT classification is a guess (WMI fallback).
+        /// The UI must render this as Unknown instead of a confident label.
+        /// </summary>
+        public bool IsClassificationUnknown { get; set; }
+
         public string DisplayName => Group == 0
             ? $"Core {Index} {TypeTag}"
             : $"G{Group}: Core {Index} {TypeTag}";
