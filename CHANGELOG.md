@@ -12,6 +12,7 @@
 - Path-bound profiles never fall back to a same-name executable at a different path.
 - Protected system processes are refused on the mutation path (`SKIPPED_PROTECTED`), not only hidden in the UI.
 - RealTime remains gated behind `AllowRealtimePriority` + confirmation; `RealTime` normalizes to `High` without opt-in.
+- Phase 2 hardening: `ProcessMutationTarget` makes identity mandatory (no null/default bypass); CPU Sets handles carry query rights for the start-time gate; new `SkippedSuspended` status keeps post-restore instances out of the watcher's way until expiry.
 
 ### Profiles & watcher (P1)
 - Deterministic conflict detection (`ProfileConflicts`): path-bound wins, then newest, then Id; conflicts shown in UI instead of silently picking.
@@ -49,15 +50,17 @@
 - Removed dead code: PID-only overloads, unused `ChangePriority`, unused `GetPriorityString` (replaced by `TryGetPriority`).
 
 ### Tests & CI (P1/P2)
-- `ProcessCoreOptimizer.Tests` (MSTest, 72 cases): identity, PID reuse, TOCTOU refusal, path-bound, CPU Sets mapping, mask validation, statuses, partial-success retry, cache invalidation, watcher lifecycle, conflicts, import/export, preview, restore, updater gates, localization parity, persistence.
-- No test mutates real processes (fake backend + read-only self-PID checks).
+- `ProcessCoreOptimizer.Tests` (MSTest, 97 cases): identity, PID reuse, TOCTOU refusal, path-bound, CPU Sets mapping, mask validation, statuses, partial-success retry, cache invalidation, watcher lifecycle incl. post-restore suspension, conflicts, import/export, preview, full CPU Sets restore, updater gates, localization parity, persistence, real Windows API on isolated probes.
+- No user/system process is ever touched: fake backend, read-only self-PID checks, and real mutations only on self-owned `%TEMP%` probe copies (terminated + deleted).
 - Lightweight GitHub Actions CI: Release build + tests + `git diff --check`.
 - Solution `ProcessCoreOptimizer.slnx` includes the tests project.
 
 ### Docs
 - `README.md` / `README.pl.md` updated for 2.0 (features, tabs, presets, diagnostics, restore, updater, build, installer status).
 - New: `docs/ARCHITECTURE.md`, `docs/RELEASE_NOTES_2.0.0.md` (+`.pl.md`), `docs/INSTALLER.md`.
-- Screenshots: existing 1.3.x gallery kept and marked; 2.0 screenshots intentionally not synthesized (headless environment) — to be captured from a GUI session.
+- Screenshots: real PCO 2.0 UI captured on Windows 11 (1920×1080, 100% DPI) via UI Automation; no mockups. Evidence harness output stays in gitignored `.evidence/`.
+- GUI QA fixes from live screenshots: clean display version (no `+sha`), wider process-name column, wrapped console logs, two-column profile actions, App.xaml-level theme scope (fixed startup crash).
+- `--safe-mode` is now a real diagnostic mode (observes only, blocks manual/apply/restore mutations with a log line).
 
 ## v1.3.0 - Core Refactor & Performance Foundation
 

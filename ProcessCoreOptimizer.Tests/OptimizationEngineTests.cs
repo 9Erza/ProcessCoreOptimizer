@@ -12,14 +12,21 @@ internal sealed class FakeProcessService : ProcessService
 {
     public int CoreCalls;
     public int PriorityCalls;
+    public int AffinityCalls;
+    public int ClearCpuSetsCalls;
+    public OptimizationMode LastCoreMode = OptimizationMode.Affinity;
     public Func<int, long, OptimizationMode, Dictionary<int, uint>, string>? CoreBehavior;
     public Func<int, ProcessPriorityClass, bool>? PriorityBehavior;
+    public Func<int, long, bool>? AffinityBehavior;
+    public Func<int, bool>? ClearCpuSetsBehavior;
 
     public override string ApplyCoreOptimization(
         int pid, long mask, OptimizationMode mode, Dictionary<int, uint> cpuSetMap,
-        ProcessInstanceKey? expected, string? expectedName, string? expectedPath)
+        ProcessMutationTarget target)
     {
         CoreCalls++;
+        if (!target.IsValid || target.ProcessId != pid) return "ERR_IDENTITY_MISMATCH";
+        LastCoreMode = mode;
         string? validationError = ProcessService.ValidateCoreMask(mask, cpuSetMap);
         if (validationError != null) return validationError;
         if (CoreBehavior != null) return CoreBehavior(pid, mask, mode, cpuSetMap);
@@ -27,11 +34,27 @@ internal sealed class FakeProcessService : ProcessService
     }
 
     public override bool SetPriority(
-        int pid, ProcessPriorityClass priority,
-        ProcessInstanceKey? expected, string? expectedName, string? expectedPath)
+        int pid, ProcessPriorityClass priority, ProcessMutationTarget target)
     {
         PriorityCalls++;
+        if (!target.IsValid || target.ProcessId != pid) return false;
         if (PriorityBehavior != null) return PriorityBehavior(pid, priority);
+        return true;
+    }
+
+    public override bool SetProcessAffinity(int pid, long mask, ProcessMutationTarget target)
+    {
+        AffinityCalls++;
+        if (!target.IsValid || target.ProcessId != pid) return false;
+        if (AffinityBehavior != null) return AffinityBehavior(pid, mask);
+        return mask != 0;
+    }
+
+    public override bool ClearProcessCpuSets(int pid, ProcessMutationTarget target)
+    {
+        ClearCpuSetsCalls++;
+        if (!target.IsValid || target.ProcessId != pid) return false;
+        if (ClearCpuSetsBehavior != null) return ClearCpuSetsBehavior(pid);
         return true;
     }
 }

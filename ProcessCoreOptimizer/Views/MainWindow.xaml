@@ -10,12 +10,8 @@
         ResizeMode="CanResizeWithGrip">
 
     <Window.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="../Themes/Colors.xaml"/>
-                <ResourceDictionary Source="../Themes/Controls.xaml"/>
-            </ResourceDictionary.MergedDictionaries>
-        </ResourceDictionary>
+        <!-- Theme dictionaries live in Application.Resources (global); window-level
+             resources intentionally left empty to avoid duplicate instances. -->
     </Window.Resources>
 
     <Border Background="{StaticResource PcoBg0Brush}" CornerRadius="8" BorderBrush="{StaticResource PcoBorderSoftBrush}" BorderThickness="1" SnapsToDevicePixels="True">
@@ -133,7 +129,12 @@
                         </Grid.RowDefinitions>
                         <TextBlock Grid.Row="0" Text="{DynamicResource StrConsoleLog}" FontSize="11" FontWeight="Bold" Foreground="{StaticResource PcoDimBrush}" Margin="5,0,0,8"/>
                         <Border Grid.Row="1" Background="{StaticResource PcoLogBgBrush}" BorderBrush="{StaticResource PcoBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="5">
-                            <ListBox x:Name="LogConsole" ItemsSource="{Binding ActionLogs}" Background="Transparent" BorderThickness="0" Foreground="#A0A0A0" FontSize="11" FontFamily="Consolas">
+                            <ListBox x:Name="LogConsole" ItemsSource="{Binding ActionLogs}" Background="Transparent" BorderThickness="0" Foreground="#A0A0A0" FontSize="11" FontFamily="Consolas" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding}" TextWrapping="Wrap"/>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
                                 <ListBox.ItemsPanel>
                                     <ItemsPanelTemplate>
                                         <VirtualizingStackPanel VerticalAlignment="Bottom"/>

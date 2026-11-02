@@ -185,16 +185,26 @@ Legacy files next to the EXE are migrated one-way on first launch.
     </tr>
     <tr>
       <td align="center">
-        <b>Hardware Monitor</b><br>
-        <img src="ProcessCoreOptimizer/Screenshots/screen_hardware-monitor-1.png" width="100%" alt="Hardware Monitor 1" />
+        <b>CPU &amp; Topology</b><br>
+        <img src="ProcessCoreOptimizer/Screenshots/screen_cpu-topology.png" width="100%" alt="CPU and Topology" />
       </td>
       <td align="center">
-        <b>Detailed Telemetry</b><br>
-        <img src="ProcessCoreOptimizer/Screenshots/screen_hardware-monitor-2.png" width="100%" alt="Hardware Monitor 2" />
+        <b>Hardware Monitor</b><br>
+        <img src="ProcessCoreOptimizer/Screenshots/screen_hardware-monitor-1.png" width="100%" alt="Hardware Monitor" />
+      </td>
+    </tr>
+    <tr>
+      <td align="center">
+        <b>Diagnostics</b><br>
+        <img src="ProcessCoreOptimizer/Screenshots/screen_diagnostics.png" width="100%" alt="Diagnostics" />
+      </td>
+      <td align="center">
+        <b>Settings</b><br>
+        <img src="ProcessCoreOptimizer/Screenshots/screen_settings.png" width="100%" alt="Settings" />
       </td>
     </tr>
   </table>
-  <p align="center"><i>Screenshots reflect the 1.3.x UI. The 2.0 layout (CPU &amp; Topology, Diagnostics, presets, details) was built in a headless environment — updated screenshots will be captured from a GUI session and are intentionally not synthesized here.</i></p>
+  <p align="center"><i>Screenshots: real PCO 2.0 UI captured on Windows 11 (1920×1080, 100% DPI). No mockups.</i></p>
 </details>
 
 ---
@@ -228,9 +238,10 @@ dotnet publish ProcessCoreOptimizer/ProcessCoreOptimizer.csproj -c Release -p:Pu
 - Solution: `ProcessCoreOptimizer.slnx` (primary). `ProcessCoreOptimizer/ProcessCoreOptimizer.sln` is legacy.
 - Version source of truth: `version.txt`, propagated via `Directory.Build.props` to MSBuild, PE metadata, UI and updater.
 - Target: `net10.0-windows`, `win-x64`, WPF + WinForms (tray icon).
-- Tests: MSTest, 72 cases, no real processes are mutated (fake backend + read-only self-PID checks).
+- Tests: MSTest, 97 cases (fake backend + read-only checks + real Windows API on isolated self-owned probe processes), no user/system processes touched.
 - CI: `.github/workflows/ci.yml` — restore, Release build, tests, `git diff --check`.
-- Installer status: the historical `Setup.exe` identity is not reproducible from this repo (see [docs/INSTALLER.md](docs/INSTALLER.md)). No release is published without maintainer approval.
+- GUI: verified on Windows 11 via UI Automation (all 6 tabs, maximize/minimize/restore, tray-intercept close) — see `tools/Run-GuiVerification.ps1`, evidence in `.evidence/` (gitignored).
+- Installer: `installer/ProcessCoreOptimizer.iss` (new identity, see [docs/INSTALLER.md](docs/INSTALLER.md)); build with `tools/Build-Installer.ps1`. No release is published without maintainer approval.
 
 ---
 

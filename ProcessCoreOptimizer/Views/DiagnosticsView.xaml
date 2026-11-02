@@ -70,7 +70,12 @@
 
                 <TextBlock Text="{DynamicResource StrConsoleLog}" FontSize="11" FontWeight="Bold" Foreground="{StaticResource PcoDimBrush}" Margin="5,0,0,8"/>
                 <Border Background="{StaticResource PcoLogBgBrush}" BorderBrush="{StaticResource PcoBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="5" MinHeight="140">
-                    <ListBox x:Name="DiagLogConsole" ItemsSource="{Binding ActionLogs}" Background="Transparent" BorderThickness="0" Foreground="#A0A0A0" FontSize="11" FontFamily="Consolas" MaxHeight="260" ScrollViewer.VerticalScrollBarVisibility="Auto">
+                    <ListBox x:Name="DiagLogConsole" ItemsSource="{Binding ActionLogs}" Background="Transparent" BorderThickness="0" Foreground="#A0A0A0" FontSize="11" FontFamily="Consolas" MaxHeight="260" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}" TextWrapping="Wrap"/>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
                         <ListBox.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <VirtualizingStackPanel VerticalAlignment="Bottom"/>
