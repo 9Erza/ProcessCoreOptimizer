@@ -116,7 +116,7 @@
                     <Border Background="{StaticResource PcoBg3Brush}" CornerRadius="6" Padding="12" Margin="0,0,0,20" BorderThickness="1" BorderBrush="#5A2323">
                         <StackPanel>
                             <TextBlock Text="{DynamicResource StrFactoryResetTitle}" FontWeight="Bold" FontSize="14" Foreground="{StaticResource PcoRedBrush}" Margin="0,0,0,6"/>
-                            <TextBlock Text="{DynamicResource StrFactoryResetWarning}" Style="{StaticResource PcoMutedText}" Margin="0,0,0,8}"/>
+                            <TextBlock Text="{DynamicResource StrFactoryResetWarning}" Style="{StaticResource PcoMutedText}" Margin="0,0,0,8" TextWrapping="Wrap"/>
                             <TextBox Text="{Binding FactoryResetConfirmationText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource PcoFilterBox}" ToolTip="RESET"/>
                             <Button Content="{DynamicResource StrFactoryReset}" Command="{Binding FactoryResetCommand}" Style="{StaticResource SmallFilterButton}" Width="260" HorizontalAlignment="Left" IsEnabled="{Binding IsFactoryResetArmed}"/>
                         </StackPanel>
