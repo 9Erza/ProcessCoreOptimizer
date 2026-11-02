@@ -98,6 +98,7 @@ namespace ProcessCoreOptimizer.WPF.Services
                 res["StrColStatus"] = isPl ? "STATUS" : "STATUS";
                 res["StrUnknown"] = isPl ? "Nieznany" : "Unknown";
                 res["StrApplyPreset"] = isPl ? "Zastosuj" : "Apply";
+                res["StrRestoreSettings"] = isPl ? "Przywróć sesję" : "Restore session";
             }
             catch (Exception ex)
             {

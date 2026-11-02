@@ -31,6 +31,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         private readonly OptimizationService _optimizationService;
         private readonly ProfileWatcherService _profileWatcher;
         private readonly AppliedOperationHistory _operationHistory = new();
+        private readonly SessionRestoreService _sessionRestore = new();
         private readonly LocalizationService _localizationService = new();
         private readonly UpdateService _updateService = new();
 
@@ -43,6 +44,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         private readonly Dictionary<string, DateTime> _lastOptimizationDiagnosticLogUtc = new();
         private string? _cachedCpuVendor;
         private bool _realtimeCacheFlag;
+        private string _lastStartupSignature = string.Empty;
 
         private bool _isRefreshing;
         private bool _disposed;
@@ -104,6 +106,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         public ICommand ExportProfilesCommand { get; }
         public ICommand ImportProfilesCommand { get; }
         public ICommand CaptureLiveSettingsCommand { get; }
+        public ICommand RestoreSettingsCommand { get; }
 
         public string AppVersion { get; } = Assembly.GetExecutingAssembly()
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
@@ -325,6 +328,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 () => _profiles.ToList(),
                 () => AppSettings.AllowRealtimePriority);
             _realtimeCacheFlag = _appSettings.AllowRealtimePriority;
+            _lastStartupSignature = StartupSignature(_appSettings);
 
             _cpuSetMap = _hardwareService.GetLogicalCoreToCpuSetIdMap();
             foreach (var core in _hardwareService.GetCoreTopology())
@@ -362,6 +366,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             ExportProfilesCommand = new RelayCommand(_ => ExportProfilesToFile());
             ImportProfilesCommand = new RelayCommand(_ => ImportProfilesFromFile());
             CaptureLiveSettingsCommand = new RelayCommand(_ => CaptureLiveSettings());
+            RestoreSettingsCommand = new RelayCommand(_ => RestoreSessionSettings());
 
             ApplyLanguage(_appSettings.Language);
             _refreshTimer.Start();
@@ -637,6 +642,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 UpdatedAt = DateTime.UtcNow
             };
 
+            CaptureSessionBaseline(SelectedProcess.Name);
             int affected = ApplyProfileToRunningProcesses(temporaryProfile, force: true);
             SelectedProcess.IsOptimized = affected > 0;
             SelectedProcess.ModeTag = affected > 0 ? GetModeTag(mode) : string.Empty;
@@ -680,6 +686,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             _profiles = _profileService.LoadProfiles();
             RefreshSavedProfilesView();
 
+            CaptureSessionBaseline(SelectedProcess.Name);
             int affected = ApplyProfileToRunningProcesses(newProfile, force: true);
             SelectedProcess.IsOptimized = true;
             SelectedProcess.ModeTag = GetModeTag(mode);
@@ -719,6 +726,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             ClearAppliedProfileCache(processName);
 
             var profileToApply = _profiles.FirstOrDefault(p => p.ProcessName.Equals(processName, StringComparison.OrdinalIgnoreCase));
+            CaptureSessionBaseline(processName);
             int affected = profileToApply != null ? ApplyProfileToRunningProcesses(profileToApply, force: true) : 0;
 
             var activeProcess = Processes.FirstOrDefault(p => p.Name.Equals(processName, StringComparison.OrdinalIgnoreCase));
@@ -755,41 +763,53 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             SelectedSavedProfile = null;
         }
 
-        private void ChangePriority(string priorityRawName)
+        private void CaptureSessionBaseline(string processName)
         {
-            if (SelectedProcess == null) return;
-
-            string normalizedPriority = NormalizePriority(priorityRawName);
-            if (normalizedPriority == "RealTime" && !ConfirmRealTimePriority())
+            try
             {
-                _selectedPriority = SelectedProcess.Priority;
-                OnPropertyChanged(nameof(SelectedPriority));
-                return;
-            }
-
-            if (!PriorityService.TryParse(normalizedPriority, AppSettings.AllowRealtimePriority, out ProcessPriorityClass priority))
-            {
-                AddLog($"Unsupported priority: {priorityRawName}");
-                return;
-            }
-
-            int count = 0;
-            foreach (var process in Process.GetProcessesByName(ProfileService.NormalizeProcessName(SelectedProcess.Name)))
-            {
+                Process[] candidates = Process.GetProcessesByName(ProfileService.NormalizeProcessName(processName));
                 try
                 {
-                    var key = ProcessScannerService.CreateInstanceKey(process);
-                    string? livePath = ProcessIdentityValidator.TryGetProcessPath(process);
-                    if (_processService.SetPriority(process.Id, priority, key, process.ProcessName, livePath)) count++;
+                    foreach (var proc in candidates)
+                    {
+                        try
+                        {
+                            if (proc.HasExited) continue;
+                            var key = ProcessScannerService.CreateInstanceKey(proc);
+                            string? path = ProcessIdentityValidator.TryGetProcessPath(proc);
+                            long? mask = null;
+                            try
+                            {
+                                var selection = _processService.GetCurrentCoreSelection(proc.Id, _cpuSetMap);
+                                if (selection.Success && selection.Mask != 0) mask = selection.Mask;
+                            }
+                            catch { }
+
+                            ProcessPriorityClass? prio = null;
+                            try { prio = _processService.TryGetPriority(proc.Id); } catch { }
+
+                            if (mask.HasValue || prio.HasValue)
+                            {
+                                _sessionRestore.Capture(key, proc.ProcessName, path, mask, prio);
+                            }
+                        }
+                        catch { }
+                    }
                 }
                 finally
                 {
-                    process.Dispose();
+                    foreach (var p in candidates) p.Dispose();
                 }
             }
+            catch { }
+        }
 
-            SelectedProcess.Priority = TranslatePriority(normalizedPriority);
-            AddLog($"Set '{SelectedProcess.Name}' priority to {TranslatePriority(normalizedPriority)} ({count} process instance(s)).");
+        private void RestoreSessionSettings()
+        {
+            if (SelectedProcess == null) return;
+            var result = _sessionRestore.RestoreForProcess(SelectedProcess.Name, _processService, _cpuSetMap);
+            ClearAppliedProfileCache(SelectedProcess.Name);
+            AddLog($"Session restore for '{SelectedProcess.Name}': {result.Message}");
         }
 
         private void UpdateCoreSelectionFromAffinity(string processName)
@@ -1387,6 +1407,16 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             ConfigureLoggerFromSettings();
             _hwService?.Configure(AppSettings.EnableStorageSensors);
             _settingsService.SaveSettings(AppSettings);
+
+            // Startup registration touches the registry / scheduled tasks: apply it
+            // only when startup-related settings actually changed, never as a side
+            // effect of language/log/monitoring toggles.
+            string startupSignature = StartupSignature(AppSettings);
+            if (!string.Equals(startupSignature, _lastStartupSignature, StringComparison.Ordinal))
+            {
+                _lastStartupSignature = startupSignature;
+                _settingsService.ApplyWindowsStartup(AppSettings);
+            }
             OnPropertyChanged(nameof(IsHardwareMonitorEnabled));
             RefreshAvailablePriorities();
             RefreshDisplayedPriorities();
@@ -1426,6 +1456,9 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         {
             _optimizationService.ClearAllCache();
         }
+
+        private static string StartupSignature(AppSettings settings) =>
+            $"{settings.StartWithWindows}|{settings.StartMinimized}|{settings.MinimizeToTray}|{settings.RunAsAdministrator}";
 
         private bool ConfirmRealTimePriority()
         {

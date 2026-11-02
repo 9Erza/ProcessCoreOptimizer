@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup>
+    <!-- Single source of truth for the product version. Bump version.txt to release. -->
+    <PcoVersion Condition="'$(PcoVersion)' == ''">$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)version.txt').Trim())</PcoVersion>
+    <Version>$(PcoVersion)</Version>
+    <AssemblyVersion>$(PcoVersion).0</AssemblyVersion>
+    <FileVersion>$(PcoVersion).0</FileVersion>
+    <InformationalVersion>$(PcoVersion)</InformationalVersion>
+  </PropertyGroup>
+</Project>
