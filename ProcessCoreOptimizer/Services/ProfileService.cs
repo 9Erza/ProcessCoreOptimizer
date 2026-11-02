@@ -98,6 +98,96 @@ namespace ProcessCoreOptimizer.WPF.Services
             }
         }
 
+        /// <summary>
+        /// Creates an independent copy with a fresh identity for safe duplication.
+        /// </summary>
+        public static ProcessProfile DuplicateProfile(ProcessProfile source)
+        {
+            ArgumentNullException.ThrowIfNull(source);
+            return new ProcessProfile
+            {
+                Id = Guid.NewGuid().ToString("N"),
+                SchemaVersion = 2,
+                ProcessName = source.ProcessName,
+                DisplayName = string.IsNullOrWhiteSpace(source.DisplayName)
+                    ? $"{source.ProcessName} (copy)"
+                    : $"{source.DisplayName} (copy)",
+                ExecutablePath = source.ExecutablePath,
+                AffinityMask = source.AffinityMask,
+                Priority = source.Priority,
+                OptimizationMode = source.OptimizationMode,
+                ApplyPriority = source.ApplyPriority,
+                ApplyCoreOptimization = source.ApplyCoreOptimization,
+                IsEnabled = false,
+                Notes = source.Notes,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+        }
+
+        /// <summary>
+        /// Exports profiles to a user-chosen JSON file. Data only, no code is executed.
+        /// </summary>
+        public static void ExportProfiles(string filePath, IEnumerable<ProcessProfile> profiles)
+        {
+            var sanitized = SanitizeProfiles(profiles).ToList();
+            string jsonContent = JsonSerializer.Serialize(sanitized, JsonOptions);
+            _ = JsonSerializer.Deserialize<List<ProcessProfile>>(jsonContent, JsonOptions);
+            AtomicFileService.WriteAllTextAtomic(filePath, jsonContent);
+        }
+
+        /// <summary>
+        /// Imports profiles from a JSON file into the live store. Never overwrites blindly:
+        /// imported profiles are merged and pass the same sanitize + precedence rules.
+        /// Returns counts; the live file is only rewritten when at least one profile imports.
+        /// </summary>
+        public ProfileImportResult ImportProfiles(string filePath)
+        {
+            var result = new ProfileImportResult();
+            try
+            {
+                if (!File.Exists(filePath))
+                {
+                    result.Errors.Add("File not found.");
+                    return result;
+                }
+
+                string jsonContent = File.ReadAllText(filePath, System.Text.Encoding.UTF8);
+                var imported = JsonSerializer.Deserialize<List<ProcessProfile>>(jsonContent, JsonOptions)
+                    ?? new List<ProcessProfile>();
+                result.Read = imported.Count;
+
+                var sanitized = SanitizeProfiles(imported).ToList();
+                result.SkippedInvalid = result.Read - sanitized.Count;
+                if (sanitized.Count == 0)
+                {
+                    result.Errors.Add("No valid profiles found in file.");
+                    return result;
+                }
+
+                var current = LoadProfiles();
+                SaveProfiles(MergeImported(current, sanitized));
+                result.Imported = sanitized.Count;
+                _logger.Info($"Profiles imported: {result.Imported} from '{filePath}' ({result.SkippedInvalid} invalid skipped)");
+                return result;
+            }
+            catch (Exception ex)
+            {
+                result.Errors.Add(ex.Message);
+                _logger.Error("Failed to import profiles", ex);
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// Pure merge used by import: concatenates and re-sanitizes so the
+        /// standard dedup + precedence rules decide the winners. Testable without IO.
+        /// </summary>
+        public static List<ProcessProfile> MergeImported(IEnumerable<ProcessProfile> current, IEnumerable<ProcessProfile> imported)
+        {
+            return SanitizeProfiles(current.Concat(imported)).ToList();
+        }
+
         public static IEnumerable<ProcessProfile> SanitizeProfiles(IEnumerable<ProcessProfile> profiles)
         {
             return profiles
@@ -222,5 +312,14 @@ namespace ProcessCoreOptimizer.WPF.Services
             return mode == OptimizationMode.Exclusive ? OptimizationMode.Affinity : mode;
 #pragma warning restore CS0618
         }
+    }
+
+    public sealed class ProfileImportResult
+    {
+        public int Read { get; set; }
+        public int Imported { get; set; }
+        public int SkippedInvalid { get; set; }
+        public List<string> Errors { get; set; } = new();
+        public bool Success => Imported > 0 && Errors.Count == 0;
     }
 }

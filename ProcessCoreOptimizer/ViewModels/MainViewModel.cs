@@ -29,6 +29,8 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         private readonly ProfileService _profileService = new();
         private readonly ProcessScannerService _processScannerService;
         private readonly OptimizationService _optimizationService;
+        private readonly ProfileWatcherService _profileWatcher;
+        private readonly AppliedOperationHistory _operationHistory = new();
         private readonly LocalizationService _localizationService = new();
         private readonly UpdateService _updateService = new();
 
@@ -249,6 +251,12 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
 
             _processScannerService = new ProcessScannerService(_processService);
             _optimizationService = new OptimizationService(_processService, () => _cpuSetMap);
+            _profileWatcher = new ProfileWatcherService(
+                _processScannerService,
+                _optimizationService,
+                _operationHistory,
+                () => _profiles.ToList(),
+                () => AppSettings.AllowRealtimePriority);
             _realtimeCacheFlag = _appSettings.AllowRealtimePriority;
 
             _cpuSetMap = _hardwareService.GetLogicalCoreToCpuSetIdMap();
@@ -314,16 +322,28 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 // Snapshot the profile list: the UI thread may add/remove profiles concurrently.
                 List<ProcessProfile> profilesSnapshot = _profiles.ToList();
 
-                ProcessScanResult scan = fullUiScan
-                    ? await _processScannerService.ScanUserProcessesAsync()
-                    : await _processScannerService.ScanProfileProcessesAsync(profilesSnapshot);
+                if (!fullUiScan)
+                {
+                    // Background watcher: single authoritative pipeline with reentrancy,
+                    // cancellation and shutdown guards (no UI touches inside).
+                    OptimizationBatchResult? batch = await _profileWatcher
+                        .RunOnceAsync("background profile watcher", force: false)
+                        .ConfigureAwait(true);
+                    if (batch != null)
+                    {
+                        CleanupOptimizationDiagnosticLogCache();
+                        LogOptimizationBatch(batch, "background profile watcher");
+                    }
 
+                    return;
+                }
+
+                ProcessScanResult scan = await _processScannerService.ScanUserProcessesAsync();
                 _optimizationService.CleanupStaleCache(scan.ActiveInstances);
                 CleanupOptimizationDiagnosticLogCache();
-                var batch = _optimizationService.ApplyProfilesForSnapshots(profilesSnapshot, scan.Groups, AppSettings.AllowRealtimePriority, force: false);
-                LogOptimizationBatch(batch, fullUiScan ? "process list refresh" : "background profile watcher");
-
-                if (!fullUiScan) return;
+                var uiBatch = _optimizationService.ApplyProfilesForSnapshots(profilesSnapshot, scan.Groups, AppSettings.AllowRealtimePriority, force: false);
+                _operationHistory.RecordBatch(uiBatch, "process list refresh");
+                LogOptimizationBatch(uiBatch, "process list refresh");
 
                 UpdateCoreLoads();
                 AddMissingProcessRows(scan.Groups);
@@ -756,6 +776,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         private int ApplyProfileToRunningProcesses(ProcessProfile profile, bool force)
         {
             var result = _optimizationService.ApplyProfileToRunningProcesses(profile, AppSettings.AllowRealtimePriority, force);
+            _operationHistory.RecordBatch(result, force ? "manual profile action" : "background profile watcher");
             LogOptimizationBatch(result, force ? "manual profile action" : "background profile watcher");
             return result.Successful;
         }
@@ -1084,6 +1105,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             _disposed = true;
 
             _refreshTimer.Stop();
+            try { _profileWatcher.Dispose(); } catch { }
             StopHardwareMonitor(closeSensors: true, resetMetrics: false);
             _hardwareService.Dispose();
             _settingsService.Dispose();
