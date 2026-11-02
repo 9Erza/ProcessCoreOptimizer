@@ -47,7 +47,15 @@
 - `CpuVendor` is cached instead of querying WMI per binding.
 - Watcher failure-log throttle no longer keys on PID (restarting processes can't spam) and is bounded to 500 entries.
 - `GetCurrentCoreSelection` (CPU Sets first, affinity fallback) is used when reflecting current selection in the UI.
-- Removed dead code: PID-only overloads, unused `ChangePriority`, unused `GetPriorityString` (replaced by `TryGetPriority`).
+- Removed dead code: PID-only overloads, unused `ChangePriority`, unused `GetPriorityString` (replaced by `TryGetPriority`), legacy `ApplyWindowsStartup`/schtasks paths (replaced by the coordinator), obsolete settings keys (migrated).
+
+### Phase 3 — startup, administration, reset, first-run (this branch)
+- New startup architecture (1.1–1.4): `StartupWindowMode` Normal/Minimized/Tray, desired vs actual evaluation (`Disabled/Registry/ElevatedTask/Conflict/Broken`), COM-based task reads, create-before-delete ordering (the old code deleted the registry entry before the task existed), UAC-cancel handling, privileged helper protocol, cooperative elevated restart with single-instance handoff.
+- New Application Data & Reset: restore-defaults (language preserved, startup reconciled first), factory reset with typed `RESET`, shutdown coordination, link/junction guards, no legacy reimport (one-shot stamp), startup removal reported separately.
+- New 3-page first-run wizard (welcome+language, Affinity vs CPU Sets, startup) gated by onboarding marker; silent upgrade for existing data; reopenable from Settings.
+- Settings reorganized into General / Startup & Privileges / Monitoring / Hardware / Diagnostics / Updates / Data & Reset / About with real startup status, privileges display and admin actions.
+- Inno Setup 2.0 project (`installer/`, AppId `{6AA13087-…}`) with repeatable `tools/Build-Installer.ps1`; historical 1.3.0 identity confirmed unrecoverable.
+- 137 tests (28 planner/coordinator/backend/onboarding/reset/helper, guarded real-startup integration, real Windows API, GUI harness 16/16, perf baseline).
 
 ### Tests & CI (P1/P2)
 - `ProcessCoreOptimizer.Tests` (MSTest, 97 cases): identity, PID reuse, TOCTOU refusal, path-bound, CPU Sets mapping, mask validation, statuses, partial-success retry, cache invalidation, watcher lifecycle incl. post-restore suspension, conflicts, import/export, preview, full CPU Sets restore, updater gates, localization parity, persistence, real Windows API on isolated probes.

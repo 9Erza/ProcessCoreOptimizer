@@ -19,6 +19,12 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 $exe = Join-Path $root $ExePath
 if (!(Test-Path $exe)) { throw "Build output not found: $exe" }
+
+# No zombies: a lingering instance holds the single-instance mutex and every
+# new launch would only show the "already running" dialog (which breaks UIA).
+Get-Process -Name ProcessCoreOptimizer -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+Start-Sleep -Seconds 2
+
 $ev = Join-Path $root $EvidenceDir
 New-Item -ItemType Directory -Force -Path $ev | Out-Null
 
@@ -118,6 +124,8 @@ $report += "Build: $exe, $([System.Diagnostics.FileVersionInfo]::GetVersionInfo(
 $report += "Method: 5s samples, warmup excluded, safe-mode OFF (realistic watcher) with no matching profiles unless stated."
 
 try {
+    # Simulate an existing user so the first-run wizard does not block measurements.
+    '{"OnboardingCompletedVersion":1}' | Out-File (Join-Path $dataDir "settings.json") -Encoding utf8
     # A. Startup x3 (cold-ish: first includes single-file extraction)
     $starts = @()
     for ($i = 1; $i -le 3; $i++) {
@@ -180,7 +188,7 @@ try {
     $report += "J. " + (Summarize "HW monitor ON 45s (Hardware tab)" $rows)
     $rows | Export-Csv (Join-Path $ev "hwmon-on.csv") -NoTypeInformation
     Stop-Process -Id $p.Id -Force; $p.WaitForExit(8000)
-    if (Test-Path $settingsPath) { Remove-Item $settingsPath -Force }
+    '{"OnboardingCompletedVersion":1}' | Out-File $settingsPath -Encoding utf8
 
     # K. Minimized 30 s
     $p = Start-App

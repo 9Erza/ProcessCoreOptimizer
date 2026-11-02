@@ -71,6 +71,26 @@ name+normalized-path, migrates `Exclusive` → `Affinity`. Precedence:
 path-bound, then newest, then Id. Conflicts are computed (`ProfileConflicts`)
 and shown; the engine resolves them deterministically, never randomly.
 
+## Startup, privileges, reset, onboarding
+
+- `DesiredStartupConfiguration` (StartWithWindows + WindowMode + RunElevated)
+  vs `ActualStartupConfiguration` (registry snapshot + scheduled-task snapshot
+  read via COM, locale-independent). `StartupConfigurationPlanner` (pure)
+  decides `Disabled / Registry / ElevatedTask / Conflict / Broken` + reasons +
+  operations; the target channel is always created before the stale one is
+  removed. `StartupConfigurationExecutor` verifies the final state and never
+  declares success on mismatch; `StartupApplyCoordinator` serializes concurrent
+  applies (latest-wins). Elevated writes go through a self re-launch
+  (`--startup-helper create-task|remove-task`), UAC cancel (1223) is a clean
+  cancel; in-proc write when already elevated.
+- `UserDataResetService` (root-scoped): restore-defaults preserves language;
+  factory reset requires typed `RESET`, quiesces the engine, refuses links and
+  escaping paths, deletes only allowlisted files, never reimports legacy files
+  (one-shot stamp consumed by `MigrateLegacyFileIfNeeded`), removes startup
+  separately with its own error channel, truncates the held log afterwards.
+- `OnboardingResolver`: fresh installs (and post-wipe launches) show the
+  3-page first-run wizard; legacy data upgrades silently; interrupted runs resume.
+
 ## Limits (by design)
 
 - Processor group 0 / first 64 logical processors (64-bit affinity mask).
