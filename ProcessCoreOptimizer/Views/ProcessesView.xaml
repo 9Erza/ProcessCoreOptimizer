@@ -34,21 +34,21 @@
                 </DataGrid.RowStyle>
 
                 <DataGrid.Columns>
-                    <DataGridTextColumn Binding="{Binding DisplayName}" Width="*" >
+                    <DataGridTextColumn Binding="{Binding DisplayName}" Width="*" MinWidth="120" >
                         <DataGridTextColumn.HeaderTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{DynamicResource StrColName}" />
                             </DataTemplate>
                         </DataGridTextColumn.HeaderTemplate>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Binding="{Binding InstanceCount}" Width="55">
+                    <DataGridTextColumn Binding="{Binding InstanceCount}" Width="52">
                         <DataGridTextColumn.HeaderTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{DynamicResource StrColInstances}" />
                             </DataTemplate>
                         </DataGridTextColumn.HeaderTemplate>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Binding="{Binding Priority}" Width="120">
+                    <DataGridTextColumn Binding="{Binding Priority}" Width="105">
                         <DataGridTextColumn.HeaderTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{DynamicResource StrColPriority}" />
@@ -78,14 +78,14 @@
                             </Style>
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Binding="{Binding RamUsageMB}" Width="80" >
+                    <DataGridTextColumn Binding="{Binding RamUsageMB}" Width="72" >
                         <DataGridTextColumn.HeaderTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{DynamicResource StrColRam}" />
                             </DataTemplate>
                         </DataGridTextColumn.HeaderTemplate>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Binding="{Binding CpuUsage}" Width="70" >
+                    <DataGridTextColumn Binding="{Binding CpuUsage}" Width="62" >
                         <DataGridTextColumn.HeaderTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{DynamicResource StrColCpu}" />
