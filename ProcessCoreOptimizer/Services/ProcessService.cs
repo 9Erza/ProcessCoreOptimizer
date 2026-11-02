@@ -132,12 +132,7 @@ namespace ProcessCoreOptimizer.WPF.Services
             }
         }
 
-        public string GetPriorityString(int pid)
-        {
-            var priority = TryGetPriority(pid);
-            return priority?.ToString() ?? "Unknown";
-        }
-
+        /// <summary>Use <see cref="TryGetPriority"/> for new code (no string guessing).</summary>
         public virtual ProcessPriorityClass? TryGetPriority(int pid)
         {
             try
@@ -487,7 +482,7 @@ namespace ProcessCoreOptimizer.WPF.Services
             }
         }
 
-        internal static bool MatchesExpectedIdentity(Process process, ProcessInstanceKey expected, string? expectedName, string? expectedPath)
+        public static bool MatchesExpectedIdentity(Process process, ProcessInstanceKey expected, string? expectedName, string? expectedPath)
         {
             try
             {

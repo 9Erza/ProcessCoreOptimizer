@@ -91,5 +91,6 @@
     <system:String x:Key="StrColStatus">STATUS</system:String>
     <system:String x:Key="StrUnknown">Unknown</system:String>
     <system:String x:Key="StrApplyPreset">Apply</system:String>
+    <system:String x:Key="StrRestoreSettings">Restore session</system:String>
 
 </ResourceDictionary>

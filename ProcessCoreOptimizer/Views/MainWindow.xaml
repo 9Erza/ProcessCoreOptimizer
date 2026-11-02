@@ -265,7 +265,8 @@
 
                         <StackPanel Grid.Row="4" Visibility="{Binding ViewProcesses}">
                             <Button Content="{DynamicResource StrSetAffinity}" Command="{Binding ApplySettingsCommand}" Background="{StaticResource PcoAccentBrush}" Margin="0,0,0,10" Style="{StaticResource StandardButton}"/>
-                            <Button Content="{DynamicResource StrSaveProfile}" Command="{Binding SaveProfileCommand}" Background="{StaticResource PcoGreenBrush}" Style="{StaticResource StandardButton}"/>
+                            <Button Content="{DynamicResource StrSaveProfile}" Command="{Binding SaveProfileCommand}" Background="{StaticResource PcoGreenBrush}" Margin="0,0,0,10" Style="{StaticResource StandardButton}"/>
+                            <Button Content="{DynamicResource StrRestoreSettings}" Command="{Binding RestoreSettingsCommand}" Background="{StaticResource PcoControlBrush}" Style="{StaticResource StandardButton}"/>
                         </StackPanel>
 
                         <StackPanel Grid.Row="4" Visibility="{Binding ViewProfiles}">
