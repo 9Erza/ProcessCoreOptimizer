@@ -42,9 +42,10 @@ namespace ProcessCoreOptimizer.WPF.Services
                     _logger.Info($"CPU topology from CPU Sets: logical={cores.Count}, P={cores.Count(c => !c.IsECore && !c.IsThread)}, T={cores.Count(c => c.IsThread)}, E={cores.Count(c => c.IsECore)}");
 
                     int totalCpuSets = GetSystemCpuSetInfos().Count;
+                    const string groupNote = "Only processor group 0 / first 64 logical processors are exposed because classic affinity masks are limited in this UI.";
                     if (totalCpuSets > cores.Count)
                     {
-                        _logger.Warn("Only processor group 0 / first 64 logical processors are exposed because classic affinity masks are limited in this UI.");
+                        _logger.Warn(groupNote);
                     }
 
                     return cores;
@@ -213,7 +214,8 @@ namespace ProcessCoreOptimizer.WPF.Services
         private List<CpuSetInfo> GetSystemCpuSetInfos()
         {
             var results = new List<CpuSetInfo>();
-            IntPtr currentProcessHandle = Process.GetCurrentProcess().Handle;
+            using var currentProcess = Process.GetCurrentProcess();
+            IntPtr currentProcessHandle = currentProcess.Handle;
 
             NativeMethods.GetSystemCpuSetInformation(IntPtr.Zero, 0, out uint length, currentProcessHandle, 0);
             if (length == 0)

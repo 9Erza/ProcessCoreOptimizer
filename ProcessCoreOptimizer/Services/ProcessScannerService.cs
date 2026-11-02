@@ -16,6 +16,7 @@ namespace ProcessCoreOptimizer.WPF.Services
         private readonly ProcessService _processService;
         private readonly ILogger _logger;
         private readonly Dictionary<ProcessInstanceKey, TimeSpan> _lastCpuTimes = new();
+        private readonly object _cpuTimesLock = new();
         private DateTime _lastSampleUtc = DateTime.UtcNow;
 
         public ProcessScannerService(ProcessService processService)
@@ -64,7 +65,8 @@ namespace ProcessCoreOptimizer.WPF.Services
         {
             var processNames = profiles
                 .Where(p => p.IsEnabled && !string.IsNullOrWhiteSpace(p.ProcessName))
-                .Select(p => p.ProcessName)
+                .Select(p => ProfileService.NormalizeProcessName(p.ProcessName))
+                .Where(n => !string.IsNullOrWhiteSpace(n))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
@@ -128,13 +130,16 @@ namespace ProcessCoreOptimizer.WPF.Services
                         {
                             totalMemory += process.WorkingSet64;
                             TimeSpan currentCpu = process.TotalProcessorTime;
-                            if (_lastCpuTimes.TryGetValue(key, out TimeSpan lastCpu))
+                            lock (_cpuTimesLock)
                             {
-                                double usageMs = Math.Max((currentCpu - lastCpu).TotalMilliseconds, 0);
-                                totalCpu += (usageMs / (elapsedSeconds * 1000 * Math.Max(Environment.ProcessorCount, 1))) * 100;
-                            }
+                                if (_lastCpuTimes.TryGetValue(key, out TimeSpan lastCpu))
+                                {
+                                    double usageMs = Math.Max((currentCpu - lastCpu).TotalMilliseconds, 0);
+                                    totalCpu += (usageMs / (elapsedSeconds * 1000 * Math.Max(Environment.ProcessorCount, 1))) * 100;
+                                }
 
-                            _lastCpuTimes[key] = currentCpu;
+                                _lastCpuTimes[key] = currentCpu;
+                            }
                             priority = process.PriorityClass;
                         }
                     }
@@ -182,9 +187,12 @@ namespace ProcessCoreOptimizer.WPF.Services
 
         private void CleanupCpuCache(HashSet<ProcessInstanceKey> activeInstances)
         {
-            foreach (var staleKey in _lastCpuTimes.Keys.Where(k => !activeInstances.Contains(k)).ToList())
+            lock (_cpuTimesLock)
             {
-                _lastCpuTimes.Remove(staleKey);
+                foreach (var staleKey in _lastCpuTimes.Keys.Where(k => !activeInstances.Contains(k)).ToList())
+                {
+                    _lastCpuTimes.Remove(staleKey);
+                }
             }
         }
     }

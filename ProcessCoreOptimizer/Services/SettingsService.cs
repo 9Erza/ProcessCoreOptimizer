@@ -25,14 +25,27 @@ namespace ProcessCoreOptimizer.WPF.Services
         {
             AppPaths.MigrateLegacyFileIfNeeded("settings.json");
 
-            if (!File.Exists(_filePath))
+            if (!File.Exists(_filePath) && !File.Exists(_filePath + ".bak"))
             {
                 return new AppSettings();
             }
 
             try
             {
-                string? jsonContent = AtomicFileService.ReadAllTextWithBackup(_filePath);
+                string? jsonContent = AtomicFileService.ReadValidatedWithBackup(_filePath, content =>
+                {
+                    if (string.IsNullOrWhiteSpace(content)) return true;
+                    try
+                    {
+                        _ = JsonSerializer.Deserialize<AppSettings>(content);
+                        return true;
+                    }
+                    catch
+                    {
+                        return false;
+                    }
+                });
+
                 if (string.IsNullOrWhiteSpace(jsonContent)) return new AppSettings();
                 var settings = JsonSerializer.Deserialize<AppSettings>(jsonContent) ?? new AppSettings();
                 return SanitizeSettings(settings);
@@ -194,8 +207,12 @@ namespace ProcessCoreOptimizer.WPF.Services
                     WindowStyle = ProcessWindowStyle.Hidden
                 });
 
-                proc?.WaitForExit();
-                if (proc?.ExitCode != 0)
+                if (proc != null && !proc.WaitForExit(TimeSpan.FromSeconds(15)))
+                {
+                    try { proc.Kill(entireProcessTree: true); } catch { }
+                    _logger.Warn("schtasks.exe timed out while creating the autostart task.");
+                }
+                else if (proc?.ExitCode != 0)
                 {
                     _logger.Warn($"schtasks.exe returned exit code {proc?.ExitCode}");
                 }
@@ -226,7 +243,11 @@ namespace ProcessCoreOptimizer.WPF.Services
                     WindowStyle = ProcessWindowStyle.Hidden
                 });
 
-                proc?.WaitForExit();
+                if (proc != null && !proc.WaitForExit(TimeSpan.FromSeconds(15)))
+                {
+                    try { proc.Kill(entireProcessTree: true); } catch { }
+                    _logger.Debug("Scheduled task cleanup timed out.");
+                }
             }
             catch (Exception ex)
             {

@@ -8,7 +8,10 @@ using System.Linq;
 namespace ProcessCoreOptimizer.WPF.Services
 {
     /// <summary>
-    /// Central optimization engine for profiles, temporary process tuning and future ERZA Performance Hub sessions.
+    /// Central optimization engine for profiles. Cached observations never authorize
+    /// a mutation: every target is re-validated (PID + start time + name + path)
+    /// immediately before touching the OS. Only fully-applied profiles are cached,
+    /// so partial failures are retried on the next watcher tick.
     /// </summary>
     public sealed class OptimizationService
     {
@@ -16,6 +19,7 @@ namespace ProcessCoreOptimizer.WPF.Services
         private readonly Func<Dictionary<int, uint>> _cpuSetMapProvider;
         private readonly ILogger _logger;
         private readonly Dictionary<ProcessInstanceKey, string> _appliedProfileSignatures = new();
+        private readonly object _cacheLock = new();
 
         public OptimizationService(ProcessService processService, Func<Dictionary<int, uint>> cpuSetMapProvider)
         {
@@ -31,9 +35,13 @@ namespace ProcessCoreOptimizer.WPF.Services
 
             try
             {
-                processes = Process.GetProcessesByName(profile.ProcessName);
+                string processName = ProfileService.NormalizeProcessName(profile.ProcessName);
+                processes = Process.GetProcessesByName(processName);
                 foreach (var process in processes)
                 {
+                    string? livePath = ProcessIdentityValidator.TryGetProcessPath(process);
+                    if (!ProfileService.MatchesIdentity(profile, process.ProcessName, livePath)) continue;
+
                     var result = ApplyProfileToProcess(process, profile, allowRealtimePriority, force);
                     batch.Results.Add(result);
                 }
@@ -54,20 +62,31 @@ namespace ProcessCoreOptimizer.WPF.Services
 
         public OptimizationBatchResult ApplyProfilesForSnapshots(IEnumerable<ProcessProfile> profiles, IEnumerable<ProcessGroupSnapshot> snapshots, bool allowRealtimePriority, bool force)
         {
+            // Multiple profiles may share one process name (e.g. path-bound variants).
+            // Path-bound profiles win over name-only profiles; newest wins on ties.
             var byName = profiles
                 .Where(p => p.IsEnabled)
-                .ToDictionary(p => p.ProcessName, p => p, StringComparer.OrdinalIgnoreCase);
+                .GroupBy(p => ProfileService.NormalizeProcessName(p.ProcessName), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.OrderByDescending(p => !string.IsNullOrWhiteSpace(p.ExecutablePath)).ThenByDescending(p => p.UpdatedAt).ToList(),
+                    StringComparer.OrdinalIgnoreCase);
 
             var batch = new OptimizationBatchResult();
 
             foreach (var snapshot in snapshots)
             {
-                if (!byName.TryGetValue(snapshot.Name, out var profile)) continue;
+                if (!byName.TryGetValue(ProfileService.NormalizeProcessName(snapshot.Name), out var matchingProfiles)) continue;
 
                 foreach (var instance in snapshot.Instances)
                 {
-                    var result = ApplyProfileToPid(instance, snapshot.Name, profile, allowRealtimePriority, force);
-                    batch.Results.Add(result);
+                    foreach (var profile in matchingProfiles)
+                    {
+                        var result = ApplyProfileToPid(instance, snapshot.Name, profile, allowRealtimePriority, force);
+                        if (result.Message == "SKIPPED_IDENTITY_MISMATCH") continue;
+                        batch.Results.Add(result);
+                        break;
+                    }
                 }
             }
 
@@ -82,23 +101,52 @@ namespace ProcessCoreOptimizer.WPF.Services
             return ApplyProfileToPid(ProcessScannerService.CreateInstanceKey(process), process.ProcessName, profile, allowRealtimePriority, force);
         }
 
-        private OptimizationResult ApplyProfileToPid(ProcessInstanceKey key, string processName, ProcessProfile profile, bool allowRealtimePriority, bool force)
+        internal OptimizationResult ApplyProfileToPid(ProcessInstanceKey key, string processName, ProcessProfile profile, bool allowRealtimePriority, bool force)
         {
-            string priority = PriorityService.Normalize(profile.Priority, allowRealtimePriority);
-            var mode = NormalizeOptimizationMode(profile.OptimizationMode);
-            string signature = BuildProfileSignature(profile, priority, mode, allowRealtimePriority);
-
-            if (!force && _appliedProfileSignatures.TryGetValue(key, out string? existingSignature) && existingSignature == signature)
+            if (ProcessService.IsProtectedProcessName(processName))
             {
                 return new OptimizationResult
                 {
                     Success = false,
                     ProcessId = key.ProcessId,
                     ProcessName = processName,
-                    Mode = mode,
-                    Priority = priority,
-                    Message = "SKIPPED_ALREADY_APPLIED"
+                    Mode = NormalizeOptimizationMode(profile.OptimizationMode),
+                    Priority = PriorityService.Normalize(profile.Priority, allowRealtimePriority),
+                    Message = "SKIPPED_PROTECTED"
                 };
+            }
+
+            if (!ProcessIdentityValidator.MatchesLiveProcess(key, processName, profile))
+            {
+                return new OptimizationResult
+                {
+                    Success = false,
+                    ProcessId = key.ProcessId,
+                    ProcessName = processName,
+                    Mode = NormalizeOptimizationMode(profile.OptimizationMode),
+                    Priority = PriorityService.Normalize(profile.Priority, allowRealtimePriority),
+                    Message = "SKIPPED_IDENTITY_MISMATCH"
+                };
+            }
+
+            string priority = PriorityService.Normalize(profile.Priority, allowRealtimePriority);
+            var mode = NormalizeOptimizationMode(profile.OptimizationMode);
+            string signature = BuildProfileSignature(profile, priority, mode, allowRealtimePriority);
+
+            lock (_cacheLock)
+            {
+                if (!force && _appliedProfileSignatures.TryGetValue(key, out string? existingSignature) && existingSignature == signature)
+                {
+                    return new OptimizationResult
+                    {
+                        Success = false,
+                        ProcessId = key.ProcessId,
+                        ProcessName = processName,
+                        Mode = mode,
+                        Priority = priority,
+                        Message = "SKIPPED_ALREADY_APPLIED"
+                    };
+                }
             }
 
             bool coreApplied = false;
@@ -110,24 +158,40 @@ namespace ProcessCoreOptimizer.WPF.Services
 
             if (profile.ApplyCoreOptimization)
             {
-                coreMessage = _processService.ApplyCoreOptimization(key.ProcessId, profile.AffinityMask, mode, _cpuSetMapProvider());
+                coreMessage = _processService.ApplyCoreOptimization(
+                    key.ProcessId, profile.AffinityMask, mode, _cpuSetMapProvider(),
+                    key, ProfileService.NormalizeProcessName(processName), profile.ExecutablePath);
                 coreApplied = coreMessage.StartsWith("OK", StringComparison.OrdinalIgnoreCase);
-                requiresAdmin = coreMessage.Contains("_5", StringComparison.OrdinalIgnoreCase) || coreMessage.Contains("ACCESS", StringComparison.OrdinalIgnoreCase);
+                requiresAdmin = ProcessService.RequiresAdminForMessage(coreMessage);
                 win32Error = ExtractWin32Error(coreMessage);
             }
 
             if (profile.ApplyPriority && PriorityService.TryParse(priority, allowRealtimePriority, out ProcessPriorityClass parsedPriority))
             {
-                priorityApplied = _processService.SetPriority(key.ProcessId, parsedPriority);
+                priorityApplied = _processService.SetPriority(
+                    key.ProcessId, parsedPriority,
+                    key, ProfileService.NormalizeProcessName(processName), profile.ExecutablePath);
                 priorityMessage = priorityApplied ? "OK_PRIORITY" : "ERR_PRIORITY";
             }
 
             bool success = coreApplied || priorityApplied;
-            if (success)
+            bool allRequested = (!profile.ApplyCoreOptimization || coreApplied)
+                && (!profile.ApplyPriority || priorityApplied);
+
+            lock (_cacheLock)
             {
-                _appliedProfileSignatures[key] = signature;
+                if (success && allRequested)
+                {
+                    _appliedProfileSignatures[key] = signature;
+                }
+                else
+                {
+                    // Partial success must NOT be cached: the failed half is retried next tick.
+                    _appliedProfileSignatures.Remove(key);
+                }
             }
-            else
+
+            if (!success)
             {
                 _logger.Debug($"Optimization failed for PID {key.ProcessId}: core={coreMessage}, priority={priorityMessage}");
             }
@@ -152,10 +216,14 @@ namespace ProcessCoreOptimizer.WPF.Services
             Process[] processes = Array.Empty<Process>();
             try
             {
-                processes = Process.GetProcessesByName(processName);
-                foreach (var process in processes)
+                string normalized = ProfileService.NormalizeProcessName(processName);
+                processes = Process.GetProcessesByName(normalized);
+                lock (_cacheLock)
                 {
-                    _appliedProfileSignatures.Remove(ProcessScannerService.CreateInstanceKey(process));
+                    foreach (var process in processes)
+                    {
+                        _appliedProfileSignatures.Remove(ProcessScannerService.CreateInstanceKey(process));
+                    }
                 }
             }
             finally
@@ -167,19 +235,25 @@ namespace ProcessCoreOptimizer.WPF.Services
             }
         }
 
-        public void ClearAllCache() => _appliedProfileSignatures.Clear();
+        public void ClearAllCache()
+        {
+            lock (_cacheLock) _appliedProfileSignatures.Clear();
+        }
 
         public void CleanupStaleCache(HashSet<ProcessInstanceKey> activeInstances)
         {
-            foreach (var staleKey in _appliedProfileSignatures.Keys.Where(k => !activeInstances.Contains(k)).ToList())
+            lock (_cacheLock)
             {
-                _appliedProfileSignatures.Remove(staleKey);
+                foreach (var staleKey in _appliedProfileSignatures.Keys.Where(k => !activeInstances.Contains(k)).ToList())
+                {
+                    _appliedProfileSignatures.Remove(staleKey);
+                }
             }
         }
 
-        private static string BuildProfileSignature(ProcessProfile profile, string priority, OptimizationMode mode, bool allowRealtimePriority)
+        internal static string BuildProfileSignature(ProcessProfile profile, string priority, OptimizationMode mode, bool allowRealtimePriority)
         {
-            return $"{profile.ProcessName}|{profile.AffinityMask:X}|{priority}|{mode}|{profile.IsEnabled}|{profile.ApplyPriority}|{profile.ApplyCoreOptimization}|RT:{allowRealtimePriority}";
+            return $"{ProfileService.NormalizeProcessName(profile.ProcessName)}|{profile.AffinityMask:X}|{priority}|{mode}|{profile.IsEnabled}|{profile.ApplyPriority}|{profile.ApplyCoreOptimization}|RT:{allowRealtimePriority}|path:{ProfileService.NormalizeExecutablePath(profile.ExecutablePath) ?? "-"}";
         }
 
         private static OptimizationMode NormalizeOptimizationMode(OptimizationMode mode)

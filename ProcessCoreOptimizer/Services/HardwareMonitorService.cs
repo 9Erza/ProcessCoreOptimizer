@@ -93,18 +93,23 @@ namespace ProcessCoreOptimizer.WPF.Services
                     }
                 }
 
-                if (hardware.HardwareType == HardwareType.GpuNvidia || hardware.HardwareType == HardwareType.GpuAmd)
+                if (hardware.HardwareType == HardwareType.GpuNvidia || hardware.HardwareType == HardwareType.GpuAmd || hardware.HardwareType == HardwareType.GpuIntel)
                 {
-                    metrics.GpuLoad = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Load && s.Name.Contains("Core"))?.Value ?? 0;
-                    metrics.GpuTemp = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Temperature && s.Name == "GPU Core")?.Value ?? 0;
-                    metrics.GpuHotSpot = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Temperature && s.Name.Contains("Hot Spot"))?.Value ?? 0;
-                    metrics.GpuVramTemp = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Temperature && s.Name.Contains("Memory"))?.Value ?? 0;
-                    metrics.GpuCoreClock = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Clock && s.Name.Contains("Core"))?.Value ?? 0;
-                    metrics.GpuMemClock = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Clock && s.Name.Contains("Memory"))?.Value ?? 0;
-                    metrics.GpuPower = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Power)?.Value ?? 0;
+                    double gpuLoad = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Load && s.Name.Contains("Core"))?.Value ?? 0;
+                    // Multiple GPUs: keep the busiest one instead of letting the last device win.
+                    if (gpuLoad >= metrics.GpuLoad)
+                    {
+                        metrics.GpuLoad = gpuLoad;
+                        metrics.GpuTemp = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Temperature && s.Name == "GPU Core")?.Value ?? 0;
+                        metrics.GpuHotSpot = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Temperature && s.Name.Contains("Hot Spot"))?.Value ?? 0;
+                        metrics.GpuVramTemp = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Temperature && s.Name.Contains("Memory"))?.Value ?? 0;
+                        metrics.GpuCoreClock = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Clock && s.Name.Contains("Core"))?.Value ?? 0;
+                        metrics.GpuMemClock = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Clock && s.Name.Contains("Memory"))?.Value ?? 0;
+                        metrics.GpuPower = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Power)?.Value ?? 0;
 
-                    var vramLoad = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Load && s.Name.Contains("Memory"));
-                    metrics.VramUsagePct = vramLoad?.Value ?? 0;
+                        var vramLoad = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Load && s.Name.Contains("Memory"));
+                        metrics.VramUsagePct = vramLoad?.Value ?? 0;
+                    }
                 }
 
                 if (hardware.HardwareType == HardwareType.Memory)
@@ -126,28 +131,42 @@ namespace ProcessCoreOptimizer.WPF.Services
             return metrics;
         }
 
+        private static System.Diagnostics.PerformanceCounter? _ramAvailableCounter;
+        private static readonly object _ramFallbackLock = new();
+        private static double _cachedTotalMemoryMB;
+        private static DateTime _totalMemoryCachedAtUtc = DateTime.MinValue;
+
         private static void FillRamFallback(HardwareMetrics metrics)
         {
-            if (metrics.RamUsagePct != 0 && metrics.RamUsedGB != 0) return;
+            if (metrics.RamUsagePct != 0 && metrics.RamUsedGB != 0 && metrics.RamAvailableGB != 0) return;
 
             try
             {
-                using var availableCounter = new System.Diagnostics.PerformanceCounter("Memory", "Available MBytes");
-                double availableMB = availableCounter.NextValue();
-
-                using var searcher = new ManagementObjectSearcher("SELECT TotalVisibleMemorySize FROM Win32_OperatingSystem");
-                double totalMB = 0;
-                foreach (var item in searcher.Get())
+                lock (_ramFallbackLock)
                 {
-                    totalMB = Convert.ToDouble(item["TotalVisibleMemorySize"]) / 1024;
+                    _ramAvailableCounter ??= new System.Diagnostics.PerformanceCounter("Memory", "Available MBytes");
+
+                    if (_cachedTotalMemoryMB <= 0 || DateTime.UtcNow - _totalMemoryCachedAtUtc > TimeSpan.FromMinutes(10))
+                    {
+                        using var searcher = new ManagementObjectSearcher("SELECT TotalVisibleMemorySize FROM Win32_OperatingSystem");
+                        foreach (var item in searcher.Get())
+                        {
+                            _cachedTotalMemoryMB = Convert.ToDouble(item["TotalVisibleMemorySize"]) / 1024;
+                            _totalMemoryCachedAtUtc = DateTime.UtcNow;
+                            break;
+                        }
+                    }
                 }
+
+                double availableMB = _ramAvailableCounter.NextValue();
+                double totalMB = _cachedTotalMemoryMB;
 
                 if (totalMB > 0)
                 {
-                    double usedMB = totalMB - availableMB;
-                    metrics.RamAvailableGB = Math.Round(availableMB / 1024.0, 1);
-                    metrics.RamUsedGB = Math.Round(usedMB / 1024.0, 1);
-                    metrics.RamUsagePct = Math.Round((usedMB / totalMB) * 100, 1);
+                    double usedMB = Math.Max(totalMB - availableMB, 0);
+                    if (metrics.RamAvailableGB == 0) metrics.RamAvailableGB = Math.Round(availableMB / 1024.0, 1);
+                    if (metrics.RamUsedGB == 0) metrics.RamUsedGB = Math.Round(usedMB / 1024.0, 1);
+                    if (metrics.RamUsagePct == 0) metrics.RamUsagePct = Math.Round((usedMB / totalMB) * 100, 1);
                 }
             }
             catch
