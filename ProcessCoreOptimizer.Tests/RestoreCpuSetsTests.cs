@@ -68,7 +68,7 @@ public sealed class RestoreCpuSetsTests
     [TestMethod]
     public void Restore_NoExplicitSetsBaseline_ClearsCurrentSets()
     {
-        var fake = new FakeProcessService();
+        var fake = new FakeProcessService { ClearCpuSetsBehavior = pid => true };
         var svc = new SessionRestoreService();
         var field = typeof(SessionRestoreService).GetField("_entries", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
         ((System.Collections.IList)field.GetValue(svc)!).Add(new SessionRestoreEntry
