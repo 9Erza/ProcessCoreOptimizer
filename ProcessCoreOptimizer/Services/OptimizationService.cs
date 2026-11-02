@@ -168,11 +168,30 @@ namespace ProcessCoreOptimizer.WPF.Services
             bool requiresAdmin = false;
             int? win32Error = null;
 
+            if (!ProcessMutationTarget.TryCreate(
+                    key.ProcessId, key.StartTimeUtc,
+                    ProfileService.NormalizeProcessName(processName), profile.ExecutablePath,
+                    out ProcessMutationTarget target))
+            {
+                return new OptimizationResult
+                {
+                    Success = false,
+                    ProcessId = key.ProcessId,
+                    ProcessName = processName,
+                    Mode = mode,
+                    Priority = priority,
+                    Message = "SKIPPED_IDENTITY_MISMATCH",
+                    Status = OperationStatus.SkippedIdentityMismatch,
+                    Retryable = false,
+                    RequestedCore = profile.ApplyCoreOptimization,
+                    RequestedPriority = profile.ApplyPriority
+                };
+            }
+
             if (profile.ApplyCoreOptimization)
             {
                 coreMessage = _processService.ApplyCoreOptimization(
-                    key.ProcessId, profile.AffinityMask, mode, _cpuSetMapProvider(),
-                    key, ProfileService.NormalizeProcessName(processName), profile.ExecutablePath);
+                    key.ProcessId, profile.AffinityMask, mode, _cpuSetMapProvider(), target);
                 coreApplied = coreMessage.StartsWith("OK", StringComparison.OrdinalIgnoreCase);
                 requiresAdmin = ProcessService.RequiresAdminForMessage(coreMessage);
                 win32Error = ExtractWin32Error(coreMessage);
@@ -180,9 +199,7 @@ namespace ProcessCoreOptimizer.WPF.Services
 
             if (profile.ApplyPriority && PriorityService.TryParse(priority, allowRealtimePriority, out ProcessPriorityClass parsedPriority))
             {
-                priorityApplied = _processService.SetPriority(
-                    key.ProcessId, parsedPriority,
-                    key, ProfileService.NormalizeProcessName(processName), profile.ExecutablePath);
+                priorityApplied = _processService.SetPriority(key.ProcessId, parsedPriority, target);
                 priorityMessage = priorityApplied ? "OK_PRIORITY" : "ERR_PRIORITY";
                 requiresAdmin |= !priorityApplied && IsAccessDeniedPriority(key.ProcessId);
             }

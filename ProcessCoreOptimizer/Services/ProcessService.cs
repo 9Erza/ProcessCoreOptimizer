@@ -11,9 +11,10 @@ namespace ProcessCoreOptimizer.WPF.Services
 {
     /// <summary>
     /// Safe wrapper around process priority, affinity and CPU Sets APIs.
-    /// Every mutating overload that receives an expected identity re-validates
-    /// PID + start time + process name (+ EXE path for path-bound profiles)
-    /// immediately before touching the OS. Cached snapshots never authorize a mutation.
+    /// Every mutation requires a valid <see cref="Models.ProcessMutationTarget"/>
+    /// (PID + start time + process name + EXE path when bound), re-validated
+    /// immediately before touching the OS. There is no null/default bypass:
+    /// invalid targets are refused before any handle is opened.
     /// </summary>
     public class ProcessService
     {
@@ -50,19 +51,24 @@ namespace ProcessCoreOptimizer.WPF.Services
             }
         }
 
-        public virtual bool SetProcessAffinity(int pid, long mask, ProcessInstanceKey? expected, string? expectedName, string? expectedPath)
+        public virtual bool SetProcessAffinity(int pid, long mask, ProcessMutationTarget target)
         {
             if (mask == 0) return false;
+            if (!target.IsValid || target.ProcessId != pid)
+            {
+                _logger.Warn($"Refusing affinity change for PID {pid}: incomplete mutation identity.");
+                return false;
+            }
 
             try
             {
-                if (expected.HasValue && !VerifyIdentityBeforeMutation(pid, expected.Value, expectedName, expectedPath))
+                if (!VerifyIdentityBeforeMutation(pid, target))
                 {
                     return false;
                 }
 
                 using var proc = Process.GetProcessById(pid);
-                if (expected.HasValue && !MatchesExpectedIdentity(proc, expected.Value, expectedName, expectedPath))
+                if (!MatchesExpectedIdentity(proc, target))
                 {
                     _logger.Warn($"Process identity mismatch for PID {pid}; affinity not set.");
                     return false;
@@ -78,8 +84,14 @@ namespace ProcessCoreOptimizer.WPF.Services
             }
         }
 
-        public virtual bool SetPriority(int pid, ProcessPriorityClass priority, ProcessInstanceKey? expected, string? expectedName, string? expectedPath)
+        public virtual bool SetPriority(int pid, ProcessPriorityClass priority, ProcessMutationTarget target)
         {
+            if (!target.IsValid || target.ProcessId != pid)
+            {
+                _logger.Warn($"Refusing priority change for PID {pid}: incomplete mutation identity.");
+                return false;
+            }
+
             try
             {
                 IntPtr hProc = NativeMethods.OpenProcess(
@@ -93,22 +105,18 @@ namespace ProcessCoreOptimizer.WPF.Services
 
                 try
                 {
-                    if (expected.HasValue)
+                    if (!TryGetProcessStartTimeUtc(hProc, out DateTime startUtc)
+                        || startUtc != target.StartTimeUtc)
                     {
-                        if (!TryGetProcessStartTimeUtc(hProc, out DateTime startUtc)
-                            || expected.Value.StartTimeUtc == default
-                            || startUtc != expected.Value.StartTimeUtc)
-                        {
-                            _logger.Warn($"Process identity start time mismatch or process recycled for PID {pid}; priority not set.");
-                            return false;
-                        }
+                        _logger.Warn($"Process identity start time mismatch or process recycled for PID {pid}; priority not set.");
+                        return false;
+                    }
 
-                        using var proc = Process.GetProcessById(pid);
-                        if (!MatchesExpectedIdentity(proc, expected.Value, expectedName, expectedPath))
-                        {
-                            _logger.Warn($"Process identity mismatch for PID {pid}; priority not set.");
-                            return false;
-                        }
+                    using var proc = Process.GetProcessById(pid);
+                    if (!MatchesExpectedIdentity(proc, target))
+                    {
+                        _logger.Warn($"Process identity mismatch for PID {pid}; priority not set.");
+                        return false;
                     }
 
                     bool ok = NativeMethods.SetPriorityClass(hProc, (uint)priority);
@@ -160,8 +168,14 @@ namespace ProcessCoreOptimizer.WPF.Services
 
         public virtual string ApplyCoreOptimization(
             int pid, long mask, OptimizationMode mode, Dictionary<int, uint> cpuSetMap,
-            ProcessInstanceKey? expected, string? expectedName, string? expectedPath)
+            ProcessMutationTarget target)
         {
+            if (!target.IsValid || target.ProcessId != pid)
+            {
+                _logger.Warn($"Refusing core optimization for PID {pid}: incomplete mutation identity.");
+                return "ERR_IDENTITY_MISMATCH";
+            }
+
             string? maskError = ValidateCoreMask(mask, cpuSetMap);
             if (maskError != null) return maskError;
 
@@ -175,15 +189,15 @@ namespace ProcessCoreOptimizer.WPF.Services
 
             try
             {
-                if (expected.HasValue && !VerifyIdentityBeforeMutation(pid, expected.Value, expectedName, expectedPath))
+                if (!VerifyIdentityBeforeMutation(pid, target))
                 {
                     return "ERR_IDENTITY_MISMATCH";
                 }
 
                 return mode switch
                 {
-                    OptimizationMode.Affinity => ApplyAffinityMode(pid, mask, expected, expectedName, expectedPath),
-                    OptimizationMode.CpuSets => ApplyCpuSetsMode(pid, mask, cpuSetMap, expected, expectedName, expectedPath),
+                    OptimizationMode.Affinity => ApplyAffinityMode(pid, mask, target),
+                    OptimizationMode.CpuSets => ApplyCpuSetsMode(pid, mask, cpuSetMap, target),
                     _ => "ERR_UNKNOWN_MODE"
                 };
             }
@@ -194,10 +208,10 @@ namespace ProcessCoreOptimizer.WPF.Services
             }
         }
 
-        private string ApplyAffinityMode(int pid, long mask, ProcessInstanceKey? expected, string? expectedName, string? expectedPath)
+        private string ApplyAffinityMode(int pid, long mask, ProcessMutationTarget target)
         {
             using var proc = Process.GetProcessById(pid);
-            if (expected.HasValue && !MatchesExpectedIdentity(proc, expected.Value, expectedName, expectedPath))
+            if (!MatchesExpectedIdentity(proc, target))
             {
                 _logger.Warn($"Process identity mismatch for PID {pid}; affinity not set.");
                 return "ERR_IDENTITY_MISMATCH";
@@ -207,7 +221,7 @@ namespace ProcessCoreOptimizer.WPF.Services
             // Affinity and CPU Sets are independent mechanisms: the OS keeps stale
             // CPU Sets unless we clear them. A failed clear must stay visible instead
             // of hiding behind a plain OK_AFFINITY.
-            bool cleared = ClearCpuSets(pid, expected, expectedName, expectedPath);
+            bool cleared = ClearCpuSets(pid, target);
             return ResolveAffinityResult(cleared);
         }
 
@@ -218,7 +232,7 @@ namespace ProcessCoreOptimizer.WPF.Services
         public static string ResolveAffinityResult(bool cpuSetsCleared) =>
             cpuSetsCleared ? "OK_AFFINITY" : "OK_AFFINITY_CPUSETS_NOT_CLEARED";
 
-        private string ApplyCpuSetsMode(int pid, long mask, Dictionary<int, uint> cpuSetMap, ProcessInstanceKey? expected, string? expectedName, string? expectedPath)
+        private string ApplyCpuSetsMode(int pid, long mask, Dictionary<int, uint> cpuSetMap, ProcessMutationTarget target)
         {
             if (cpuSetMap.Count == 0)
             {
@@ -240,14 +254,19 @@ namespace ProcessCoreOptimizer.WPF.Services
 
             try
             {
-                if (expected.HasValue)
+                // Start-time gate on the stable handle, then full name/path
+                // re-check before the write: a recycled PID never gets foreign sets.
+                if (!TryGetProcessStartTimeUtc(hProc, out DateTime startUtc)
+                    || startUtc != target.StartTimeUtc)
                 {
-                    if (!TryGetProcessStartTimeUtc(hProc, out DateTime startUtc)
-                        || expected.Value.StartTimeUtc == default
-                        || startUtc != expected.Value.StartTimeUtc)
-                    {
-                        return "ERR_IDENTITY_MISMATCH";
-                    }
+                    return "ERR_IDENTITY_MISMATCH";
+                }
+
+                using var proc = Process.GetProcessById(pid);
+                if (!MatchesExpectedIdentity(proc, target))
+                {
+                    _logger.Warn($"Process identity mismatch for PID {pid}; CPU Sets not set.");
+                    return "ERR_IDENTITY_MISMATCH";
                 }
 
                 bool ok = NativeMethods.SetProcessDefaultCpuSets(hProc, selectedCpuSetIds, (uint)selectedCpuSetIds.Length);
@@ -265,7 +284,7 @@ namespace ProcessCoreOptimizer.WPF.Services
             }
         }
 
-        private bool ClearCpuSets(int pid, ProcessInstanceKey? expected = null, string? expectedName = null, string? expectedPath = null)
+        private bool ClearCpuSets(int pid, ProcessMutationTarget target)
         {
             IntPtr hProc = NativeMethods.OpenProcess(NativeMethods.PROCESS_SET_LIMITED_INFORMATION, false, pid);
             if (hProc == IntPtr.Zero) return false;
@@ -273,14 +292,16 @@ namespace ProcessCoreOptimizer.WPF.Services
             try
             {
                 // Never clear CPU Sets of a recycled PID.
-                if (expected.HasValue)
+                if (!TryGetProcessStartTimeUtc(hProc, out DateTime startUtc)
+                    || startUtc != target.StartTimeUtc)
                 {
-                    if (!TryGetProcessStartTimeUtc(hProc, out DateTime startUtc)
-                        || expected.Value.StartTimeUtc == default
-                        || startUtc != expected.Value.StartTimeUtc)
-                    {
-                        return false;
-                    }
+                    return false;
+                }
+
+                using var proc = Process.GetProcessById(pid);
+                if (!MatchesExpectedIdentity(proc, target))
+                {
+                    return false;
                 }
 
                 return NativeMethods.SetProcessDefaultCpuSets(hProc, Array.Empty<uint>(), 0);
@@ -457,10 +478,10 @@ namespace ProcessCoreOptimizer.WPF.Services
                 || message.Contains("DENIED", StringComparison.OrdinalIgnoreCase);
         }
 
-        private static bool VerifyIdentityBeforeMutation(int pid, ProcessInstanceKey expected, string? expectedName, string? expectedPath)
+        private static bool VerifyIdentityBeforeMutation(int pid, ProcessMutationTarget target)
         {
-            if (pid <= 0 || pid != expected.ProcessId) return false;
-            if (expected.StartTimeUtc == default) return false;
+            if (pid <= 0 || pid != target.ProcessId) return false;
+            if (!target.IsValid) return false;
 
             IntPtr hProc = NativeMethods.OpenProcess(NativeMethods.PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
             if (hProc == IntPtr.Zero) return false;
@@ -468,7 +489,7 @@ namespace ProcessCoreOptimizer.WPF.Services
             try
             {
                 if (!TryGetProcessStartTimeUtc(hProc, out DateTime startUtc)) return false;
-                if (startUtc != expected.StartTimeUtc)
+                if (startUtc != target.StartTimeUtc)
                 {
                     _logger.Warn($"Process identity start time mismatch or process recycled for PID {pid}; mutation refused.");
                     return false;
@@ -482,11 +503,12 @@ namespace ProcessCoreOptimizer.WPF.Services
             }
         }
 
-        public static bool MatchesExpectedIdentity(Process process, ProcessInstanceKey expected, string? expectedName, string? expectedPath)
+        public static bool MatchesExpectedIdentity(Process process, ProcessMutationTarget target)
         {
+            if (!target.IsValid) return false;
             try
             {
-                if (process.Id != expected.ProcessId) return false;
+                if (process.Id != target.ProcessId) return false;
                 if (process.HasExited) return false;
 
                 DateTime startUtc;
@@ -499,7 +521,7 @@ namespace ProcessCoreOptimizer.WPF.Services
                     return false;
                 }
 
-                if (expected.StartTimeUtc == default || startUtc != expected.StartTimeUtc) return false;
+                if (startUtc != target.StartTimeUtc) return false;
 
                 string liveName;
                 try
@@ -521,19 +543,17 @@ namespace ProcessCoreOptimizer.WPF.Services
                     livePath = null;
                 }
 
-                // Expected name comes from the snapshot/profile; fall back to live name check only.
-                string nameToCheck = expectedName ?? liveName;
                 if (!string.Equals(
-                    ProfileService.NormalizeProcessName(nameToCheck),
+                    ProfileService.NormalizeProcessName(target.ProcessName),
                     ProfileService.NormalizeProcessName(liveName),
                     StringComparison.OrdinalIgnoreCase))
                 {
                     return false;
                 }
 
-                if (!string.IsNullOrWhiteSpace(expectedPath))
+                if (!string.IsNullOrWhiteSpace(target.ExecutablePath))
                 {
-                    string? expectedNorm = ProfileService.NormalizeExecutablePath(expectedPath);
+                    string? expectedNorm = ProfileService.NormalizeExecutablePath(target.ExecutablePath);
                     string? liveNorm = ProfileService.NormalizeExecutablePath(livePath);
                     if (expectedNorm == null || liveNorm == null) return false;
                     if (!string.Equals(expectedNorm, liveNorm, StringComparison.OrdinalIgnoreCase)) return false;

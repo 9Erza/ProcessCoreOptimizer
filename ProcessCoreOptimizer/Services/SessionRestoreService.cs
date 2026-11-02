@@ -104,11 +104,20 @@ namespace ProcessCoreOptimizer.WPF.Services
 
                     bool restoredAny = false;
 
+                    if (!ProcessMutationTarget.TryCreate(
+                            entry.Key.ProcessId, entry.Key.StartTimeUtc,
+                            entry.ProcessName, entry.ExecutablePath,
+                            out ProcessMutationTarget target))
+                    {
+                        result.Skipped++;
+                        continue;
+                    }
+
                     if (entry.AffinityMask.HasValue && entry.AffinityMask.Value != 0)
                     {
                         try
                         {
-                            if (processService.SetProcessAffinity(proc.Id, entry.AffinityMask.Value, entry.Key, entry.ProcessName, entry.ExecutablePath))
+                            if (processService.SetProcessAffinity(proc.Id, entry.AffinityMask.Value, target))
                             {
                                 restoredAny = true;
                             }
@@ -128,7 +137,7 @@ namespace ProcessCoreOptimizer.WPF.Services
                     {
                         try
                         {
-                            if (processService.SetPriority(proc.Id, entry.Priority.Value, entry.Key, entry.ProcessName, entry.ExecutablePath))
+                            if (processService.SetPriority(proc.Id, entry.Priority.Value, target))
                             {
                                 restoredAny = true;
                             }
