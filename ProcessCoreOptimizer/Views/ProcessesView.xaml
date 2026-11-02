@@ -1,0 +1,128 @@
+<UserControl x:Class="ProcessCoreOptimizer.WPF.Views.ProcessesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Border Style="{StaticResource PcoCard}" Margin="0,0,25,0">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <TextBlock Grid.Row="0" Text="{DynamicResource StrProcessList}" Style="{StaticResource PcoTitle}"/>
+            <TextBox Grid.Row="1" Text="{Binding ProcessFilterText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource PcoFilterBox}" ToolTip="{DynamicResource StrProcessFilter}"/>
+
+            <DataGrid Grid.Row="2" ItemsSource="{Binding Processes}" SelectedItem="{Binding SelectedProcess}" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single" CanUserAddRows="False">
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow">
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="Foreground" Value="{StaticResource PcoTextBrush}"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ModeTag}" Value="Affinity">
+                                <Setter Property="Foreground" Value="{StaticResource PcoAccentBrush}"/>
+                                <Setter Property="FontWeight" Value="Bold"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding ModeTag}" Value="CPU Sets">
+                                <Setter Property="Foreground" Value="{StaticResource PcoGreenBrush}"/>
+                                <Setter Property="FontWeight" Value="Bold"/>
+                            </DataTrigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.RowStyle>
+
+                <DataGrid.Columns>
+                    <DataGridTextColumn Binding="{Binding DisplayName}" Width="*" >
+                        <DataGridTextColumn.HeaderTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{DynamicResource StrColName}" />
+                            </DataTemplate>
+                        </DataGridTextColumn.HeaderTemplate>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Binding="{Binding InstanceCount}" Width="55">
+                        <DataGridTextColumn.HeaderTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{DynamicResource StrColInstances}" />
+                            </DataTemplate>
+                        </DataGridTextColumn.HeaderTemplate>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Binding="{Binding Priority}" Width="120">
+                        <DataGridTextColumn.HeaderTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{DynamicResource StrColPriority}" />
+                            </DataTemplate>
+                        </DataGridTextColumn.HeaderTemplate>
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Style.Triggers>
+                                    <Trigger Property="Text" Value="High">
+                                        <Setter Property="Foreground" Value="{StaticResource PcoRedBrush}"/>
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                    </Trigger>
+                                    <Trigger Property="Text" Value="Wysoki">
+                                        <Setter Property="Foreground" Value="{StaticResource PcoRedBrush}"/>
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                    </Trigger>
+                                    <Trigger Property="Text" Value="Real Time">
+                                        <Setter Property="Foreground" Value="{StaticResource PcoPurpleBrush}"/>
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                    </Trigger>
+                                    <Trigger Property="Text" Value="Czas Rzeczywisty">
+                                        <Setter Property="Foreground" Value="{StaticResource PcoPurpleBrush}"/>
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Binding="{Binding RamUsageMB}" Width="80" >
+                        <DataGridTextColumn.HeaderTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{DynamicResource StrColRam}" />
+                            </DataTemplate>
+                        </DataGridTextColumn.HeaderTemplate>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Binding="{Binding CpuUsage}" Width="70" >
+                        <DataGridTextColumn.HeaderTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{DynamicResource StrColCpu}" />
+                            </DataTemplate>
+                        </DataGridTextColumn.HeaderTemplate>
+                    </DataGridTextColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <Border Grid.Row="3" Background="{StaticResource PcoBg3Brush}" CornerRadius="6" Padding="12" Margin="0,12,0,0" BorderThickness="1" BorderBrush="{StaticResource PcoBorderBrush}">
+                <Grid DataContext="{Binding SelectedProcessDetails}">
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding}" Value="{x:Null}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="{DynamicResource StrProcessDetails}" FontWeight="Bold" FontSize="14" Foreground="{StaticResource PcoAccentBrush}" Margin="0,0,0,6"/>
+                    <TextBlock Grid.Row="1" Foreground="{StaticResource PcoTextBrush}" FontSize="12" TextWrapping="Wrap">
+                        <Run Text="PID: "/><Run Text="{Binding RepresentativePid}"/><Run Text="   |   "/><Run Text="{Binding StartTimeLocalText}"/>
+                    </TextBlock>
+                    <TextBlock Grid.Row="2" Foreground="{StaticResource PcoMutedBrush}" FontSize="12" TextWrapping="Wrap" Text="{Binding ExecutablePath}"/>
+                    <TextBlock Grid.Row="3" Foreground="{StaticResource PcoTextBrush}" FontSize="12">
+                        <Run Text="Affinity: "/><Run Text="{Binding AffinityMask}"/><Run Text=" ("/><Run Text="{Binding AffinitySource}"/><Run Text=")   |   Priority: "/><Run Text="{Binding Priority}"/>
+                    </TextBlock>
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</UserControl>

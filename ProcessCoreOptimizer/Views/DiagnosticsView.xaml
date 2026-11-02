@@ -1,0 +1,90 @@
+<UserControl x:Class="ProcessCoreOptimizer.WPF.Views.DiagnosticsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Border Style="{StaticResource PcoCard}" Grid.ColumnSpan="2">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <TextBlock Text="{DynamicResource StrDiagnostics}" Style="{StaticResource PcoTitle}"/>
+
+                <TextBlock Text="{DynamicResource StrWatcherTitle}" Style="{StaticResource PcoSectionHeader}"/>
+                <Border Background="{StaticResource PcoBg3Brush}" CornerRadius="6" Padding="12" Margin="0,0,0,12" BorderThickness="1" BorderBrush="{StaticResource PcoBorderBrush}">
+                    <StackPanel>
+                        <TextBlock Text="{DynamicResource StrBackgroundWatcherStatus}" Foreground="{StaticResource PcoGreenBrush}" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <TextBlock Text="{Binding WatcherStatusText}" Style="{StaticResource PcoMutedText}"/>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Text="{DynamicResource StrConflictsTitle}" Style="{StaticResource PcoSectionHeader}"/>
+                <TextBlock Margin="0,0,0,8">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource PcoMutedText}">
+                            <Setter Property="Text" Value="{DynamicResource StrNoConflicts}"/>
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasProfileConflicts}" Value="False">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <ItemsControl ItemsSource="{Binding ProfileConflicts}" Margin="0,0,0,8">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Margin="0,0,0,6" Padding="10" Background="{StaticResource PcoBg3Brush}" CornerRadius="6" BorderThickness="1" BorderBrush="{StaticResource PcoBorderSoftBrush}">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding ProcessName}" Foreground="{StaticResource PcoOrangeBrush}" FontWeight="Bold" FontSize="13"/>
+                                    <TextBlock Text="{Binding Reason}" Style="{StaticResource PcoMutedText}"/>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <TextBlock Text="{DynamicResource StrRecentOps}" Style="{StaticResource PcoSectionHeader}"/>
+                <DataGrid ItemsSource="{Binding RecentOperations}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" MaxHeight="260" Margin="0,0,0,12">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Binding="{Binding ProcessName}" Width="*" >
+                            <DataGridTextColumn.HeaderTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{DynamicResource StrColName}" />
+                                </DataTemplate>
+                            </DataGridTextColumn.HeaderTemplate>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Binding="{Binding Status}" Width="130">
+                            <DataGridTextColumn.HeaderTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{DynamicResource StrColStatus}" />
+                                </DataTemplate>
+                            </DataGridTextColumn.HeaderTemplate>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Binding="{Binding Message}" Width="2*">
+                            <DataGridTextColumn.HeaderTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{DynamicResource StrColMode}" />
+                                </DataTemplate>
+                            </DataGridTextColumn.HeaderTemplate>
+                        </DataGridTextColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <TextBlock Text="{DynamicResource StrConsoleLog}" FontSize="11" FontWeight="Bold" Foreground="{StaticResource PcoDimBrush}" Margin="5,0,0,8"/>
+                <Border Background="{StaticResource PcoLogBgBrush}" BorderBrush="{StaticResource PcoBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="5" MinHeight="140">
+                    <ListBox x:Name="DiagLogConsole" ItemsSource="{Binding ActionLogs}" Background="Transparent" BorderThickness="0" Foreground="#A0A0A0" FontSize="11" FontFamily="Consolas" MaxHeight="260" ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <VirtualizingStackPanel VerticalAlignment="Bottom"/>
+                            </ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Padding" Value="5,2,10,2"/>
+                                <Setter Property="IsHitTestVisible" Value="False"/>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                    </ListBox>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </Border>
+</UserControl>

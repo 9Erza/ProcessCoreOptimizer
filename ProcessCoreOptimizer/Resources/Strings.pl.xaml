@@ -68,5 +68,28 @@
     <system:String x:Key="StrPowerDraw">Pobór Mocy:</system:String>
     <system:String x:Key="StrAvgClock">Średnie Takt.:</system:String>
     <system:String x:Key="StrCoreTemps">Temperatury Rdzeni:</system:String>
+    <system:String x:Key="StrHardwareMonitorSwitch">Monitor sprzętu</system:String>
+    <system:String x:Key="StrHardwareMonitorOffInfo">Monitor sprzętu jest wyłączony. Włącz go tylko wtedy, gdy chcesz podgląd temperatur i użycia podzespołów.</system:String>
+    <system:String x:Key="StrBackgroundWatcherStatus">Watcher profili w tle: aktywny</system:String>
+
+    <system:String x:Key="StrNavCpuTopology">CPU i topologia</system:String>
+    <system:String x:Key="StrDiagnostics">Diagnostyka</system:String>
+    <system:String x:Key="StrProcessFilter">Filtruj procesy...</system:String>
+    <system:String x:Key="StrProfileFilter">Filtruj profile...</system:String>
+    <system:String x:Key="StrProcessDetails">Szczegóły procesu</system:String>
+    <system:String x:Key="StrNoSelection">Wybierz proces lub profil, aby zobaczyć szczegóły.</system:String>
+    <system:String x:Key="StrCorePresets">Presety rdzeni</system:String>
+    <system:String x:Key="StrTopologyNote">Uwaga o topologii</system:String>
+    <system:String x:Key="StrConflictsTitle">Konflikty profili</system:String>
+    <system:String x:Key="StrNoConflicts">Brak konfliktów. Kolejność: path-bound, potem najnowszy.</system:String>
+    <system:String x:Key="StrRecentOps">Ostatnie operacje</system:String>
+    <system:String x:Key="StrWatcherTitle">Status watchera</system:String>
+    <system:String x:Key="StrCaptureLive">Przechwyć bieżące ustawienia</system:String>
+    <system:String x:Key="StrDuplicateProfile">Duplikuj</system:String>
+    <system:String x:Key="StrExportProfiles">Eksportuj...</system:String>
+    <system:String x:Key="StrImportProfiles">Importuj...</system:String>
+    <system:String x:Key="StrColStatus">STATUS</system:String>
+    <system:String x:Key="StrUnknown">Nieznany</system:String>
+    <system:String x:Key="StrApplyPreset">Zastosuj</system:String>
 
 </ResourceDictionary>

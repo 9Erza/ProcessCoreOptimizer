@@ -64,8 +64,12 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
 
         private Visibility _viewProcesses = Visibility.Visible;
         private Visibility _viewProfiles = Visibility.Collapsed;
+        private Visibility _viewCpu = Visibility.Collapsed;
         private Visibility _viewHardwareMonitor = Visibility.Collapsed;
         private Visibility _viewSettings = Visibility.Collapsed;
+        private Visibility _viewDiagnostics = Visibility.Collapsed;
+        private string _watcherStatusText = string.Empty;
+        private string _conflictSummaryText = string.Empty;
         private HardwareMetrics _fullMetrics = new();
 
         public ObservableCollection<ProcessItem> Processes { get; } = new();
@@ -125,8 +129,26 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         public string ActiveTab { get => _activeTab; set => SetProperty(ref _activeTab, value); }
         public Visibility ViewProcesses { get => _viewProcesses; set => SetProperty(ref _viewProcesses, value); }
         public Visibility ViewProfiles { get => _viewProfiles; set => SetProperty(ref _viewProfiles, value); }
+        public Visibility ViewCpu { get => _viewCpu; set => SetProperty(ref _viewCpu, value); }
         public Visibility ViewHardwareMonitor { get => _viewHardwareMonitor; set => SetProperty(ref _viewHardwareMonitor, value); }
         public Visibility ViewSettings { get => _viewSettings; set => SetProperty(ref _viewSettings, value); }
+        public Visibility ViewDiagnostics { get => _viewDiagnostics; set => SetProperty(ref _viewDiagnostics, value); }
+
+        public bool IsRightPanelVisible => ActiveTab is "Processes" or "Profiles" or "Cpu";
+
+        public string WatcherStatusText
+        {
+            get => _watcherStatusText;
+            private set => SetProperty(ref _watcherStatusText, value);
+        }
+
+        public string ConflictSummaryText
+        {
+            get => _conflictSummaryText;
+            private set => SetProperty(ref _conflictSummaryText, value);
+        }
+
+        public bool HasProfileConflicts => ProfileConflicts.Count > 0;
 
         public bool IsHardwareMonitorEnabled
         {
@@ -563,8 +585,11 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             ActiveTab = tabName;
             ViewProcesses = tabName == "Processes" ? Visibility.Visible : Visibility.Collapsed;
             ViewProfiles = tabName == "Profiles" ? Visibility.Visible : Visibility.Collapsed;
+            ViewCpu = tabName == "Cpu" ? Visibility.Visible : Visibility.Collapsed;
             ViewHardwareMonitor = tabName == "Hardware" ? Visibility.Visible : Visibility.Collapsed;
             ViewSettings = tabName == "Settings" ? Visibility.Visible : Visibility.Collapsed;
+            ViewDiagnostics = tabName == "Diagnostics" ? Visibility.Visible : Visibility.Collapsed;
+            OnPropertyChanged(nameof(IsRightPanelVisible));
 
             SelectedProcess = null;
             SelectedSavedProfile = null;
@@ -1036,6 +1061,20 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             {
                 ProfileConflicts.Add(conflict);
             }
+
+            OnPropertyChanged(nameof(HasProfileConflicts));
+            ConflictSummaryText = ProfileConflicts.Count == 0
+                ? string.Empty
+                : $"{ProfileConflicts.Count} profile conflict(s): {string.Join(", ", ProfileConflicts.Select(c => c.ProcessName))}. Newest/path-bound wins; review in Profiles.";
+        }
+
+        private void RefreshWatcherStatus()
+        {
+            var last = _profileWatcher.LastRun;
+            WatcherStatusText = last.AtUtc == default
+                ? "Watcher idle."
+                : $"Last pass {last.AtUtc.ToLocalTime():HH:mm:ss} ({last.Source}): {last.FullyApplied}/{last.Total} applied, {last.Failed} failed, {last.Skipped} skipped in {last.Duration.TotalMilliseconds:F0} ms."
+                    + (string.IsNullOrWhiteSpace(last.Error) ? string.Empty : $" Error: {last.Error}");
         }
 
         private void RefreshRecentOperations()
@@ -1170,6 +1209,8 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
 
         private void LogOptimizationBatch(OptimizationBatchResult batch, string source)
         {
+            RefreshWatcherStatus();
+            RefreshRecentOperations();
             if (batch.Total == 0) return;
 
             foreach (var result in batch.Results.Where(r => r.Status.IsSuccess()))
@@ -1324,6 +1365,8 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             {
                 SavedProfiles.Add(profile);
             }
+
+            RefreshProfileConflicts();
         }
 
         private string TranslatePriority(string? rawEnum)
