@@ -101,13 +101,13 @@
                 </DataGrid.Columns>
             </DataGrid>
 
-            <UniformGrid Grid.Row="4" Columns="3" Margin="0,12,0,0">
+            <UniformGrid Grid.Row="4" Columns="2" Margin="0,12,0,0">
                 <Button Content="{DynamicResource StrDuplicateProfile}" Command="{Binding DuplicateProfileCommand}" Style="{StaticResource SmallFilterButton}" Margin="0,0,4,4"/>
-                <Button Content="{DynamicResource StrExportProfiles}" Command="{Binding ExportProfilesCommand}" Style="{StaticResource SmallFilterButton}" Margin="4,0,4,4"/>
-                <Button Content="{DynamicResource StrImportProfiles}" Command="{Binding ImportProfilesCommand}" Style="{StaticResource SmallFilterButton}" Margin="4,0,0,4"/>
+                <Button Content="{DynamicResource StrExportProfiles}" Command="{Binding ExportProfilesCommand}" Style="{StaticResource SmallFilterButton}" Margin="4,0,0,4"/>
+                <Button Content="{DynamicResource StrImportProfiles}" Command="{Binding ImportProfilesCommand}" Style="{StaticResource SmallFilterButton}" Margin="0,0,4,4"/>
+                <Button Content="{DynamicResource StrCaptureLive}" Command="{Binding CaptureLiveSettingsCommand}" Style="{StaticResource SmallFilterButton}" Margin="4,0,0,4"/>
                 <Button Content="{DynamicResource StrUpdateProfile}" Command="{Binding UpdateProfileCommand}" Style="{StaticResource SmallFilterButton}" Margin="0,0,4,0"/>
-                <Button Content="{DynamicResource StrDeleteProfile}" Command="{Binding DeleteProfileCommand}" Style="{StaticResource SmallFilterButton}" Margin="4,0,4,0"/>
-                <Button Content="{DynamicResource StrCaptureLive}" Command="{Binding CaptureLiveSettingsCommand}" Style="{StaticResource SmallFilterButton}" Margin="4,0,0,0"/>
+                <Button Content="{DynamicResource StrDeleteProfile}" Command="{Binding DeleteProfileCommand}" Style="{StaticResource SmallFilterButton}" Margin="4,0,0,0"/>
             </UniformGrid>
         </Grid>
     </Border>
