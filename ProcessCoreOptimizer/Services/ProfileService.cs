@@ -35,7 +35,7 @@ namespace ProcessCoreOptimizer.WPF.Services
         {
             AppPaths.MigrateLegacyFileIfNeeded("profiles.json");
 
-            if (!File.Exists(_filePath))
+            if (!File.Exists(_filePath) && !File.Exists(_filePath + ".bak"))
             {
                 _logger.Debug("Profiles file not found - returning empty list");
                 return new List<ProcessProfile>();
@@ -43,7 +43,22 @@ namespace ProcessCoreOptimizer.WPF.Services
 
             try
             {
-                string? jsonContent = AtomicFileService.ReadAllTextWithBackup(_filePath);
+                // Fall back to .bak when the live file is truncated/invalid JSON,
+                // not only when the read itself throws.
+                string? jsonContent = AtomicFileService.ReadValidatedWithBackup(_filePath, content =>
+                {
+                    if (string.IsNullOrWhiteSpace(content)) return true;
+                    try
+                    {
+                        _ = JsonSerializer.Deserialize<List<ProcessProfile>>(content, JsonOptions);
+                        return true;
+                    }
+                    catch
+                    {
+                        return false;
+                    }
+                });
+
                 if (string.IsNullOrWhiteSpace(jsonContent)) return new List<ProcessProfile>();
 
                 var loadedProfiles = JsonSerializer.Deserialize<List<ProcessProfile>>(jsonContent, JsonOptions) ?? new List<ProcessProfile>();
@@ -89,11 +104,22 @@ namespace ProcessCoreOptimizer.WPF.Services
                 .Where(p => p != null)
                 .Select(SanitizeProfile)
                 .Where(p => !string.IsNullOrWhiteSpace(p.ProcessName))
-                .Where(p => p.AffinityMask != 0)
+                // Priority-only profiles (ApplyCoreOptimization=false) legitimately have Mask==0.
+                // Only core-bound profiles require a non-zero mask.
+                .Where(p => !p.ApplyCoreOptimization || p.AffinityMask != 0)
                 .Where(p => p.ApplyPriority || p.ApplyCoreOptimization)
-                .GroupBy(p => p.ProcessName, StringComparer.OrdinalIgnoreCase)
+                .GroupBy(p => BuildDedupKey(p), StringComparer.OrdinalIgnoreCase)
                 .Select(g => g.OrderBy(p => p.UpdatedAt).Last())
                 .OrderBy(p => p.ProcessName, StringComparer.OrdinalIgnoreCase);
+        }
+
+        private static string BuildDedupKey(ProcessProfile profile)
+        {
+            string name = NormalizeProcessName(profile.ProcessName);
+            string? path = NormalizeExecutablePath(profile.ExecutablePath);
+            return string.IsNullOrWhiteSpace(path)
+                ? $"name:{name}"
+                : $"name:{name}|path:{path}";
         }
 
         private static ProcessProfile SanitizeProfile(ProcessProfile profile)
@@ -102,14 +128,10 @@ namespace ProcessCoreOptimizer.WPF.Services
             profile.Id = string.IsNullOrWhiteSpace(profile.Id) ? Guid.NewGuid().ToString("N") : profile.Id;
             profile.ProcessName = NormalizeProcessName(profile.ProcessName);
             profile.DisplayName = string.IsNullOrWhiteSpace(profile.DisplayName) ? profile.ProcessName : profile.DisplayName;
-            profile.ExecutablePath = string.IsNullOrWhiteSpace(profile.ExecutablePath) ? null : profile.ExecutablePath.Trim();
+            profile.ExecutablePath = NormalizeExecutablePath(profile.ExecutablePath);
             profile.Priority = PriorityService.Normalize(profile.Priority, allowRealtime: true);
             profile.CreatedAt = profile.CreatedAt == default ? DateTime.UtcNow : profile.CreatedAt;
             profile.UpdatedAt = profile.UpdatedAt == default ? DateTime.UtcNow : profile.UpdatedAt;
-
-            // Preserve old profile behavior: legacy profiles without these fields apply both parts.
-            profile.ApplyPriority = profile.ApplyPriority;
-            profile.ApplyCoreOptimization = profile.ApplyCoreOptimization;
 
 #pragma warning disable CS0618
             if (profile.OptimizationMode == OptimizationMode.Exclusive)
@@ -121,7 +143,7 @@ namespace ProcessCoreOptimizer.WPF.Services
             return profile;
         }
 
-        private static string NormalizeProcessName(string? processName)
+        public static string NormalizeProcessName(string? processName)
         {
             string value = processName?.Trim() ?? string.Empty;
             return value.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
@@ -129,22 +151,76 @@ namespace ProcessCoreOptimizer.WPF.Services
                 : value;
         }
 
+        public static string? NormalizeExecutablePath(string? path)
+        {
+            if (string.IsNullOrWhiteSpace(path)) return null;
+            try
+            {
+                return Path.GetFullPath(path.Trim());
+            }
+            catch
+            {
+                return path.Trim();
+            }
+        }
+
+        /// <summary>
+        /// Path-bound profiles never fall back to a same-name executable with a different path.
+        /// Profiles without a path match by process name only (legacy behaviour).
+        /// </summary>
+        public static bool MatchesIdentity(ProcessProfile profile, string? processName, string? executablePath)
+        {
+            if (profile == null) return false;
+            if (!NormalizeProcessName(profile.ProcessName).Equals(NormalizeProcessName(processName), StringComparison.OrdinalIgnoreCase)) return false;
+            string? profilePath = NormalizeExecutablePath(profile.ExecutablePath);
+            if (profilePath is null) return true;
+            string? actualPath = NormalizeExecutablePath(executablePath);
+            return actualPath is not null && profilePath.Equals(actualPath, StringComparison.OrdinalIgnoreCase);
+        }
+
         private static bool ProfilesEquivalent(IReadOnlyList<ProcessProfile> left, IReadOnlyList<ProcessProfile> right)
         {
             if (left.Count != right.Count) return false;
 
-            for (int i = 0; i < left.Count; i++)
+            // Order-independent comparison: SanitizeProfiles sorts by name, raw load order may differ.
+            var orderedLeft = left.OrderBy(p => BuildDedupKey(p), StringComparer.OrdinalIgnoreCase).ToList();
+            var orderedRight = right
+                .Select(p => new
+                {
+                    Name = NormalizeProcessName(p.ProcessName),
+                    Path = NormalizeExecutablePath(p.ExecutablePath),
+                    Mask = p.AffinityMask,
+                    Priority = PriorityService.Normalize(p.Priority, allowRealtime: true),
+                    Mode = NormalizeMode(p.OptimizationMode),
+                    Enabled = p.IsEnabled,
+                    ApplyP = p.ApplyPriority,
+                    ApplyC = p.ApplyCoreOptimization
+                })
+                .OrderBy(p => string.IsNullOrWhiteSpace(p.Path) ? $"name:{p.Name}" : $"name:{p.Name}|path:{p.Path}", StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            for (int i = 0; i < orderedLeft.Count; i++)
             {
-                if (!string.Equals(left[i].ProcessName, NormalizeProcessName(right[i].ProcessName), StringComparison.OrdinalIgnoreCase)) return false;
-                if (left[i].AffinityMask != right[i].AffinityMask) return false;
-                if (left[i].Priority != PriorityService.Normalize(right[i].Priority, allowRealtime: true)) return false;
-                if (left[i].OptimizationMode != right[i].OptimizationMode) return false;
-                if (left[i].IsEnabled != right[i].IsEnabled) return false;
-                if (left[i].ApplyPriority != right[i].ApplyPriority) return false;
-                if (left[i].ApplyCoreOptimization != right[i].ApplyCoreOptimization) return false;
+                var l = orderedLeft[i];
+                var r = orderedRight[i];
+                if (!string.Equals(l.ProcessName, r.Name, StringComparison.OrdinalIgnoreCase)) return false;
+                if (!string.Equals(NormalizeExecutablePath(l.ExecutablePath), r.Path, StringComparison.OrdinalIgnoreCase)) return false;
+                if (l.AffinityMask != r.Mask) return false;
+                if (l.Priority != r.Priority) return false;
+                if (l.OptimizationMode != r.Mode) return false;
+                if (l.IsEnabled != r.Enabled) return false;
+                if (l.ApplyPriority != r.ApplyP) return false;
+                if (l.ApplyCoreOptimization != r.ApplyC) return false;
             }
 
             return true;
+        }
+
+        private static OptimizationMode NormalizeMode(OptimizationMode mode)
+        {
+#pragma warning disable CS0618
+            return mode == OptimizationMode.Exclusive ? OptimizationMode.Affinity : mode;
+#pragma warning restore CS0618
         }
     }
 }

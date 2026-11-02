@@ -53,7 +53,11 @@ namespace ProcessCoreOptimizer.WPF.Views
             {
                 using (var process = System.Diagnostics.Process.GetCurrentProcess())
                 {
-                    _notifyIcon.Icon = System.Drawing.Icon.ExtractAssociatedIcon(process.MainModule.FileName);
+                    string? exePath = null;
+                    try { exePath = process.MainModule?.FileName; } catch { exePath = null; }
+                    _notifyIcon.Icon = !string.IsNullOrWhiteSpace(exePath)
+                        ? System.Drawing.Icon.ExtractAssociatedIcon(exePath)
+                        : System.Drawing.SystemIcons.Application;
                 }
             }
             catch

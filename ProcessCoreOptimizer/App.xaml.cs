@@ -19,17 +19,33 @@ namespace ProcessCoreOptimizer.WPF
         {
             StartupOptions = AppStartupOptions.Parse(e.Args);
 
-            _singleInstanceMutex = new Mutex(initiallyOwned: true, SingleInstanceMutexName, out bool createdNew);
-            if (!createdNew)
+            try
             {
-                WpfMessageBox.Show(
-                    "Process Core Optimizer is already running.",
-                    "Process Core Optimizer",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
+                _singleInstanceMutex = new Mutex(initiallyOwned: true, SingleInstanceMutexName, out bool createdNew);
+                if (!createdNew)
+                {
+                    WpfMessageBox.Show(
+                        "Process Core Optimizer is already running.",
+                        "Process Core Optimizer",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
 
-                Shutdown();
-                return;
+                    Shutdown();
+                    return;
+                }
+            }
+            catch (AbandonedMutexException)
+            {
+                // Previous instance crashed without releasing the mutex.
+                // We now own it; continue startup instead of crashing.
+                try
+                {
+                    _singleInstanceMutex = Mutex.OpenExisting(SingleInstanceMutexName);
+                }
+                catch
+                {
+                    _singleInstanceMutex = null;
+                }
             }
 
             base.OnStartup(e);

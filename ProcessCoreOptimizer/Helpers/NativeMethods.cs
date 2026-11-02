@@ -9,6 +9,8 @@ namespace ProcessCoreOptimizer.WPF.Helpers
     /// </summary>
     public static class NativeMethods
     {
+        public const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
+        public const uint PROCESS_SET_INFORMATION = 0x0200;
         public const uint PROCESS_SET_LIMITED_INFORMATION = 0x2000;
 
         [DllImport("kernel32.dll", SetLastError = true)]
@@ -16,6 +18,20 @@ namespace ProcessCoreOptimizer.WPF.Helpers
 
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern bool CloseHandle(IntPtr hObject);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern uint GetPriorityClass(IntPtr hProcess);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool SetPriorityClass(IntPtr hProcess, uint dwPriorityClass);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool GetProcessTimes(
+            IntPtr hProcess,
+            out System.Runtime.InteropServices.ComTypes.FILETIME creationTime,
+            out System.Runtime.InteropServices.ComTypes.FILETIME exitTime,
+            out System.Runtime.InteropServices.ComTypes.FILETIME kernelTime,
+            out System.Runtime.InteropServices.ComTypes.FILETIME userTime);
 
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern bool GetSystemCpuSetInformation(
@@ -30,5 +46,12 @@ namespace ProcessCoreOptimizer.WPF.Helpers
             IntPtr hProcess,
             uint[]? cpuSetIds,
             uint cpuSetIdCount);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool GetProcessDefaultCpuSets(
+            IntPtr hProcess,
+            [Out] uint[]? cpuSetIds,
+            uint cpuSetIdCount,
+            out uint requiredIdCount);
     }
 }

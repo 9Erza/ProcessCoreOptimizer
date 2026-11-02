@@ -39,6 +39,8 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         private Dictionary<int, uint> _cpuSetMap = new();
         private List<ProcessProfile> _profiles = new();
         private readonly Dictionary<string, DateTime> _lastOptimizationDiagnosticLogUtc = new();
+        private string? _cachedCpuVendor;
+        private bool _realtimeCacheFlag;
 
         private bool _isRefreshing;
         private bool _disposed;
@@ -149,19 +151,12 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             get => _selectedPriority;
             set
             {
+                // The combo box only edits the pending value. The actual priority change
+                // happens via Apply ("Set Affinity") or profile save/update, never by
+                // merely browsing the drop-down. This avoids accidental mutation of
+                // every running instance of the selected process.
                 string translatedValue = TranslatePriority(value);
-                if (!SetProperty(ref _selectedPriority, translatedValue)) return;
-
-                if (ActiveTab == "Processes" && SelectedProcess != null)
-                {
-                    string rawValue = NormalizePriority(translatedValue);
-                    string currentRaw = NormalizePriority(SelectedProcess.Priority);
-
-                    if (rawValue != currentRaw)
-                    {
-                        ChangePriority(rawValue);
-                    }
-                }
+                SetProperty(ref _selectedPriority, translatedValue);
             }
         }
 
@@ -234,7 +229,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             set => IsPolishLanguage = value == "Polski";
         }
 
-        public string CpuVendor => _hardwareService.GetCpuVendor();
+        public string CpuVendor => _cachedCpuVendor ??= _hardwareService.GetCpuVendor();
 
         public string CpuVendorText
         {
@@ -254,6 +249,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
 
             _processScannerService = new ProcessScannerService(_processService);
             _optimizationService = new OptimizationService(_processService, () => _cpuSetMap);
+            _realtimeCacheFlag = _appSettings.AllowRealtimePriority;
 
             _cpuSetMap = _hardwareService.GetLogicalCoreToCpuSetIdMap();
             foreach (var core in _hardwareService.GetCoreTopology())
@@ -315,13 +311,16 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                     _hardwareService.ReleaseCpuLoadCounters();
                 }
 
+                // Snapshot the profile list: the UI thread may add/remove profiles concurrently.
+                List<ProcessProfile> profilesSnapshot = _profiles.ToList();
+
                 ProcessScanResult scan = fullUiScan
                     ? await _processScannerService.ScanUserProcessesAsync()
-                    : await _processScannerService.ScanProfileProcessesAsync(_profiles);
+                    : await _processScannerService.ScanProfileProcessesAsync(profilesSnapshot);
 
                 _optimizationService.CleanupStaleCache(scan.ActiveInstances);
                 CleanupOptimizationDiagnosticLogCache();
-                var batch = _optimizationService.ApplyProfilesForSnapshots(_profiles, scan.Groups, AppSettings.AllowRealtimePriority, force: false);
+                var batch = _optimizationService.ApplyProfilesForSnapshots(profilesSnapshot, scan.Groups, AppSettings.AllowRealtimePriority, force: false);
                 LogOptimizationBatch(batch, fullUiScan ? "process list refresh" : "background profile watcher");
 
                 if (!fullUiScan) return;
@@ -675,11 +674,13 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             }
 
             int count = 0;
-            foreach (var process in Process.GetProcessesByName(SelectedProcess.Name))
+            foreach (var process in Process.GetProcessesByName(ProfileService.NormalizeProcessName(SelectedProcess.Name)))
             {
                 try
                 {
-                    if (_processService.SetPriority(process.Id, priority)) count++;
+                    var key = ProcessScannerService.CreateInstanceKey(process);
+                    string? livePath = ProcessIdentityValidator.TryGetProcessPath(process);
+                    if (_processService.SetPriority(process.Id, priority, key, process.ProcessName, livePath)) count++;
                 }
                 finally
                 {
@@ -696,12 +697,26 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             Process[] processes = Array.Empty<Process>();
             try
             {
-                processes = Process.GetProcessesByName(processName);
+                processes = Process.GetProcessesByName(ProfileService.NormalizeProcessName(processName));
                 var first = processes.FirstOrDefault();
                 if (first == null) return;
 
-                long mask = (long)first.ProcessorAffinity;
-                ApplyMaskToCoreSelection(mask);
+                var selection = _processService.GetCurrentCoreSelection(first.Id, _cpuSetMap);
+                if (selection.Success && selection.Mask != 0)
+                {
+                    ApplyMaskToCoreSelection(selection.Mask);
+                }
+                else
+                {
+                    try
+                    {
+                        ApplyMaskToCoreSelection((long)first.ProcessorAffinity);
+                    }
+                    catch
+                    {
+                        // Leave the current checkbox state untouched when the OS refuses the read.
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -715,20 +730,22 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
 
         private void ApplyMaskToCoreSelection(long mask)
         {
-            for (int i = 0; i < Cores.Count && i < 64; i++)
+            for (int i = 0; i < Cores.Count; i++)
             {
-                Cores[i].IsChecked = (mask & (1L << i)) != 0;
+                int logicalIndex = Cores[i].Index;
+                Cores[i].IsChecked = logicalIndex >= 0 && logicalIndex < 64 && (mask & (1L << logicalIndex)) != 0;
             }
         }
 
         private long BuildSelectedCoreMask()
         {
             long mask = 0;
-            for (int i = 0; i < Cores.Count && i < 64; i++)
+            foreach (var core in Cores)
             {
-                if (Cores[i].IsChecked)
+                int logicalIndex = core.Index;
+                if (core.IsChecked && logicalIndex >= 0 && logicalIndex < 64)
                 {
-                    mask |= (1L << i);
+                    mask |= (1L << logicalIndex);
                 }
             }
             return mask;
@@ -796,6 +813,21 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             {
                 _lastOptimizationDiagnosticLogUtc.Remove(key);
             }
+
+            // Bound the cache: throttle keys no longer include PID, but a fleet of
+            // distinct process names could still grow it. Keep the newest 500.
+            const int maxEntries = 500;
+            if (_lastOptimizationDiagnosticLogUtc.Count > maxEntries)
+            {
+                foreach (var key in _lastOptimizationDiagnosticLogUtc
+                             .OrderBy(pair => pair.Value)
+                             .Take(_lastOptimizationDiagnosticLogUtc.Count - maxEntries)
+                             .Select(pair => pair.Key)
+                             .ToList())
+                {
+                    _lastOptimizationDiagnosticLogUtc.Remove(key);
+                }
+            }
         }
 
         private void LogProfileWatcherStartupSummary()
@@ -842,12 +874,16 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         {
             if (result.Success) return false;
             if (string.Equals(result.Message, "SKIPPED_ALREADY_APPLIED", StringComparison.OrdinalIgnoreCase)) return false;
+            if (string.Equals(result.Message, "SKIPPED_IDENTITY_MISMATCH", StringComparison.OrdinalIgnoreCase)) return false;
+            if (string.Equals(result.Message, "SKIPPED_PROTECTED", StringComparison.OrdinalIgnoreCase)) return false;
             return true;
         }
 
         private bool ShouldLogOptimizationDiagnostic(OptimizationResult result, TimeSpan throttleWindow)
         {
-            string key = $"{result.ProcessName}|{result.ProcessId}|{result.Mode}|{result.Priority}|{result.Message}";
+            // Key excludes PID so a rapidly restarting process cannot spam the log
+            // with a fresh key per instance.
+            string key = $"{result.ProcessName}|{result.Mode}|{result.Priority}|{result.Message}|admin={result.RequiresAdmin}";
             DateTime now = DateTime.UtcNow;
 
             if (_lastOptimizationDiagnosticLogUtc.TryGetValue(key, out DateTime lastLogged) && now - lastLogged < throttleWindow)
@@ -979,13 +1015,24 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
 
         private void SaveAndApplySettings(bool restartAsAdminIfNeeded)
         {
+            bool realtimeBefore = _realtimeCacheFlag;
+            bool realtimeNow = AppSettings.AllowRealtimePriority;
+
             ConfigureLoggerFromSettings();
             _hwService?.Configure(AppSettings.EnableStorageSensors);
             _settingsService.SaveSettings(AppSettings);
             OnPropertyChanged(nameof(IsHardwareMonitorEnabled));
             RefreshAvailablePriorities();
             RefreshDisplayedPriorities();
-            ClearAllAppliedProfileCache();
+
+            // Profile signatures embed the RT flag. Only the RT toggle invalidates
+            // the applied-profile cache; language/log/storage toggles must not force
+            // a redundant re-apply of every profile.
+            if (realtimeBefore != realtimeNow)
+            {
+                _realtimeCacheFlag = realtimeNow;
+                ClearAllAppliedProfileCache();
+            }
 
             if (ActiveTab == "Hardware")
             {

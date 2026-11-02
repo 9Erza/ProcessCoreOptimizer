@@ -55,7 +55,15 @@ namespace ProcessCoreOptimizer.WPF.Models
         public string ProcessName
         {
             get => _processName;
-            set => SetProperty(ref _processName, value?.Trim() ?? string.Empty);
+            set
+            {
+                string normalized = value?.Trim() ?? string.Empty;
+                if (normalized.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) && normalized.Length > 4)
+                {
+                    normalized = normalized.Substring(0, normalized.Length - 4);
+                }
+                SetProperty(ref _processName, normalized);
+            }
         }
 
         /// <summary>
