@@ -260,7 +260,9 @@ namespace ProcessCoreOptimizer.WPF.Services
                 return "ERR_NO_VALID_CPUSETS";
             }
 
-            IntPtr hProc = NativeMethods.OpenProcess(NativeMethods.PROCESS_SET_LIMITED_INFORMATION, false, pid);
+            IntPtr hProc = NativeMethods.OpenProcess(
+                NativeMethods.PROCESS_SET_LIMITED_INFORMATION | NativeMethods.PROCESS_QUERY_LIMITED_INFORMATION,
+                false, pid);
             if (hProc == IntPtr.Zero)
             {
                 int error = Marshal.GetLastWin32Error();
@@ -301,7 +303,10 @@ namespace ProcessCoreOptimizer.WPF.Services
 
         private bool ClearCpuSets(int pid, ProcessMutationTarget target)
         {
-            IntPtr hProc = NativeMethods.OpenProcess(NativeMethods.PROCESS_SET_LIMITED_INFORMATION, false, pid);
+            // QUERY rights are required: the start-time gate uses GetProcessTimes.
+            IntPtr hProc = NativeMethods.OpenProcess(
+                NativeMethods.PROCESS_SET_LIMITED_INFORMATION | NativeMethods.PROCESS_QUERY_LIMITED_INFORMATION,
+                false, pid);
             if (hProc == IntPtr.Zero) return false;
 
             try
