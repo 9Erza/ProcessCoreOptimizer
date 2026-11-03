@@ -74,6 +74,11 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         private ProcessViewMode _processViewMode = ProcessViewMode.Grouped;
         private ProcessInstanceRow? _selectedInstanceRow;
         private ProcessScanResult? _lastUiScan;
+        private readonly SmartRuleService _ruleService = new();
+        private List<SmartRule> _rules = new();
+        private List<SmartRule> _rulesSnapshot = new();
+        private readonly SmartRuleEngine _ruleEngine = new();
+        private readonly Dictionary<string, DateTime> _lastRuleLogUtc = new(StringComparer.OrdinalIgnoreCase);
         private string? _topologyLimitation;
 
         private Visibility _viewProcesses = Visibility.Visible;
@@ -88,6 +93,34 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
 
         public ObservableCollection<ProcessItem> Processes { get; } = new();
         public ObservableCollection<ProcessInstanceRow> InstanceRows { get; } = new();
+        public ObservableCollection<SmartRule> Rules { get; } = new();
+        private string _ruleStatusText = string.Empty;
+
+        public string RuleStatusText
+        {
+            get => _ruleStatusText;
+            private set => SetProperty(ref _ruleStatusText, value);
+        }
+
+        /// <summary>
+        /// Global pause for all automatic optimization (watcher + smart rules).
+        /// Observation continues; mutations stop. Persisted as user intent.
+        /// </summary>
+        public bool AutomationPaused
+        {
+            get => AppSettings.AutomationPaused;
+            set
+            {
+                if (AppSettings.AutomationPaused == value) return;
+                AppSettings.AutomationPaused = value;
+                _settingsService.SaveSettings(AppSettings);
+                OnPropertyChanged(nameof(AutomationPaused));
+                RefreshRuleStatus();
+                AddLog(value
+                    ? (IsPolishLanguage ? "Automatyczna optymalizacja wstrzymana (pauza). Obserwacja trwa." : "Automatic optimization paused. Observation continues.")
+                    : (IsPolishLanguage ? "Automatyczna optymalizacja wznowiona." : "Automatic optimization resumed."));
+            }
+        }
         public ObservableCollection<CoreInfo> Cores { get; } = new();
         public ObservableCollection<string> ActionLogs { get; } = new();
         public ObservableCollection<ProcessProfile> SavedProfiles { get; } = new();
@@ -750,6 +783,12 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             _profiles = _profileService.LoadProfiles();
             RefreshSavedProfilesView();
             RefreshProfileConflicts();
+            ReloadRules();
+            _profileWatcher.ScanCompleted += (s, scan) =>
+            {
+                try { EvaluateAndApplyRules(scan.Groups, "background rule engine"); }
+                catch (Exception ex) { LoggerService.Instance.Debug($"Background rule hook failed: {ex.Message}"); }
+            };
             RefreshRecentOperations();
             LogProfileWatcherStartupSummary();
 
@@ -834,9 +873,16 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                     // Background watcher: single authoritative pipeline with reentrancy,
                     // cancellation and shutdown guards (no UI touches inside).
                     // Safe mode: observe only, never mutate.
+                    // Global pause: same — observation continues, mutations stop.
                     if (IsSafeMode)
                     {
                         LogSafeModeSkipOnce();
+                        return;
+                    }
+
+                    if (AppSettings.AutomationPaused)
+                    {
+                        LogPausedSkipOnce();
                         return;
                     }
 
@@ -855,12 +901,15 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 ProcessScanResult scan = await _processScannerService.ScanUserProcessesAsync();
                 _optimizationService.CleanupStaleCache(scan.ActiveInstances);
                 CleanupOptimizationDiagnosticLogCache();
-                OptimizationBatchResult uiBatch = IsSafeMode
+                bool paused = AppSettings.AutomationPaused;
+                OptimizationBatchResult uiBatch = (IsSafeMode || paused)
                     ? new OptimizationBatchResult()
                     : _optimizationService.ApplyProfilesForSnapshots(profilesSnapshot, scan.Groups, AppSettings.AllowRealtimePriority, force: false);
                 if (IsSafeMode) LogSafeModeSkipOnce();
+                if (paused) LogPausedSkipOnce();
                 _operationHistory.RecordBatch(uiBatch, "process list refresh");
                 LogOptimizationBatch(uiBatch, "process list refresh");
+                if (!paused) EvaluateAndApplyRules(scan.Groups, "process list refresh");
 
                 UpdateCoreLoads();
                 AddMissingProcessRows(scan.Groups);
@@ -1299,6 +1348,99 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             _safeModeNoticeShown = true;
             LoggerService.Instance.Info("Safe mode active: OS mutations disabled (--safe-mode).");
             AddLog("Safe mode: observing only, OS mutations disabled (--safe-mode).");
+        }
+
+        private bool _pausedNoticeShown;
+
+        private void LogPausedSkipOnce()
+        {
+            if (_pausedNoticeShown) return;
+            _pausedNoticeShown = true;
+            AddLog(IsPolishLanguage
+                ? "Pauza: obserwacja bez mutacji (AutomationPaused)."
+                : "Paused: observing only, no mutations (AutomationPaused).");
+        }
+
+        private void RefreshRuleStatus()
+        {
+            int enabled = _rules.Count(r => r.IsEnabled);
+            RuleStatusText = AppSettings.AutomationPaused
+                ? (IsPolishLanguage ? $"Pauza — reguły wstrzymane ({enabled} włączonych)." : $"Paused — rules suspended ({enabled} enabled).")
+                : (IsPolishLanguage ? $"Reguły: {enabled} włączonych. {_ruleEngine.LastSummary}" : $"Rules: {enabled} enabled. {_ruleEngine.LastSummary}");
+        }
+
+        private void ThrottledRuleLog(SmartRule rule, string message, int minutes = 5)
+        {
+            DateTime now = DateTime.UtcNow;
+            if (_lastRuleLogUtc.TryGetValue(rule.Id, out DateTime last) && now - last < TimeSpan.FromMinutes(minutes))
+                return;
+            _lastRuleLogUtc[rule.Id] = now;
+            AddLog(message);
+        }
+
+        private void EvaluateAndApplyRules(IReadOnlyList<ProcessGroupSnapshot> groups, string source)
+        {
+            try
+            {
+                if (IsSafeMode || AppSettings.AutomationPaused) return;
+                var snapshot = _rulesSnapshot;
+                if (snapshot.Count == 0 || !snapshot.Any(r => r.IsEnabled)) return;
+
+                int? fg = null;
+                if (snapshot.Any(r => r.IsEnabled && r.Trigger == RuleTrigger.OnForeground))
+                {
+                    try { fg = ForegroundService.GetForegroundPid(); } catch { fg = null; }
+                }
+
+                var decisions = _ruleEngine.Evaluate(groups, fg, DateTime.UtcNow, snapshot, automationPaused: false);
+                foreach (var d in decisions.Where(x => x.Ready))
+                    ApplyRuleDecision(d, source);
+                RefreshRuleStatus();
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Rules evaluation failed: {ex.Message}");
+            }
+        }
+
+        private void ApplyRuleDecision(RuleDecision d, string source)
+        {
+            var rule = SmartRuleService.FindById(_rulesSnapshot, d.RuleId);
+            if (rule == null || !rule.IsEnabled) return;
+            try
+            {
+                if (rule.Action == RuleAction.ApplyProfile)
+                {
+                    var profile = ProfileService.FindById(_profiles, rule.ProfileId);
+                    if (profile == null || !profile.IsEnabled)
+                    {
+                        ThrottledRuleLog(rule, IsPolishLanguage
+                            ? $"Reguła '{rule.Name}': brak włączonego profilu — pominięto ({d.Reason})."
+                            : $"Rule '{rule.Name}': no enabled profile — skipped ({d.Reason}).");
+                        return;
+                    }
+
+                    var batch = _optimizationService.ApplyProfileToInstances(
+                        profile, d.ProcessName, new[] { d.Key }, AppSettings.AllowRealtimePriority, force: true);
+                    var first = batch.Results.FirstOrDefault();
+                    _ruleEngine.MarkApplied(rule.Id, d.Key, DateTime.UtcNow);
+                    AddLog($"Rule '{rule.Name}' → '{profile.DisplayName}' on PID {d.Key.ProcessId} via {source} ({d.Reason}): {first?.Status.ToString() ?? "Skipped"}.");
+                }
+                else
+                {
+                    var result = _sessionRestore.RestoreForProcess(d.ProcessName, _processService, _cpuSetMap, new[] { d.Key });
+                    _optimizationService.SuspendLiveInstances(d.ProcessName, TimeSpan.FromMinutes(5), "smart rule session restore");
+                    ClearAppliedProfileCache(d.ProcessName);
+                    _ruleEngine.MarkApplied(rule.Id, d.Key, DateTime.UtcNow);
+                    AddLog($"Rule '{rule.Name}' restored session for PID {d.Key.ProcessId} via {source} ({d.Reason}): {result.Message}");
+                }
+            }
+            catch (Exception ex)
+            {
+                ThrottledRuleLog(rule, $"Rule '{rule.Name}' failed: {ex.Message}", minutes: 1);
+            }
+
+            RefreshRuleStatus();
         }
 
         private int ApplyProfileToRunningProcesses(ProcessProfile profile, bool force)
@@ -1808,6 +1950,16 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             {
                 AddLog($"Capture failed: {ex.Message}");
             }
+        }
+
+        private void ReloadRules()
+        {
+            _rules = _ruleService.LoadRules();
+            _rulesSnapshot = _rules.ToList();
+            Rules.Clear();
+            foreach (var rule in _rules.OrderBy(r => r.Priority).ThenBy(r => r.ProcessName, StringComparer.OrdinalIgnoreCase))
+                Rules.Add(rule);
+            RefreshRuleStatus();
         }
 
         private void RefreshProfileConflicts()

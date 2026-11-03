@@ -127,7 +127,7 @@ namespace ProcessCoreOptimizer.WPF.Services
         /// Restores captured settings for live instances of a process. Each instance
         /// is identity-checked; recycled PIDs are skipped, never restored into.
         /// </summary>
-        public SessionRestoreResult RestoreForProcess(string processName, ProcessService processService, Dictionary<int, uint> cpuSetMap)
+        public SessionRestoreResult RestoreForProcess(string processName, ProcessService processService, Dictionary<int, uint> cpuSetMap, IReadOnlyCollection<ProcessInstanceKey>? onlyKeys = null)
         {
             var result = new SessionRestoreResult { ProcessName = processName };
             var entries = ForProcess(processName);
@@ -148,6 +148,12 @@ namespace ProcessCoreOptimizer.WPF.Services
                     {
                         if (proc.HasExited) continue;
                         var key = new ProcessInstanceKey(proc.Id, proc.StartTime.ToUniversalTime());
+                        if (onlyKeys != null && !onlyKeys.Contains(key))
+                        {
+                            result.Skipped++;
+                            continue;
+                        }
+
                         entry = entries.FirstOrDefault(e => e.Key.Equals(key));
                     }
                     catch
