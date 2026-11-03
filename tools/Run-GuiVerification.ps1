@@ -542,7 +542,7 @@ try {
             # verify the flip by reading back a localized label after EACH
             # click (a blind even/odd count breaks when a probe misses the
             # flag and lands on the expander instead).
-            foreach ($dy in @(15, 30, 45)) {
+        foreach ($dy in @(45, 30, 15, 55, 70)) {
                 $r = $scope.Current.BoundingRectangle
                 [PcoMouse]::Click([int]($r.X + 45), [int]($r.Y + $r.Height - $dy))
                 Start-Sleep -Milliseconds 900
@@ -634,6 +634,48 @@ try {
     }
 
     Check "hub at minimum window size (1000x700) without overflow" {
+    Check "core selector fits 1000x700 without hidden tiles" {
+        $window = Get-Window "Process Core Optimizer" 10
+        if (!$window) { throw "Main window lost before selector check." }
+        foreach ($candidate in @("System Processes", "Procesy Systemowe")) {
+            try { Click-Button $window $candidate; break } catch { }
+        }
+        Start-Sleep -Milliseconds 800
+        $picked = $false
+        foreach ($it in $window.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+            (New-Object System.Windows.Automation.PropertyCondition(
+                [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+                [System.Windows.Automation.ControlType]::DataItem)))) {
+            try {
+                $it.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select()
+                Start-Sleep -Milliseconds 900
+                $picked = $true
+                break
+            } catch { }
+        }
+        if (!$picked) { throw "No process row to select for selector check." }
+        $hwnd2 = [IntPtr]$window.Current.NativeWindowHandle
+        $r0b = $window.Current.BoundingRectangle
+        [PcoWin32]::MoveWindow($hwnd2, [int]$r0b.X, [int]$r0b.Y, 1000, 700, $true) | Out-Null
+        Start-Sleep -Milliseconds 900
+        $window = Get-Window "Process Core Optimizer" 10
+        if (!$window) { throw "Main window lost at 1000x700." }
+        $tiles = @($window.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+            (New-Object System.Windows.Automation.PropertyCondition(
+                [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+                [System.Windows.Automation.ControlType]::CheckBox))) | Where-Object {
+            try { $_.Current.Name -like "Core *" } catch { $false }
+        })
+        if ($tiles.Count -eq 0) { throw "No core checkboxes found with a process selected." }
+        $hidden = @($tiles | Where-Object { try { $_.Current.IsOffscreen } catch { $true } })
+        if ($hidden.Count -gt 0) { throw ("Core selector hides " + $hidden.Count + " of " + $tiles.Count + " tiles at 1000x700.") }
+        Save-Shot "33-selector-1000x700.png" $window
+        [PcoWin32]::MoveWindow($hwnd2, [int]$r0b.X, [int]$r0b.Y, 1100, 750, $true) | Out-Null
+        Start-Sleep -Milliseconds 800
+        $window = Get-Window "Process Core Optimizer" 10
+        if (!$window) { throw "Main window lost after selector check." }
+    }
+
         $emdash = [char]0x2014
         $window = Get-Window "Process Core Optimizer" 10
         if (!$window) { throw "Main window lost before min-size check." }
@@ -646,7 +688,7 @@ try {
             try { if ($t.Current.Name -eq "Ustawienia") { $isPl = $true; break } } catch { }
         }
         if ($isPl) {
-            foreach ($dy in @(15, 30, 45)) {
+        foreach ($dy in @(45, 30, 15, 55, 70)) {
                 $r = $window.Current.BoundingRectangle
                 [PcoMouse]::Click([int]($r.X + 45), [int]($r.Y + $r.Height - $dy))
                 Start-Sleep -Milliseconds 900
