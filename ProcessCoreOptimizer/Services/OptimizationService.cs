@@ -243,7 +243,8 @@ namespace ProcessCoreOptimizer.WPF.Services
                     Status = OperationStatus.SkippedProtected,
                     Retryable = false,
                     RequestedCore = profile.ApplyCoreOptimization,
-                    RequestedPriority = profile.ApplyPriority
+                    RequestedPriority = profile.ApplyPriority,
+                    RequestedEcoQos = profile.EcoQos.HasValue
                 };
             }
 
@@ -260,7 +261,8 @@ namespace ProcessCoreOptimizer.WPF.Services
                     Status = OperationStatus.SkippedSuspended,
                     Retryable = false,
                     RequestedCore = profile.ApplyCoreOptimization,
-                    RequestedPriority = profile.ApplyPriority
+                    RequestedPriority = profile.ApplyPriority,
+                    RequestedEcoQos = profile.EcoQos.HasValue
                 };
             }
 
@@ -277,7 +279,8 @@ namespace ProcessCoreOptimizer.WPF.Services
                     Status = OperationStatus.SkippedIdentityMismatch,
                     Retryable = false,
                     RequestedCore = profile.ApplyCoreOptimization,
-                    RequestedPriority = profile.ApplyPriority
+                    RequestedPriority = profile.ApplyPriority,
+                    RequestedEcoQos = profile.EcoQos.HasValue
                 };
             }
 
@@ -300,15 +303,18 @@ namespace ProcessCoreOptimizer.WPF.Services
                         Status = OperationStatus.SkippedAlreadyApplied,
                         Retryable = false,
                         RequestedCore = profile.ApplyCoreOptimization,
-                        RequestedPriority = profile.ApplyPriority
+                        RequestedPriority = profile.ApplyPriority,
+                        RequestedEcoQos = profile.EcoQos.HasValue
                     };
                 }
             }
 
             bool coreApplied = false;
             bool priorityApplied = false;
+            bool ecoApplied = false;
             string coreMessage = "SKIPPED_CORE";
             string priorityMessage = "SKIPPED_PRIORITY";
+            string ecoMessage = "SKIPPED_NO_ECOQOS";
             bool requiresAdmin = false;
             int? win32Error = null;
 
@@ -360,14 +366,26 @@ namespace ProcessCoreOptimizer.WPF.Services
                 requiresAdmin |= !priorityApplied && IsAccessDeniedPriority(key.ProcessId);
             }
 
-            bool success = coreApplied || priorityApplied;
+            if (profile.EcoQos.HasValue)
+            {
+                var eco = _processService.SetEcoQos(key.ProcessId, profile.EcoQos.Value, target);
+                ecoApplied = eco.Success;
+                ecoMessage = eco.Message;
+                requiresAdmin |= !eco.Success && eco.RequiresAdmin;
+                if (!eco.Success && eco.Message.StartsWith("ERR_OPEN_PROCESS_", StringComparison.OrdinalIgnoreCase))
+                    win32Error ??= ExtractWin32Error(eco.Message);
+            }
+
+            bool success = coreApplied || priorityApplied || ecoApplied;
             bool allRequested = (!profile.ApplyCoreOptimization || coreApplied)
-                && (!profile.ApplyPriority || priorityApplied);
+                && (!profile.ApplyPriority || priorityApplied)
+                && (!profile.EcoQos.HasValue || ecoApplied);
 
             OperationStatus status = ResolveStatus(
                 success, allRequested, requiresAdmin,
                 profile.ApplyCoreOptimization, profile.ApplyPriority,
-                coreMessage, priorityMessage);
+                coreMessage, priorityMessage,
+                profile.EcoQos.HasValue, ecoMessage);
 
             lock (_cacheLock)
             {
@@ -394,15 +412,17 @@ namespace ProcessCoreOptimizer.WPF.Services
                 ProcessName = processName,
                 Mode = mode,
                 Priority = priority,
-                Message = $"{coreMessage}; {priorityMessage}",
+                Message = $"{coreMessage}; {priorityMessage}; {ecoMessage}",
                 CoreApplied = coreApplied,
                 PriorityApplied = priorityApplied,
+                EcoQosApplied = ecoApplied,
                 RequiresAdmin = requiresAdmin,
                 Win32Error = win32Error,
                 Status = status,
                 Retryable = status.IsRetryable(),
                 RequestedCore = profile.ApplyCoreOptimization,
-                RequestedPriority = profile.ApplyPriority
+                RequestedPriority = profile.ApplyPriority,
+                RequestedEcoQos = profile.EcoQos.HasValue
             };
         }
 
@@ -415,16 +435,24 @@ namespace ProcessCoreOptimizer.WPF.Services
         public static OperationStatus ResolveStatus(
             bool success, bool allRequested, bool requiresAdmin,
             bool requestedCore, bool requestedPriority,
-            string coreMessage, string priorityMessage)
+            string coreMessage, string priorityMessage,
+            bool requestedEcoQos = false, string ecoMessage = "SKIPPED_NO_ECOQOS")
         {
             if (success && allRequested) return OperationStatus.FullyApplied;
             if (success) return OperationStatus.PartiallyApplied;
             if (requiresAdmin) return OperationStatus.SkippedNoPermission;
-            if (!requestedCore && !requestedPriority) return OperationStatus.Unsupported;
-            if (IsValidationError(coreMessage) && (!requestedPriority || priorityMessage == "SKIPPED_PRIORITY"))
+            if (!requestedCore && !requestedPriority && !requestedEcoQos) return OperationStatus.Unsupported;
+            if (requestedEcoQos && !requestedCore && !requestedPriority && IsEcoQosUnsupported(ecoMessage))
+                return OperationStatus.Unsupported;
+            if (IsValidationError(coreMessage) && (!requestedPriority || priorityMessage == "SKIPPED_PRIORITY")
+                && (!requestedEcoQos || IsEcoQosUnsupported(ecoMessage)))
                 return OperationStatus.Unsupported;
             return OperationStatus.Failed;
         }
+
+        private static bool IsEcoQosUnsupported(string ecoMessage) =>
+            ecoMessage.StartsWith("ERR_ECOQOS_UNSUPPORTED", StringComparison.OrdinalIgnoreCase)
+            || ecoMessage.StartsWith("SKIPPED_NO_ECOQOS", StringComparison.OrdinalIgnoreCase);
 
         private static bool IsValidationError(string coreMessage) =>
             coreMessage.StartsWith("ERR_EMPTY_MASK", StringComparison.OrdinalIgnoreCase)
@@ -505,7 +533,7 @@ namespace ProcessCoreOptimizer.WPF.Services
 
         internal static string BuildProfileSignature(ProcessProfile profile, string priority, OptimizationMode mode, bool allowRealtimePriority)
         {
-            return $"{ProfileService.NormalizeProcessName(profile.ProcessName)}|{profile.AffinityMask:X}|{priority}|{mode}|{profile.IsEnabled}|{profile.ApplyPriority}|{profile.ApplyCoreOptimization}|RT:{allowRealtimePriority}|path:{ProfileService.NormalizeExecutablePath(profile.ExecutablePath) ?? "-"}";
+            return $"{ProfileService.NormalizeProcessName(profile.ProcessName)}|{profile.AffinityMask:X}|{priority}|{mode}|{profile.IsEnabled}|{profile.ApplyPriority}|{profile.ApplyCoreOptimization}|eco:{(profile.EcoQos.HasValue ? profile.EcoQos.Value ? "1" : "0" : "-")}|RT:{allowRealtimePriority}|path:{ProfileService.NormalizeExecutablePath(profile.ExecutablePath) ?? "-"}";
         }
 
         private static OptimizationMode NormalizeOptimizationMode(OptimizationMode mode)

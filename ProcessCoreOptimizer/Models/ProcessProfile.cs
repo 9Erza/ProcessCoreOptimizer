@@ -23,6 +23,7 @@ namespace ProcessCoreOptimizer.WPF.Models
         private string _priority = "Normal";
         private bool _applyPriority = true;
         private bool _applyCoreOptimization = true;
+        private bool? _ecoQos;
         private bool _isEnabled = true;
         private string _notes = string.Empty;
         private DateTime _createdAt = DateTime.UtcNow;
@@ -116,6 +117,16 @@ namespace ProcessCoreOptimizer.WPF.Models
         {
             get => _applyCoreOptimization;
             set => SetProperty(ref _applyCoreOptimization, value);
+        }
+
+        /// <summary>
+        /// EcoQoS (Efficiency mode) request. Null = leave the OS state alone
+        /// (default; preserves 1.3/2.0 profiles that predate this field).
+        /// </summary>
+        public bool? EcoQos
+        {
+            get => _ecoQos;
+            set => SetProperty(ref _ecoQos, value);
         }
 
         public bool IsEnabled

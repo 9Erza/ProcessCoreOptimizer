@@ -30,10 +30,11 @@ namespace ProcessCoreOptimizer.WPF.Services
 
         private void CaptureFull(
             ProcessInstanceKey key, string processName, string? executablePath,
-            long? affinityMask, bool cpuSetsObserved, long? cpuSetMask, ProcessPriorityClass? priority)
+            long? affinityMask, bool cpuSetsObserved, long? cpuSetMask, ProcessPriorityClass? priority,
+            bool? ecoQosObserved = null)
         {
             if (key.ProcessId <= 0 || key.StartTimeUtc == default) return;
-            if (affinityMask is null or 0 && !cpuSetsObserved && priority is null) return;
+            if (affinityMask is null or 0 && !cpuSetsObserved && priority is null && ecoQosObserved is null) return;
             lock (_lock)
             {
                 if (_entries.Any(e => e.Key.Equals(key))) return; // First baseline wins.
@@ -46,6 +47,7 @@ namespace ProcessCoreOptimizer.WPF.Services
                     CpuSetsObserved = cpuSetsObserved,
                     CpuSetMask = cpuSetMask,
                     Priority = priority,
+                    EcoQosObserved = ecoQosObserved,
                     CapturedAtUtc = DateTime.UtcNow
                 });
 
@@ -69,6 +71,7 @@ namespace ProcessCoreOptimizer.WPF.Services
             bool cpuSetsObserved = false;
             long? cpuSetMask = null;
             ProcessPriorityClass? priority = null;
+            bool? ecoQosObserved = null;
 
             try
             {
@@ -91,8 +94,15 @@ namespace ProcessCoreOptimizer.WPF.Services
 
             try { priority = processService.TryGetPriority(key.ProcessId); } catch { }
 
-            if (affinityMask is null or 0 && !cpuSetsObserved && priority is null) return false;
-            CaptureFull(key, processName, executablePath, affinityMask, cpuSetsObserved, cpuSetMask, priority);
+            try
+            {
+                var eco = processService.TryGetEcoQos(key.ProcessId);
+                if (eco.Readable && eco.Enabled.HasValue) ecoQosObserved = eco.Enabled.Value;
+            }
+            catch { }
+
+            if (affinityMask is null or 0 && !cpuSetsObserved && priority is null && ecoQosObserved is null) return false;
+            CaptureFull(key, processName, executablePath, affinityMask, cpuSetsObserved, cpuSetMask, priority, ecoQosObserved);
             return true;
         }
 
@@ -178,10 +188,11 @@ namespace ProcessCoreOptimizer.WPF.Services
                         continue;
                     }
 
-                    bool affinityOk = true, cpuSetsOk = true, priorityOk = true;
+                    bool affinityOk = true, cpuSetsOk = true, priorityOk = true, ecoOk = true;
                     bool wantsAffinity = entry.AffinityMask.HasValue && entry.AffinityMask.Value != 0;
                     bool wantsCpuSets = entry.CpuSetsObserved;
                     bool wantsPriority = entry.Priority.HasValue;
+                    bool wantsEcoQos = entry.EcoQosObserved.HasValue;
 
                     // 1. Affinity first: the OS call clears CPU Sets as a side effect.
                     if (wantsAffinity)
@@ -235,12 +246,30 @@ namespace ProcessCoreOptimizer.WPF.Services
                         }
                     }
 
+                    // 4. EcoQoS is orthogonal to affinity/priority; restore only
+                    // when the original state was verifiably captured.
+                    if (wantsEcoQos)
+                    {
+                        try
+                        {
+                            var eco = processService.SetEcoQos(proc.Id, entry.EcoQosObserved!.Value, target);
+                            ecoOk = eco.Success;
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.Debug($"Restore EcoQoS failed for PID {proc.Id}: {ex.Message}");
+                            ecoOk = false;
+                        }
+                    }
+
                     bool allOk = (!wantsAffinity || affinityOk)
                         && (!wantsCpuSets || cpuSetsOk)
-                        && (!wantsPriority || priorityOk);
+                        && (!wantsPriority || priorityOk)
+                        && (!wantsEcoQos || ecoOk);
                     bool anyOk = (wantsAffinity && affinityOk)
                         || (wantsCpuSets && cpuSetsOk)
-                        || (wantsPriority && priorityOk);
+                        || (wantsPriority && priorityOk)
+                        || (wantsEcoQos && ecoOk);
 
                     if (allOk) result.Restored++;
                     else if (anyOk) result.PartiallyRestored++;
@@ -249,6 +278,7 @@ namespace ProcessCoreOptimizer.WPF.Services
                     if (wantsAffinity && affinityOk) result.AffinityRestored++;
                     if (wantsCpuSets && cpuSetsOk) result.CpuSetsRestored++;
                     if (wantsPriority && priorityOk) result.PriorityRestored++;
+                    if (wantsEcoQos && ecoOk) result.EcoQosRestored++;
                 }
 
                 result.Message = $"Restored {result.Restored} instance(s), {result.PartiallyRestored} partial, {result.Failed} failed, {result.Skipped} skipped (no verified baseline).";
@@ -271,6 +301,8 @@ namespace ProcessCoreOptimizer.WPF.Services
         public bool CpuSetsObserved { get; set; }
         public long? CpuSetMask { get; set; }
         public ProcessPriorityClass? Priority { get; set; }
+        /// <summary>Captured EcoQoS state; null when unreadable at capture time (never restored then).</summary>
+        public bool? EcoQosObserved { get; set; }
         public DateTime CapturedAtUtc { get; set; }
     }
 
@@ -284,6 +316,7 @@ namespace ProcessCoreOptimizer.WPF.Services
         public int AffinityRestored { get; set; }
         public int CpuSetsRestored { get; set; }
         public int PriorityRestored { get; set; }
+        public int EcoQosRestored { get; set; }
         public string Message { get; set; } = string.Empty;
     }
 }

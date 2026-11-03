@@ -347,7 +347,8 @@ namespace ProcessCoreOptimizer.WPF.Services
                     Mode = NormalizeMode(p.OptimizationMode),
                     Enabled = p.IsEnabled,
                     ApplyP = p.ApplyPriority,
-                    ApplyC = p.ApplyCoreOptimization
+                    ApplyC = p.ApplyCoreOptimization,
+                    EcoQos = p.EcoQos
                 })
                 .OrderBy(p => string.IsNullOrWhiteSpace(p.Path) ? $"name:{p.Name}" : $"name:{p.Name}|path:{p.Path}", StringComparer.OrdinalIgnoreCase)
                 .ToList();
@@ -364,6 +365,7 @@ namespace ProcessCoreOptimizer.WPF.Services
                 if (l.IsEnabled != r.Enabled) return false;
                 if (l.ApplyPriority != r.ApplyP) return false;
                 if (l.ApplyCoreOptimization != r.ApplyC) return false;
+                if (l.EcoQos != r.EcoQos) return false;
             }
 
             return true;

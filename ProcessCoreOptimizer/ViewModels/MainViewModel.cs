@@ -1868,6 +1868,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 OptimizationMode = selected.OptimizationMode,
                 ApplyPriority = selected.ApplyPriority,
                 ApplyCoreOptimization = selected.ApplyCoreOptimization,
+                EcoQos = selected.EcoQos,
                 IsEnabled = selected.IsEnabled,
                 Notes = selected.Notes,
                 CreatedAt = selected.CreatedAt,
@@ -1891,6 +1892,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             existing.OptimizationMode = draft.OptimizationMode;
             existing.ApplyPriority = draft.ApplyPriority;
             existing.ApplyCoreOptimization = draft.ApplyCoreOptimization;
+            existing.EcoQos = draft.EcoQos;
             existing.IsEnabled = draft.IsEnabled;
             existing.Notes = draft.Notes;
             existing.UpdatedAt = DateTime.UtcNow;

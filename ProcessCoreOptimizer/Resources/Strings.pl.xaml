@@ -162,6 +162,8 @@
     <system:String x:Key="StrNewProfile">Nowy</system:String>
     <system:String x:Key="StrEditProfile">Edytuj</system:String>
     <system:String x:Key="StrCtxToggleEnabled">Włącz / Wyłącz</system:String>
+    <system:String x:Key="StrEcoQos">EcoQoS (tryb wydajności)</system:String>
+    <system:String x:Key="StrEcoQosHint">Opcjonalne. Zaznaczone = żądaj włączenia EcoQoS, odznaczone = żądaj wyłączenia, nieustalone = nie zmieniaj. Nigdy nie włączane automatycznie; tylko przez jawny profil.</system:String>
     <system:String x:Key="StrSmartRules">Inteligentne reguły</system:String>
     <system:String x:Key="StrRuleEditorTitle">Edytor reguły</system:String>
     <system:String x:Key="StrRuleName">Nazwa reguły (opcjonalna)</system:String>

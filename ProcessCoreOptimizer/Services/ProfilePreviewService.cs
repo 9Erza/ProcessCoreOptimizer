@@ -73,6 +73,23 @@ namespace ProcessCoreOptimizer.WPF.Services
                 });
             }
 
+            if (profile?.EcoQos.HasValue == true)
+            {
+                var eco = processService.TryGetEcoQos(pid);
+                string requested = profile.EcoQos.Value ? "EcoQoS on" : "EcoQoS off";
+                string current = !eco.Readable || !eco.Enabled.HasValue
+                    ? "unreadable"
+                    : eco.Enabled.Value ? "EcoQoS on" : "EcoQoS off";
+                preview.Rows.Add(new ProfilePreviewRow
+                {
+                    Action = "EcoQoS",
+                    Requested = requested,
+                    Current = current,
+                    Matches = eco.Readable && eco.Enabled.HasValue && eco.Enabled.Value == profile.EcoQos.Value,
+                    Detail = eco.Readable ? (eco.Error ?? string.Empty) : (eco.Error ?? "OS refused the read (elevation, protected process, or unsupported OS).")
+                });
+            }
+
             preview.AllMatch = preview.Rows.Count > 0 && preview.Rows.TrueForAll(r => r.Matches);
             preview.Summary = preview.Rows.Count == 0
                 ? "Profile requests no actions."
@@ -98,6 +115,14 @@ namespace ProcessCoreOptimizer.WPF.Services
                 var priority = processService.TryGetPriority(pid);
                 if (!selection.Success || selection.Mask == 0 || !priority.HasValue) return null;
 
+                bool? ecoQos = null;
+                try
+                {
+                    var eco = processService.TryGetEcoQos(pid);
+                    if (eco.Readable) ecoQos = eco.Enabled;
+                }
+                catch { ecoQos = null; }
+
 #pragma warning disable CS0618
                 var mode = selection.Mode == OptimizationMode.Exclusive ? OptimizationMode.Affinity : selection.Mode;
 #pragma warning restore CS0618
@@ -110,6 +135,7 @@ namespace ProcessCoreOptimizer.WPF.Services
                     OptimizationMode = mode,
                     ApplyPriority = true,
                     ApplyCoreOptimization = true,
+                    EcoQos = ecoQos,
                     IsEnabled = false,
                     Notes = $"Captured from live PID {pid}."
                 };

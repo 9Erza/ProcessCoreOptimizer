@@ -40,6 +40,8 @@ namespace ProcessCoreOptimizer.WPF.Views
             ModeBox.SelectedIndex = draft.OptimizationMode == OptimizationMode.CpuSets ? 1 : 0;
             ApplyPriorityBox.IsChecked = draft.ApplyPriority;
             ApplyCoresBox.IsChecked = draft.ApplyCoreOptimization;
+            EcoQosBox.IsChecked = draft.EcoQos;
+            EcoQosBox.IsEnabled = ProcessService.IsEcoQosSupported();
             EnabledBox.IsChecked = draft.IsEnabled;
             NotesBox.Text = draft.Notes ?? string.Empty;
 
@@ -96,6 +98,7 @@ namespace ProcessCoreOptimizer.WPF.Views
             Draft.OptimizationMode = ModeBox.SelectedIndex == 1 ? OptimizationMode.CpuSets : OptimizationMode.Affinity;
             Draft.ApplyPriority = ApplyPriorityBox.IsChecked == true;
             Draft.ApplyCoreOptimization = ApplyCoresBox.IsChecked == true;
+            Draft.EcoQos = EcoQosBox.IsChecked;
             Draft.IsEnabled = EnabledBox.IsChecked == true;
             Draft.Notes = NotesBox.Text?.Trim() ?? string.Empty;
             Draft.UpdatedAt = DateTime.UtcNow;

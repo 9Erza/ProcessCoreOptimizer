@@ -53,5 +53,32 @@ namespace ProcessCoreOptimizer.WPF.Helpers
             [Out] uint[]? cpuSetIds,
             uint cpuSetIdCount,
             out uint requiredIdCount);
+
+        // EcoQoS / Efficiency mode (PROCESS_INFORMATION_CLASS.ProcessPowerThrottling = 4).
+        public const int ProcessPowerThrottling = 4;
+        public const uint POWER_THROTTLING_CURRENT_VERSION = 1;
+        public const uint POWER_THROTTLING_EXECUTION_SPEED = 0x1;
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct PROCESS_POWER_THROTTLING_STATE
+        {
+            public uint Version;
+            public uint ControlMask;
+            public uint StateMask;
+        }
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool SetProcessInformation(
+            IntPtr hProcess,
+            int processInformationClass,
+            ref PROCESS_POWER_THROTTLING_STATE processInformation,
+            uint processInformationSize);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool GetProcessInformation(
+            IntPtr hProcess,
+            int processInformationClass,
+            ref PROCESS_POWER_THROTTLING_STATE processInformation,
+            uint processInformationSize);
     }
 }

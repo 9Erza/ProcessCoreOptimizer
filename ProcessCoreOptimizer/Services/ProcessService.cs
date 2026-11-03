@@ -166,6 +166,144 @@ namespace ProcessCoreOptimizer.WPF.Services
             }
         }
 
+        /// <summary>EcoQoS (Efficiency mode) needs Windows 10 1809+ (build 17763).</summary>
+        public static bool IsEcoQosSupported()
+        {
+            try
+            {
+                var v = Environment.OSVersion.Version;
+                return v.Major > 10 || (v.Major == 10 && v.Build >= 17763);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Best-effort EcoQoS read. Null Enabled (with an Error) means the OS
+        /// refused or the feature is unsupported — never an invented value.
+        /// </summary>
+        public virtual (bool Readable, bool? Enabled, string? Error) TryGetEcoQos(int pid)
+        {
+            if (!IsEcoQosSupported()) return (false, null, "ERR_ECOQOS_UNSUPPORTED");
+            try
+            {
+                IntPtr hProc = NativeMethods.OpenProcess(NativeMethods.PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
+                if (hProc == IntPtr.Zero)
+                {
+                    int error = Marshal.GetLastWin32Error();
+                    return (false, null, error == 5 ? "ERR_ACCESS_DENIED_5" : $"ERR_OPEN_PROCESS_{error}");
+                }
+
+                try
+                {
+                    // The GET requires Version preset to CURRENT_VERSION (else ERROR_INVALID_PARAMETER).
+                    var state = new NativeMethods.PROCESS_POWER_THROTTLING_STATE
+                    {
+                        Version = NativeMethods.POWER_THROTTLING_CURRENT_VERSION
+                    };
+                    bool ok = NativeMethods.GetProcessInformation(
+                        hProc,
+                        NativeMethods.ProcessPowerThrottling,
+                        ref state,
+                        (uint)Marshal.SizeOf<NativeMethods.PROCESS_POWER_THROTTLING_STATE>());
+                    if (!ok)
+                    {
+                        int error = Marshal.GetLastWin32Error();
+                        return (false, null, error == 5 ? "ERR_ACCESS_DENIED_5" : $"ERR_ECOQOS_READ_{error}");
+                    }
+
+                    bool enabled = (state.ControlMask & NativeMethods.POWER_THROTTLING_EXECUTION_SPEED) != 0
+                        && (state.StateMask & NativeMethods.POWER_THROTTLING_EXECUTION_SPEED) != 0;
+                    return (true, enabled, null);
+                }
+                finally
+                {
+                    NativeMethods.CloseHandle(hProc);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug($"Failed to read EcoQoS for PID {pid}: {ex.Message}");
+                return (false, null, "ERR_ECOQOS_READ_EXCEPTION");
+            }
+        }
+
+        /// <summary>
+        /// Explicit EcoQoS on/off with the same identity discipline as priority
+        /// changes: incomplete identity or recycled PID is refused, never set.
+        /// </summary>
+        public virtual (bool Success, string Message, bool RequiresAdmin) SetEcoQos(int pid, bool enable, ProcessMutationTarget target)
+        {
+            if (!IsEcoQosSupported()) return (false, "ERR_ECOQOS_UNSUPPORTED", false);
+            if (!target.IsValid || target.ProcessId != pid)
+            {
+                _logger.Warn($"Refusing EcoQoS change for PID {pid}: incomplete mutation identity.");
+                return (false, "ERR_IDENTITY_MISMATCH", false);
+            }
+
+            try
+            {
+                IntPtr hProc = NativeMethods.OpenProcess(
+                    NativeMethods.PROCESS_SET_INFORMATION | NativeMethods.PROCESS_QUERY_LIMITED_INFORMATION,
+                    false, pid);
+                if (hProc == IntPtr.Zero)
+                {
+                    int error = Marshal.GetLastWin32Error();
+                    _logger.Warn($"OpenProcess failed for PID {pid} during EcoQoS set: {error}");
+                    return (false, $"ERR_OPEN_PROCESS_{error}", error == 5);
+                }
+
+                try
+                {
+                    if (!TryGetProcessStartTimeUtc(hProc, out DateTime startUtc)
+                        || startUtc != target.StartTimeUtc)
+                    {
+                        _logger.Warn($"Process identity start time mismatch or process recycled for PID {pid}; EcoQoS not set.");
+                        return (false, "ERR_IDENTITY_MISMATCH", false);
+                    }
+
+                    using var proc = Process.GetProcessById(pid);
+                    if (!MatchesExpectedIdentity(proc, target))
+                    {
+                        _logger.Warn($"Process identity mismatch for PID {pid}; EcoQoS not set.");
+                        return (false, "ERR_IDENTITY_MISMATCH", false);
+                    }
+
+                    uint mask = enable ? NativeMethods.POWER_THROTTLING_EXECUTION_SPEED : 0;
+                    var state = new NativeMethods.PROCESS_POWER_THROTTLING_STATE
+                    {
+                        Version = NativeMethods.POWER_THROTTLING_CURRENT_VERSION,
+                        ControlMask = NativeMethods.POWER_THROTTLING_EXECUTION_SPEED,
+                        StateMask = mask
+                    };
+                    bool ok = NativeMethods.SetProcessInformation(
+                        hProc,
+                        NativeMethods.ProcessPowerThrottling,
+                        ref state,
+                        (uint)Marshal.SizeOf<NativeMethods.PROCESS_POWER_THROTTLING_STATE>());
+                    if (!ok)
+                    {
+                        int error = Marshal.GetLastWin32Error();
+                        _logger.Warn($"SetProcessInformation (EcoQoS) failed for PID {pid}: {error}");
+                        return (false, $"ERR_ECOQOS_{error}", error == 5);
+                    }
+
+                    return (true, enable ? "OK_ECOQOS_ON" : "OK_ECOQOS_OFF", false);
+                }
+                finally
+                {
+                    NativeMethods.CloseHandle(hProc);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn($"Failed to set EcoQoS for PID {pid}: {ex.Message}");
+                return (false, "ERR_ECOQOS_EXCEPTION", false);
+            }
+        }
+
         public virtual string ApplyCoreOptimization(
             int pid, long mask, OptimizationMode mode, Dictionary<int, uint> cpuSetMap,
             ProcessMutationTarget target)

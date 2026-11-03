@@ -46,6 +46,7 @@
 
                     <CheckBox x:Name="ApplyPriorityBox" Content="{DynamicResource StrApplyPriority}" Foreground="{StaticResource PcoTextBrush}" Margin="0,0,0,6" VerticalContentAlignment="Center"/>
                     <CheckBox x:Name="ApplyCoresBox" Content="{DynamicResource StrApplyCores}" Foreground="{StaticResource PcoTextBrush}" Margin="0,0,0,6" VerticalContentAlignment="Center"/>
+                    <CheckBox x:Name="EcoQosBox" Content="{DynamicResource StrEcoQos}" Foreground="{StaticResource PcoTextBrush}" Margin="0,0,0,6" VerticalContentAlignment="Center" IsThreeState="True" ToolTip="{DynamicResource StrEcoQosHint}"/>
                     <CheckBox x:Name="EnabledBox" Content="{DynamicResource StrProfileEnabled}" Foreground="{StaticResource PcoTextBrush}" Margin="0,0,0,12" VerticalContentAlignment="Center"/>
 
                     <TextBlock Text="{DynamicResource StrNotes}" Foreground="{StaticResource PcoTextBrush}" FontWeight="SemiBold" Margin="0,0,0,4"/>

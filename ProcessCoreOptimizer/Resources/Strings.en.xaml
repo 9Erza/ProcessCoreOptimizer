@@ -162,6 +162,8 @@
     <system:String x:Key="StrNewProfile">New</system:String>
     <system:String x:Key="StrEditProfile">Edit</system:String>
     <system:String x:Key="StrCtxToggleEnabled">Enable / Disable</system:String>
+    <system:String x:Key="StrEcoQos">EcoQoS (Efficiency mode)</system:String>
+    <system:String x:Key="StrEcoQosHint">Optional. Checked = request EcoQoS on, unchecked = request off, indeterminate = leave alone. Never auto-enabled; applies only via explicit profile.</system:String>
     <system:String x:Key="StrSmartRules">Smart Rules</system:String>
     <system:String x:Key="StrRuleEditorTitle">Rule Editor</system:String>
     <system:String x:Key="StrRuleName">Rule name (optional)</system:String>
