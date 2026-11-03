@@ -126,6 +126,7 @@
     <system:String x:Key="StrProcessDetails">Szczegóły procesu</system:String>
     <system:String x:Key="StrNoSelection">Wybierz proces lub profil, aby zobaczyć szczegóły.</system:String>
     <system:String x:Key="StrCorePresets">Presety rdzeni</system:String>
+    <system:String x:Key="StrPreviewPreset">Podgląd</system:String>
     <system:String x:Key="StrTopologyNote">Uwaga o topologii</system:String>
     <system:String x:Key="StrConflictsTitle">Konflikty profili</system:String>
     <system:String x:Key="StrNoConflicts">Brak konfliktów. Kolejność: path-bound, potem najnowszy.</system:String>

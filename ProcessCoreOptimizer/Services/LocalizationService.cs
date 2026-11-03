@@ -138,6 +138,7 @@ namespace ProcessCoreOptimizer.WPF.Services
                 res["StrProcessDetails"] = isPl ? "Szczegóły procesu" : "Process details";
                 res["StrNoSelection"] = isPl ? "Wybierz proces lub profil, aby zobaczyć szczegóły." : "Select a process or profile to see details.";
                 res["StrCorePresets"] = isPl ? "Presety rdzeni" : "Core presets";
+                res["StrPreviewPreset"] = isPl ? "Podgląd" : "Preview";
                 res["StrTopologyNote"] = isPl ? "Uwaga o topologii" : "Topology note";
                 res["StrConflictsTitle"] = isPl ? "Konflikty profili" : "Profile conflicts";
                 res["StrNoConflicts"] = isPl ? "Brak konfliktów. Kolejność: path-bound, potem najnowszy." : "No conflicts. Precedence: path-bound, then newest.";

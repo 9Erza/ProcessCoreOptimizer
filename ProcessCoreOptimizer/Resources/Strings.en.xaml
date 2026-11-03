@@ -126,6 +126,7 @@
     <system:String x:Key="StrProcessDetails">Process details</system:String>
     <system:String x:Key="StrNoSelection">Select a process or profile to see details.</system:String>
     <system:String x:Key="StrCorePresets">Core presets</system:String>
+    <system:String x:Key="StrPreviewPreset">Preview</system:String>
     <system:String x:Key="StrTopologyNote">Topology note</system:String>
     <system:String x:Key="StrConflictsTitle">Profile conflicts</system:String>
     <system:String x:Key="StrNoConflicts">No conflicts. Precedence: path-bound, then newest.</system:String>

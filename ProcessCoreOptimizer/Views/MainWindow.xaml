@@ -340,7 +340,7 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0">
-                                <TextBlock Text="{DynamicResource StrSelectedProcess}" Style="{StaticResource PcoTitle}"/>
+                                <TextBlock Text="{Binding TargetPanelTitle, Mode=OneWay}" Style="{StaticResource PcoTitle}"/>
                                 <TextBlock Text="{Binding TargetScopeLabel, Mode=OneWay}" Foreground="{StaticResource PcoAccentBrush}" FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,6"/>
                             </StackPanel>
                             <Button Grid.Column="1" Content="&#xE711;" Style="{StaticResource WindowBtnStyle}" Width="32" Height="32"

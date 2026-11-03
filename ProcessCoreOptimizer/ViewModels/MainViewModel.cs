@@ -546,9 +546,20 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                         ? $"Grupa procesów — {SelectedProcessDetails.InstanceCount} instancji"
                         : $"Process group — {SelectedProcessDetails.InstanceCount} instances";
                 }
+                if (SelectedSavedProfile != null)
+                {
+                    return IsPolishLanguage
+                        ? $"Profil: {SelectedSavedProfile.ProcessName}"
+                        : $"Profile: {SelectedSavedProfile.ProcessName}";
+                }
                 return string.Empty;
             }
         }
+
+        /// <summary>Right-panel header follows the target kind (process vs profile).</summary>
+        public string TargetPanelTitle => ActiveTab == "Profiles"
+            ? (IsPolishLanguage ? "Wybrany profil" : "Selected profile")
+            : (IsPolishLanguage ? "Wybrany proces" : "Selected process");
 
         public ICommand CloseProcessTargetCommand { get; }
 
@@ -1477,6 +1488,8 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             if (string.IsNullOrEmpty(tabName)) return;
 
             ActiveTab = tabName;
+            OnPropertyChanged(nameof(TargetPanelTitle));
+            OnPropertyChanged(nameof(TargetScopeLabel));
             ViewProcesses = tabName == "Processes" ? Visibility.Visible : Visibility.Collapsed;
             ViewProfiles = tabName == "Profiles" ? Visibility.Visible : Visibility.Collapsed;
             ViewCpu = tabName == "Cpu" ? Visibility.Visible : Visibility.Collapsed;
@@ -3088,6 +3101,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             OnPropertyChanged(nameof(ActivitySummary));
             OnPropertyChanged(nameof(ActivityStatus));
             OnPropertyChanged(nameof(TargetScopeLabel));
+            OnPropertyChanged(nameof(TargetPanelTitle));
             OnPropertyChanged(nameof(PreviewPresetSummary));
             OnPropertyChanged(nameof(UpdateStatusText));
             RefreshAvailablePriorities();
