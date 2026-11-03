@@ -1516,6 +1516,16 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 };
                 if (dialog.ShowDialog() != true) return;
 
+                int logCount = ActionLogs.TakeLast(100).ToList().Count;
+                string scope = IsPolishLanguage
+                    ? $"Pakiet zawiera: {_profiles.Count} profili (ścieżki zamaskowane), {_rulesSnapshot.Count} reguł (nazwy jawne), aktywność reguł, status watchera, {logCount} linii logu (ścieżki/maile zamaskowane). Bez nazwy maszyny i notatek. ZIP NIE jest wysyłany nigdzie — przejrzyj go przed udostępnieniem. Zapisać?"
+                    : $"Package contains: {_profiles.Count} profiles (paths masked), {_rulesSnapshot.Count} rules (names as-is), rule activity, watcher status, {logCount} log lines (paths/emails masked). No machine name, no notes. The ZIP is NOT uploaded anywhere — review it before sharing. Write?";
+                var confirm = WpfMessageBox.Show(
+                    scope,
+                    IsPolishLanguage ? "Eksport diagnostyki — zakres (częściowa anonimizacja)" : "Diagnostics export — scope (partial anonymization)",
+                    MessageBoxButton.YesNo, MessageBoxImage.Question);
+                if (confirm != MessageBoxResult.Yes) return;
+
                 string summary = Services.DiagnosticsExportService.BuildSummaryText(
                     AppVersion,
                     _profiles,
@@ -2196,10 +2206,10 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             if (!ShowRuleEditor(draft, isNew: true)) return;
 
             _rules.Add(draft);
-            SaveRules();
-            AddLog(IsPolishLanguage
-                ? $"Utworzono regułę '{draft.Name}' (wyłączona — włącz ją świadomie)."
-                : $"Created rule '{draft.Name}' (disabled — enable it deliberately).");
+            if (SaveRules())
+                AddLog(IsPolishLanguage
+                    ? $"Utworzono regułę '{draft.Name}' (wyłączona — włącz ją świadomie)."
+                    : $"Created rule '{draft.Name}' (disabled — enable it deliberately).");
         }
 
         private void EditSelectedRule()
@@ -2250,8 +2260,8 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             existing.IsEnabled = draft.IsEnabled;
             existing.Notes = draft.Notes;
             existing.UpdatedAt = DateTime.UtcNow;
-            SaveRules();
-            AddLog(IsPolishLanguage ? $"Zaktualizowano regułę '{existing.Name}'." : $"Updated rule '{existing.Name}'.");
+            if (SaveRules())
+                AddLog(IsPolishLanguage ? $"Zaktualizowano regułę '{existing.Name}'." : $"Updated rule '{existing.Name}'.");
         }
 
         private void DeleteSelectedRule()
@@ -2261,8 +2271,8 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             _rules = SmartRuleService.RemoveById(_rules, selected.Id);
             _ruleEngine.ClearOverride(selected.Id);
             SelectedRule = null;
-            SaveRules();
-            AddLog(IsPolishLanguage ? $"Usunięto regułę '{selected.Name}'." : $"Deleted rule '{selected.Name}'.");
+            if (SaveRules())
+                AddLog(IsPolishLanguage ? $"Usunięto regułę '{selected.Name}'." : $"Deleted rule '{selected.Name}'.");
         }
 
         private void ToggleSelectedRuleEnabled()
@@ -2273,10 +2283,10 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             if (existing == null) return;
             existing.IsEnabled = !existing.IsEnabled;
             existing.UpdatedAt = DateTime.UtcNow;
-            SaveRules();
-            AddLog(IsPolishLanguage
-                ? $"Reguła '{existing.Name}': {(existing.IsEnabled ? "włączona" : "wyłączona")}."
-                : $"Rule '{existing.Name}': {(existing.IsEnabled ? "enabled" : "disabled")}.");
+            if (SaveRules())
+                AddLog(IsPolishLanguage
+                    ? $"Reguła '{existing.Name}': {(existing.IsEnabled ? "włączona" : "wyłączona")}."
+                    : $"Rule '{existing.Name}': {(existing.IsEnabled ? "enabled" : "disabled")}.");
         }
 
         private void ClearSelectedRuleOverride()
@@ -2289,9 +2299,17 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 : $"Cleared override for rule '{selected.Name}'.");
         }
 
-        private void SaveRules()
+        private bool SaveRules()
         {
-            _ruleService.SaveRules(_rules);
+            if (!_ruleService.TrySaveRules(_rules, out string? error))
+            {
+                AddLog(IsPolishLanguage
+                    ? $"Reguły NIE zostały zapisane: {error}"
+                    : $"Rules NOT saved: {error}");
+                RefreshRuleStatus();
+                return false;
+            }
+
             _rules = _ruleService.LoadRules();
             _rulesSnapshot = _rules.ToList();
             WpfApplication.Current.Dispatcher.Invoke(() =>
@@ -2301,6 +2319,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                     Rules.Add(rule);
             });
             RefreshRuleStatus();
+            return true;
         }
 
         private bool ShowRuleEditor(SmartRule draft, bool isNew)
