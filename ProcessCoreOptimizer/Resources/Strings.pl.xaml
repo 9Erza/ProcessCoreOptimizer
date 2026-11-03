@@ -162,5 +162,22 @@
     <system:String x:Key="StrNewProfile">Nowy</system:String>
     <system:String x:Key="StrEditProfile">Edytuj</system:String>
     <system:String x:Key="StrCtxToggleEnabled">Włącz / Wyłącz</system:String>
+    <system:String x:Key="StrSmartRules">Inteligentne reguły</system:String>
+    <system:String x:Key="StrRuleEditorTitle">Edytor reguły</system:String>
+    <system:String x:Key="StrRuleName">Nazwa reguły (opcjonalna)</system:String>
+    <system:String x:Key="StrRuleProcess">PROCES</system:String>
+    <system:String x:Key="StrRuleTrigger">WYZWALACZ</system:String>
+    <system:String x:Key="StrRuleAction">AKCJA</system:String>
+    <system:String x:Key="StrRuleDelayS">Opóźnienie (s)</system:String>
+    <system:String x:Key="StrRuleCooldownS">Cooldown (s)</system:String>
+    <system:String x:Key="StrRulePriority">PRIO</system:String>
+    <system:String x:Key="StrRuleProfile">Profil do zastosowania</system:String>
+    <system:String x:Key="StrRuleRecent">Ostatnia aktywność reguł (dlaczego reguła zadziałała)</system:String>
+    <system:String x:Key="StrClearOverride">Wyczyść obejście</system:String>
+    <system:String x:Key="StrTriggerLaunch">Przy uruchomieniu procesu</system:String>
+    <system:String x:Key="StrTriggerForeground">Na aktywnym oknie</system:String>
+    <system:String x:Key="StrActionApply">Zastosuj profil</system:String>
+    <system:String x:Key="StrActionRestore">Przywróć sesję</system:String>
+    <system:String x:Key="StrPauseAutomation">Wstrzymaj automatyczną optymalizację</system:String>
 
 </ResourceDictionary>

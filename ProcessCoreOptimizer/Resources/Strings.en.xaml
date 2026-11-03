@@ -162,5 +162,22 @@
     <system:String x:Key="StrNewProfile">New</system:String>
     <system:String x:Key="StrEditProfile">Edit</system:String>
     <system:String x:Key="StrCtxToggleEnabled">Enable / Disable</system:String>
+    <system:String x:Key="StrSmartRules">Smart Rules</system:String>
+    <system:String x:Key="StrRuleEditorTitle">Rule Editor</system:String>
+    <system:String x:Key="StrRuleName">Rule name (optional)</system:String>
+    <system:String x:Key="StrRuleProcess">PROCESS</system:String>
+    <system:String x:Key="StrRuleTrigger">TRIGGER</system:String>
+    <system:String x:Key="StrRuleAction">ACTION</system:String>
+    <system:String x:Key="StrRuleDelayS">Delay (s)</system:String>
+    <system:String x:Key="StrRuleCooldownS">Cooldown (s)</system:String>
+    <system:String x:Key="StrRulePriority">PRIO</system:String>
+    <system:String x:Key="StrRuleProfile">Profile to apply</system:String>
+    <system:String x:Key="StrRuleRecent">Recent rule activity (why this rule fired)</system:String>
+    <system:String x:Key="StrClearOverride">Clear override</system:String>
+    <system:String x:Key="StrTriggerLaunch">On process launch</system:String>
+    <system:String x:Key="StrTriggerForeground">On foreground window</system:String>
+    <system:String x:Key="StrActionApply">Apply profile</system:String>
+    <system:String x:Key="StrActionRestore">Restore session</system:String>
+    <system:String x:Key="StrPauseAutomation">Pause automatic optimization</system:String>
 
 </ResourceDictionary>

@@ -87,6 +87,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         private Visibility _viewHardwareMonitor = Visibility.Collapsed;
         private Visibility _viewSettings = Visibility.Collapsed;
         private Visibility _viewDiagnostics = Visibility.Collapsed;
+        private Visibility _viewSmartRules = Visibility.Collapsed;
         private string _watcherStatusText = string.Empty;
         private string _conflictSummaryText = string.Empty;
         private HardwareMetrics _fullMetrics = new();
@@ -94,6 +95,14 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         public ObservableCollection<ProcessItem> Processes { get; } = new();
         public ObservableCollection<ProcessInstanceRow> InstanceRows { get; } = new();
         public ObservableCollection<SmartRule> Rules { get; } = new();
+        public ObservableCollection<RuleDecision> RecentRuleDecisions { get; } = new();
+        private SmartRule? _selectedRule;
+
+        public SmartRule? SelectedRule
+        {
+            get => _selectedRule;
+            set => SetProperty(ref _selectedRule, value);
+        }
         private string _ruleStatusText = string.Empty;
 
         public string RuleStatusText
@@ -181,6 +190,11 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         public ICommand NewProfileCommand { get; }
         public ICommand EditProfileCommand { get; }
         public ICommand ToggleProfileEnabledCommand { get; }
+        public ICommand NewRuleCommand { get; }
+        public ICommand EditRuleCommand { get; }
+        public ICommand DeleteRuleCommand { get; }
+        public ICommand ToggleRuleEnabledCommand { get; }
+        public ICommand ClearRuleOverrideCommand { get; }
 
         public string AppVersion { get; } = FormatDisplayVersion(Assembly.GetExecutingAssembly()
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
@@ -219,6 +233,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         public Visibility ViewHardwareMonitor { get => _viewHardwareMonitor; set => SetProperty(ref _viewHardwareMonitor, value); }
         public Visibility ViewSettings { get => _viewSettings; set => SetProperty(ref _viewSettings, value); }
         public Visibility ViewDiagnostics { get => _viewDiagnostics; set => SetProperty(ref _viewDiagnostics, value); }
+        public Visibility ViewSmartRules { get => _viewSmartRules; set => SetProperty(ref _viewSmartRules, value); }
 
         public bool IsRightPanelVisible => ActiveTab is "Processes" or "Profiles" or "Cpu";
 
@@ -832,6 +847,11 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             NewProfileCommand = new RelayCommand(_ => CreateNewProfile());
             EditProfileCommand = new RelayCommand(_ => EditSelectedProfile());
             ToggleProfileEnabledCommand = new RelayCommand(_ => ToggleSelectedProfileEnabled());
+            NewRuleCommand = new RelayCommand(_ => CreateNewRule());
+            EditRuleCommand = new RelayCommand(_ => EditSelectedRule());
+            DeleteRuleCommand = new RelayCommand(_ => DeleteSelectedRule());
+            ToggleRuleEnabledCommand = new RelayCommand(_ => ToggleSelectedRuleEnabled());
+            ClearRuleOverrideCommand = new RelayCommand(_ => ClearSelectedRuleOverride());
 
             ApplyLanguage(_appSettings.Language);
             _refreshTimer.Start();
@@ -1089,10 +1109,12 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             ViewHardwareMonitor = tabName == "Hardware" ? Visibility.Visible : Visibility.Collapsed;
             ViewSettings = tabName == "Settings" ? Visibility.Visible : Visibility.Collapsed;
             ViewDiagnostics = tabName == "Diagnostics" ? Visibility.Visible : Visibility.Collapsed;
+            ViewSmartRules = tabName == "Rules" ? Visibility.Visible : Visibility.Collapsed;
             OnPropertyChanged(nameof(IsRightPanelVisible));
 
             SelectedProcess = null;
             SelectedSavedProfile = null;
+            SelectedRule = null;
 
             if (tabName == "Hardware")
             {
@@ -1363,10 +1385,18 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
 
         private void RefreshRuleStatus()
         {
-            int enabled = _rules.Count(r => r.IsEnabled);
-            RuleStatusText = AppSettings.AutomationPaused
+            int enabled = _rulesSnapshot.Count(r => r.IsEnabled);
+            string status = AppSettings.AutomationPaused
                 ? (IsPolishLanguage ? $"Pauza — reguły wstrzymane ({enabled} włączonych)." : $"Paused — rules suspended ({enabled} enabled).")
                 : (IsPolishLanguage ? $"Reguły: {enabled} włączonych. {_ruleEngine.LastSummary}" : $"Rules: {enabled} enabled. {_ruleEngine.LastSummary}");
+            var recent = _ruleEngine.RecentDecisions;
+            WpfApplication.Current.Dispatcher.Invoke(() =>
+            {
+                RuleStatusText = status;
+                RecentRuleDecisions.Clear();
+                foreach (var d in recent.TakeLast(15).Reverse())
+                    RecentRuleDecisions.Add(d);
+            });
         }
 
         private void ThrottledRuleLog(SmartRule rule, string message, int minutes = 5)
@@ -1906,6 +1936,148 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             catch (Exception ex)
             {
                 AddLog($"Profile editor failed: {ex.Message}");
+                return false;
+            }
+        }
+
+        private void CreateNewRule()
+        {
+            var draft = new SmartRule
+            {
+                ProcessName = SelectedProcess?.Name ?? SelectedInstanceRow?.Name ?? string.Empty,
+                ExecutablePath = SelectedInstanceRow?.ExecutablePath,
+                Trigger = RuleTrigger.OnLaunch,
+                Action = RuleAction.ApplyProfile,
+                DelaySeconds = 0,
+                CooldownSeconds = 30,
+                Priority = 100,
+                IsEnabled = false,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            if (!ShowRuleEditor(draft, isNew: true)) return;
+
+            _rules.Add(draft);
+            SaveRules();
+            AddLog(IsPolishLanguage
+                ? $"Utworzono regułę '{draft.Name}' (wyłączona — włącz ją świadomie)."
+                : $"Created rule '{draft.Name}' (disabled — enable it deliberately).");
+        }
+
+        private void EditSelectedRule()
+        {
+            var selected = SelectedRule;
+            if (selected == null)
+            {
+                AddLog(IsPolishLanguage ? "Edycja: najpierw wybierz regułę." : "Edit: select a rule first.");
+                return;
+            }
+
+            var draft = new SmartRule
+            {
+                Id = selected.Id,
+                Name = selected.Name,
+                ProcessName = selected.ProcessName,
+                ExecutablePath = selected.ExecutablePath,
+                Trigger = selected.Trigger,
+                Action = selected.Action,
+                ProfileId = selected.ProfileId,
+                DelaySeconds = selected.DelaySeconds,
+                CooldownSeconds = selected.CooldownSeconds,
+                Priority = selected.Priority,
+                IsEnabled = selected.IsEnabled,
+                Notes = selected.Notes,
+                CreatedAt = selected.CreatedAt,
+                UpdatedAt = selected.UpdatedAt
+            };
+
+            if (!ShowRuleEditor(draft, isNew: false)) return;
+
+            var existing = SmartRuleService.FindById(_rules, draft.Id);
+            if (existing == null)
+            {
+                AddLog(IsPolishLanguage ? "Edycja: reguła już nie istnieje." : "Edit: rule no longer exists.");
+                return;
+            }
+
+            existing.Name = draft.Name;
+            existing.ProcessName = draft.ProcessName;
+            existing.ExecutablePath = draft.ExecutablePath;
+            existing.Trigger = draft.Trigger;
+            existing.Action = draft.Action;
+            existing.ProfileId = draft.ProfileId;
+            existing.DelaySeconds = draft.DelaySeconds;
+            existing.CooldownSeconds = draft.CooldownSeconds;
+            existing.Priority = draft.Priority;
+            existing.IsEnabled = draft.IsEnabled;
+            existing.Notes = draft.Notes;
+            existing.UpdatedAt = DateTime.UtcNow;
+            SaveRules();
+            AddLog(IsPolishLanguage ? $"Zaktualizowano regułę '{existing.Name}'." : $"Updated rule '{existing.Name}'.");
+        }
+
+        private void DeleteSelectedRule()
+        {
+            var selected = SelectedRule;
+            if (selected == null) return;
+            _rules = SmartRuleService.RemoveById(_rules, selected.Id);
+            _ruleEngine.ClearOverride(selected.Id);
+            SelectedRule = null;
+            SaveRules();
+            AddLog(IsPolishLanguage ? $"Usunięto regułę '{selected.Name}'." : $"Deleted rule '{selected.Name}'.");
+        }
+
+        private void ToggleSelectedRuleEnabled()
+        {
+            var selected = SelectedRule;
+            if (selected == null) return;
+            var existing = SmartRuleService.FindById(_rules, selected.Id);
+            if (existing == null) return;
+            existing.IsEnabled = !existing.IsEnabled;
+            existing.UpdatedAt = DateTime.UtcNow;
+            SaveRules();
+            AddLog(IsPolishLanguage
+                ? $"Reguła '{existing.Name}': {(existing.IsEnabled ? "włączona" : "wyłączona")}."
+                : $"Rule '{existing.Name}': {(existing.IsEnabled ? "enabled" : "disabled")}.");
+        }
+
+        private void ClearSelectedRuleOverride()
+        {
+            var selected = SelectedRule;
+            if (selected == null) return;
+            _ruleEngine.ClearOverride(selected.Id);
+            AddLog(IsPolishLanguage
+                ? $"Wyczyszczono obejście reguły '{selected.Name}'."
+                : $"Cleared override for rule '{selected.Name}'.");
+        }
+
+        private void SaveRules()
+        {
+            _ruleService.SaveRules(_rules);
+            _rules = _ruleService.LoadRules();
+            _rulesSnapshot = _rules.ToList();
+            WpfApplication.Current.Dispatcher.Invoke(() =>
+            {
+                Rules.Clear();
+                foreach (var rule in _rules.OrderBy(r => r.Priority).ThenBy(r => r.ProcessName, StringComparer.OrdinalIgnoreCase))
+                    Rules.Add(rule);
+            });
+            RefreshRuleStatus();
+        }
+
+        private bool ShowRuleEditor(SmartRule draft, bool isNew)
+        {
+            try
+            {
+                var owner = WpfApplication.Current.MainWindow as Views.MainWindow;
+                var window = new Views.RuleEditorWindow(draft, isNew, _profiles, IsPolishLanguage);
+                if (owner != null) window.Owner = owner;
+                return window.ShowDialog() == true;
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Rule editor failed: {ex.Message}");
                 return false;
             }
         }
