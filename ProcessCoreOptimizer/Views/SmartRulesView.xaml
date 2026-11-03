@@ -82,7 +82,7 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <TextBlock Foreground="{StaticResource PcoMutedBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,2">
-                                    <Run Text="{Binding RuleName}" FontWeight="SemiBold"/><Run Text=" → PID "/><Run Text="{Binding Key.ProcessId}"/><Run Text=": "/><Run Text="{Binding Reason}"/>
+                                    <Run Text="{Binding RuleName, Mode=OneWay}" FontWeight="SemiBold"/><Run Text=" → PID "/><Run Text="{Binding Key.ProcessId, Mode=OneWay}"/><Run Text=": "/><Run Text="{Binding Reason, Mode=OneWay}"/>
                                 </TextBlock>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
