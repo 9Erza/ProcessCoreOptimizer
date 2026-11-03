@@ -133,6 +133,16 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             get => _hasInsights;
             private set => SetProperty(ref _hasInsights, value);
         }
+
+        private string _profileMatchWhy = string.Empty;
+
+        public string ProfileMatchWhy
+        {
+            get => _profileMatchWhy;
+            private set => SetProperty(ref _profileMatchWhy, value);
+        }
+
+        public ICommand ExportDiagnosticsCommand { get; }
         private SmartRule? _selectedRule;
 
         public SmartRule? SelectedRule
@@ -398,7 +408,10 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 if (!SetProperty(ref _selectedInstanceRow, value)) return;
                 _insightsSampler.Reset();
                 if (value != null)
+                {
                     SelectedProcessDetails = BuildProcessDetails(value.Name);
+                    UpdateProfileWhy();
+                }
             }
         }
 
@@ -426,6 +439,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 if (!SetProperty(ref _selectedProcess, value) || value == null) return;
                 _insightsSampler.Reset();
                 SelectedProcessDetails = BuildProcessDetails(value.Name);
+                UpdateProfileWhy();
 
                 var savedProfile = _profiles.FirstOrDefault(p => p.ProcessName.Equals(value.Name, StringComparison.OrdinalIgnoreCase));
                 if (savedProfile != null)
@@ -896,6 +910,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             DeleteRuleCommand = new RelayCommand(_ => DeleteSelectedRule());
             ToggleRuleEnabledCommand = new RelayCommand(_ => ToggleSelectedRuleEnabled());
             ClearRuleOverrideCommand = new RelayCommand(_ => ClearSelectedRuleOverride());
+            ExportDiagnosticsCommand = new RelayCommand(_ => ExportDiagnosticsPackage());
 
             ApplyLanguage(_appSettings.Language);
             _refreshTimer.Start();
@@ -1450,6 +1465,51 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         /// Charts carry the last known value forward for continuity; the summary
         /// text always states the true readability of the latest point.
         /// </summary>
+        private void UpdateProfileWhy()
+        {
+            string? name = SelectedInstanceRow?.Name ?? SelectedProcess?.Name;
+            if (string.IsNullOrWhiteSpace(name)) return;
+            string? path = SelectedInstanceRow?.ExecutablePath
+                ?? SelectedProcess?.ExecutablePath
+                ?? SelectedProcessDetails?.ExecutablePath;
+            ProfileMatchWhy = Services.ProfileMatchExplainer.Explain(name, path, _profiles, IsPolishLanguage);
+        }
+
+        private void ExportDiagnosticsPackage()
+        {
+            try
+            {
+                var dialog = new Microsoft.Win32.SaveFileDialog
+                {
+                    Filter = "ZIP archive (*.zip)|*.zip",
+                    FileName = $"PCO-diagnostics-{DateTime.Now:yyyyMMdd-HHmmss}.zip",
+                    OverwritePrompt = true
+                };
+                if (dialog.ShowDialog() != true) return;
+
+                string summary = Services.DiagnosticsExportService.BuildSummaryText(
+                    AppVersion,
+                    _profiles,
+                    _rulesSnapshot,
+                    profileId =>
+                    {
+                        var p = Services.ProfileService.FindById(_profiles, profileId);
+                        return p != null ? $"{p.DisplayName} ({(p.IsEnabled ? "enabled" : "disabled")})" : null;
+                    },
+                    _ruleEngine.RecentDecisions,
+                    WatcherStatusText,
+                    ActionLogs.TakeLast(100).ToList());
+                Services.DiagnosticsExportService.WriteZip(dialog.FileName, summary);
+                AddLog(IsPolishLanguage
+                    ? $"Zapisano pakiet diagnostyczny (zanonimizowany): {dialog.FileName}"
+                    : $"Saved anonymized diagnostics package: {dialog.FileName}");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Diagnostics export failed: {ex.Message}");
+            }
+        }
+
         private void UpdateInsights(int? pid)
         {
             if (pid == null || pid == 0)
@@ -2541,6 +2601,8 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             RefreshDisplayedPriorities();
             RefreshProfileConflicts();
             RefreshWatcherStatus();
+            RefreshRuleStatus();
+            UpdateProfileWhy();
             OnPropertyChanged(nameof(CpuVendorText));
             OnPropertyChanged(nameof(CurrentPrivilegesText));
             _ = RefreshStartupStatusAsync();
@@ -2594,6 +2656,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             }
 
             RefreshProfileConflicts();
+            UpdateProfileWhy();
         }
 
         private string TranslatePriority(string? rawEnum)

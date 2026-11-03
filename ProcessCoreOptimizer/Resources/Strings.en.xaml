@@ -165,6 +165,8 @@
     <system:String x:Key="StrEcoQos">EcoQoS (Efficiency mode)</system:String>
     <system:String x:Key="StrEcoQosHint">Optional. Checked = request EcoQoS on, unchecked = request off, indeterminate = leave alone. Never auto-enabled; applies only via explicit profile.</system:String>
     <system:String x:Key="StrCpuHistory">CPU history</system:String>
+    <system:String x:Key="StrWhyThis">Why this profile?</system:String>
+    <system:String x:Key="StrExportDiagnostics">Export diagnostics (ZIP)</system:String>
     <system:String x:Key="StrMemHistory">Memory history (green = working set, dashed = private)</system:String>
     <system:String x:Key="StrSmartRules">Smart Rules</system:String>
     <system:String x:Key="StrRuleEditorTitle">Rule Editor</system:String>

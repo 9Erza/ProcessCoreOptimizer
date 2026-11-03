@@ -221,6 +221,7 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <TextBlock Grid.Row="0" Text="{DynamicResource StrProcessDetails}" FontWeight="Bold" FontSize="14" Foreground="{StaticResource PcoAccentBrush}" Margin="0,0,0,6"/>
                     <TextBlock Grid.Row="1" Foreground="{StaticResource PcoTextBrush}" FontSize="12" TextWrapping="Wrap">
@@ -235,6 +236,9 @@
                     </TextBlock>
                     <TextBlock Grid.Row="5" Foreground="{StaticResource PcoMutedBrush}" FontSize="12" TextWrapping="Wrap">
                         <Run Text="Last: "/><Run Text="{Binding LastStatus, TargetNullValue=—}"/><Run Text=" "/><Run Text="{Binding LastMessage}"/>
+                    </TextBlock>
+                    <TextBlock Grid.Row="8" Foreground="{StaticResource PcoMutedBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0">
+                        <Run Text="{DynamicResource StrWhyThis}"/><Run Text=" "/><Run Text="{Binding DataContext.ProfileMatchWhy, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                     </TextBlock>
                     <Grid Grid.Row="6" Margin="0,8,0,0">
                         <Grid.Style>
