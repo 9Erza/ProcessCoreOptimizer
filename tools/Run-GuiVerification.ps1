@@ -192,16 +192,45 @@ try {
     Check "language toggle to PL and back" {
         # The flag ToggleButton (custom template) is not exposed to UI Automation;
         # click its sidebar position with the mouse (bottom-left, under the log).
+        # Verified by reading back a localized nav label — the click must really flip the language.
         $window = Get-Window "Process Core Optimizer" 10
         if (!$window) { throw "Main window lost before language toggle." }
+        $plOk = $false
+        $goodDy = 45
+        foreach ($dy in @(45, 30, 15, 55)) {
+            $r = $window.Current.BoundingRectangle
+            [PcoMouse]::Click([int]($r.X + 45), [int]($r.Y + $r.Height - $dy))
+            Start-Sleep -Milliseconds 900
+            $labels = @()
+            foreach ($t in $window.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+                (New-Object System.Windows.Automation.PropertyCondition(
+                    [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+                    [System.Windows.Automation.ControlType]::Text)))) {
+                try { $labels += $t.Current.Name } catch { }
+            }
+            if ($labels -contains "Ustawienia") { $plOk = $true; $goodDy = $dy; break }
+            $r2 = $window.Current.BoundingRectangle
+            [PcoMouse]::Click([int]($r2.X + 45), [int]($r2.Y + $r2.Height - $dy))
+            Start-Sleep -Milliseconds 600
+        }
+        if (!$plOk) { throw "Language toggle did not switch the UI to Polish." }
+        Save-Shot "09-settings-pl.png" $window
+        # Back to English with the proven offset, verified by the Settings nav label.
         $r = $window.Current.BoundingRectangle
-        [PcoMouse]::Click([int]($r.X + 45), [int]($r.Y + $r.Height - 45))
+        [PcoMouse]::Click([int]($r.X + 45), [int]($r.Y + $r.Height - $goodDy))
         Start-Sleep -Milliseconds 900
-        $window = Get-Window "Process Core Optimizer" 10
-        if ($window) { Save-Shot "09-settings-pl.png" $window }
-        $r = $window.Current.BoundingRectangle
-        [PcoMouse]::Click([int]($r.X + 45), [int]($r.Y + $r.Height - 45))
-        Start-Sleep -Milliseconds 900
+        $enLabels = @()
+        foreach ($t in $window.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+            (New-Object System.Windows.Automation.PropertyCondition(
+                [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+                [System.Windows.Automation.ControlType]::Text)))) {
+            try { $enLabels += $t.Current.Name } catch { }
+        }
+        if (!($enLabels -contains "Settings")) {
+            $r = $window.Current.BoundingRectangle
+            [PcoMouse]::Click([int]($r.X + 45), [int]($r.Y + $r.Height - $goodDy))
+            Start-Sleep -Milliseconds 900
+        }
         $window = Get-Window "Process Core Optimizer" 10
         if (!$window) { throw "Main window lost after language toggle." }
     }

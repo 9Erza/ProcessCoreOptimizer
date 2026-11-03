@@ -59,6 +59,13 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Files]
 Source: "{#PublishDir}\ProcessCoreOptimizer.exe"; DestDir: "{app}"; Flags: ignoreversion
+; Native WPF/host dependencies of the self-contained single-file build.
+; REQUIRED at runtime: an install without them crashes on window creation
+; (missing wpfgfx_cor3.dll / PresentationNative_cor3.dll). Keep in sync with
+; tools/Validate-Release.ps1 payload checks.
+Source: "{#PublishDir}\*_cor3.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
+Source: "{#PublishDir}\MonoPosixHelper.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
+Source: "{#PublishDir}\libMonoPosixHelper.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 ; PDB ships for diagnosability of field crash reports; harmless next to a single-file build.
 Source: "{#PublishDir}\ProcessCoreOptimizer.pdb"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 
