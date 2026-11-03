@@ -36,7 +36,7 @@ No identifiers were invented to fake upgrade compatibility.
 - Final manifest (main 835fa1e): Setup 50,800,314 B,
   SHA-256 `8F8BDE7A00B06072FE0E634BC0D671AC58231021363A2C4A3A668AF2711D34E1`,
   AppId `{6AA13087-A3D7-4501-9AAD-52D4CAC7668F}`, ICO `7FAF4AF8…`,
-  validation 8/8 PASS (static; install/uninstall NOT RUN).
+  validation 8/8 PASS (static; install/uninstall NOT RUN — see below).
 - Icon: original PCO ICO (`processcoreoptimizer.ico`, SHA-256
   `7FAF4AF810335B4604C4C300A…`, 6 sizes 16–256) used as `SetupIconFile`,
   app `ApplicationIcon`, window icons and tray source — verified in the
@@ -52,14 +52,27 @@ No identifiers were invented to fake upgrade compatibility.
 - **Not advertised as an in-place upgrade over 1.3.0.** Different AppId means
   side-by-side entries if 1.3.0 is kept; recommended path: uninstall 1.3.0
   first (data preserved), then install 2.0.0.
-- Install / upgrade-1.3→2.0 / uninstall scenarios: **NOT RUN** — no isolated VM
-  available; installing on the dev machine was deliberately avoided.
+- Install / upgrade-1.3→2.0 / uninstall scenarios: **NOT RUN on this machine.**
+  No virtual machines are used in this project. The installer is intentionally
+  never executed without the owner's explicit, separate consent.
 - Upgrade safety net (even untested): versioned script + data-preserving
   uninstall + migration-tolerant loaders (v1.3 profiles/settings load as-is).
 
-## Before any public 2.0.0 release
+## Future real install/uninstall procedure (physical Windows, owner consent only)
 
-1. Run install/upgrade/uninstall on a clean VM snapshot and record results here.
+When the owner explicitly approves, on a non-production physical machine:
+
+1. Back up `%APPDATA%\ProcessCoreOptimizer` and record installed-programs state.
+2. Install `ProcessCoreOptimizer_Setup_2.0.0.exe` (verify UAC prompt, Start Menu
+   entry, optional desktop shortcut, Apps & Features entry with correct icon).
+3. Launch from the shortcut; verify version 2.0.0, tray icon and first-run flow.
+4. Upgrade path: with 1.3.0 installed, install 2.0.0, confirm side-by-side
+   entries (no silent overwrite), uninstall 1.3.0, confirm 2.0.0 and user data intact.
+5. Uninstall 2.0.0: confirm binary removal and that `%APPDATA%\ProcessCoreOptimizer`
+   is preserved.
+6. Record results (installer SHA-256 verified before install) in this file.
+
+Until then the checklist above stays NOT RUN — this is declared openly, not hidden.
 2. Attach the verified `ProcessCoreOptimizer_Setup_2.0.0.exe` as the Release asset.
 3. The in-app updater (releases-aware) will then pick it up; no false positives before that.
 
