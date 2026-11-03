@@ -196,7 +196,7 @@ namespace ProcessCoreOptimizer.WPF.Services
                 res["StrCpuHistory"] = isPl ? "Historia CPU" : "CPU history";
                 res["StrMemHistory"] = isPl ? "Historia pamięci (zielony = working set, przerywana = prywatna)" : "Memory history (green = working set, dashed = private)";
                 res["StrWhyThis"] = isPl ? "Dlaczego ten profil?" : "Why this profile?";
-                res["StrExportDiagnostics"] = isPl ? "Eksport diagnostyki (ZIP)" : "Export diagnostics (ZIP)";
+                res["StrExportDiagnostics"] = isPl ? "Eksport diagnostyki (ZIP, częściowo zanonimizowany)" : "Export diagnostics (ZIP, partially anonymized)";
             }
             catch (Exception ex)
             {

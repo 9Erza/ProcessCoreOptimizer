@@ -71,16 +71,30 @@ namespace ProcessCoreOptimizer.WPF.Services
 
         public void SaveRules(IEnumerable<SmartRule> rules)
         {
+            TrySaveRules(rules, out _);
+        }
+
+        /// <summary>
+        /// Atomically saves rules (.bak fallback via AtomicFileService).
+        /// Returns null on success, or a short error otherwise — the caller
+        /// must NOT report success when this returns non-null.
+        /// </summary>
+        public bool TrySaveRules(IEnumerable<SmartRule> rules, out string? error)
+        {
+            error = null;
             var sanitized = SanitizeRules(rules).ToList();
             try
             {
                 string json = JsonSerializer.Serialize(sanitized, JsonOptions);
                 _ = JsonSerializer.Deserialize<List<SmartRule>>(json, JsonOptions);
                 AtomicFileService.WriteAllTextAtomic(_filePath, json);
+                return true;
             }
             catch (Exception ex)
             {
+                error = ex.Message;
                 _logger.Error($"Smart rules save failed: {ex.Message}");
+                return false;
             }
         }
 
