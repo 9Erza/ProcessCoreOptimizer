@@ -82,9 +82,9 @@ About navigation, full PL/EN).
   raw CSV in gitignored `.evidence/perf`.
 - CI: restore → Release build → tests → `git diff --check`, green.
 - Local artifacts: self-contained single-file `ProcessCoreOptimizer.exe` 2.0.0
-  and `installer/Output/ProcessCoreOptimizer_Setup_2.0.0.exe` (final branch
-  build: 54,052,174 bytes, SHA-256
-  `D5AFFF5D34680EEEF51ED1EAAF823B273A98A8710C7E211AA4030502A0024CD8`,
+  and `installer/Output/ProcessCoreOptimizer_Setup_2.0.0.exe` (final main
+  build: 54,047,432 bytes, SHA-256
+  `FC726BD54B4AFFE93EBCF4FAD5899AA3F4C0359E34F66214DC1B9DF24A7A327A`,
   PE 2.0.0; reproducible via `tools/Build-Installer.ps1`) — see
   `docs/INSTALLER.md` and `tools/Validate-Release.ps1` (8/8 static checks green).
 - Interactive screenshots: real 2.0 UI (7 views + instances toggle + wizard
