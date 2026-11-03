@@ -52,14 +52,16 @@
 
 ### Phase 3 — startup, administration, reset, first-run (this branch)
 - New startup architecture (1.1–1.4): `StartupWindowMode` Normal/Minimized/Tray, desired vs actual evaluation (`Disabled/Registry/ElevatedTask/Conflict/Broken`), COM-based task reads, create-before-delete ordering (the old code deleted the registry entry before the task existed), UAC-cancel handling, privileged helper protocol, cooperative elevated restart with single-instance handoff.
-- New Application Data & Reset: restore-defaults (language preserved, startup reconciled first), factory reset with typed `RESET`, shutdown coordination, link/junction guards, no legacy reimport (one-shot stamp), startup removal reported separately.
-- New 3-page first-run wizard (welcome+language, Affinity vs CPU Sets, startup) gated by onboarding marker; silent upgrade for existing data; reopenable from Settings.
+- New Application Data & Reset: restore-defaults (language preserved, startup reconciled first), factory reset with typed `RESET`, shutdown coordination, link/junction guards, no legacy reimport (persistent per-file `.nolegacy.*` stamps), startup removal reported separately.
+- New 3-page first-run wizard (welcome+language, Affinity vs CPU Sets, startup) gated by onboarding marker; silent upgrade for existing data; reopenable from Settings; forced visible even from tray startup.
 - Settings reorganized into General / Startup & Privileges / Monitoring / Hardware / Diagnostics / Updates / Data & Reset / About with real startup status, privileges display and admin actions.
-- Inno Setup 2.0 project (`installer/`, AppId `{6AA13087-…}`) with repeatable `tools/Build-Installer.ps1`; historical 1.3.0 identity confirmed unrecoverable.
-- 137 tests (28 planner/coordinator/backend/onboarding/reset/helper, guarded real-startup integration, real Windows API, GUI harness 16/16, perf baseline).
+- Startup window semantics fixed: Minimized stays on the taskbar (MinimizeToTray no longer hijacks it); Tray always hides; elevated-restart mutex failover shuts down instead of risking dual watchers.
+- Inno Setup 2.0 project (`installer/`, AppId `{6AA13087-…}`) with repeatable `tools/Build-Installer.ps1` and static artifact validation (`tools/Validate-Release.ps1`, 8/8); historical 1.3.0 identity confirmed unrecoverable.
+- 137+ tests (planner/coordinator/backend/onboarding/reset/helper/startup-modes, guarded real-startup integration, real Windows API, GUI harness 16–17/17, perf baselines).
+- Developer links: allowlisted 9Erza GitHub / PCO repository / Buy Me a Coffee with vector icons in the sidebar and About section, localized tooltips + automation names, no tracking.
 
 ### Tests & CI (P1/P2)
-- `ProcessCoreOptimizer.Tests` (MSTest, 97 cases): identity, PID reuse, TOCTOU refusal, path-bound, CPU Sets mapping, mask validation, statuses, partial-success retry, cache invalidation, watcher lifecycle incl. post-restore suspension, conflicts, import/export, preview, full CPU Sets restore, updater gates, localization parity, persistence, real Windows API on isolated probes.
+- `ProcessCoreOptimizer.Tests` (MSTest, 143 passing + 3 environment-gated): identity, PID reuse, TOCTOU refusal, path-bound, CPU Sets mapping, mask validation, statuses, partial-success retry, cache invalidation, watcher lifecycle incl. post-restore suspension, conflicts, import/export, preview, full CPU Sets restore, startup planner/coordinator/backend/onboarding/reset/helper/URL-allowlist/window-modes, updater gates, localization parity, persistence, real Windows API on isolated probes.
 - No user/system process is ever touched: fake backend, read-only self-PID checks, and real mutations only on self-owned `%TEMP%` probe copies (terminated + deleted).
 - Lightweight GitHub Actions CI: Release build + tests + `git diff --check`.
 - Solution `ProcessCoreOptimizer.slnx` includes the tests project.

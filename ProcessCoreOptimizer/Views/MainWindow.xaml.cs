@@ -176,25 +176,20 @@ namespace ProcessCoreOptimizer.WPF.Views
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            bool startTray = _viewModel.AppSettings.StartupWindowMode == Models.StartupWindowMode.Tray
-                || ProcessCoreOptimizer.WPF.App.StartupOptions.StartToTray;
-            bool startMinimized = _viewModel.AppSettings.StartupWindowMode == Models.StartupWindowMode.Minimized
-                || ProcessCoreOptimizer.WPF.App.StartupOptions.StartMinimized;
-
-            if (startTray)
+            switch (Services.StartupWindowBehavior.Resolve(
+                _viewModel.AppSettings.StartupWindowMode,
+                ProcessCoreOptimizer.WPF.App.StartupOptions.StartMinimized,
+                ProcessCoreOptimizer.WPF.App.StartupOptions.StartToTray))
             {
-                // Tray mode: no main window at all, only the tray icon.
-                // MinimizeToTray does not gate this: Tray is an explicit choice.
-                this.WindowState = WindowState.Minimized;
-                this.Hide();
-            }
-            else if (startMinimized)
-            {
-                this.WindowState = WindowState.Minimized;
-                if (_viewModel.AppSettings.MinimizeToTray)
-                {
+                case Services.StartupWindowAction.HideToTray:
+                    this.WindowState = WindowState.Minimized;
                     this.Hide();
-                }
+                    break;
+                case Services.StartupWindowAction.ShowMinimized:
+                    this.WindowState = WindowState.Minimized;
+                    break;
+                default:
+                    break;
             }
         }
 
@@ -219,8 +214,9 @@ namespace ProcessCoreOptimizer.WPF.Views
                 LoggerService.Instance.Info($"First-run: dialog closed with result={result}.");
                 _viewModel.ReloadSettingsFromDisk();
 
-                // Respect a Tray choice made inside the wizard.
-                if (_viewModel.AppSettings.StartupWindowMode == Models.StartupWindowMode.Tray)
+                // Respect a Tray choice made inside the wizard (or --tray flag).
+                if (_viewModel.AppSettings.StartupWindowMode == Models.StartupWindowMode.Tray
+                    || ProcessCoreOptimizer.WPF.App.StartupOptions.StartToTray)
                 {
                     WindowState = WindowState.Minimized;
                     Hide();

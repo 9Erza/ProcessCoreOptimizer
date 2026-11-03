@@ -12,12 +12,15 @@
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4?style=flat-square)
 [![CI](https://github.com/9Erza/ProcessCoreOptimizer/actions/workflows/ci.yml/badge.svg)](https://github.com/9Erza/ProcessCoreOptimizer/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-2EA44F?style=flat-square)](LICENSE)
-![Release](https://img.shields.io/badge/release-v2.0.0-EAB45D?style=flat-square)
+![Release](https://img.shields.io/badge/release-v1.3.0-EAB45D?style=flat-square)
+![RC](https://img.shields.io/badge/2.0.0-release--candidate-blue?style=flat-square)
 
 </div>
 
 > [!NOTE]
-> **Wersja: v2.0.0.** Lekkie, samodzielne narzędzie do zarządzania CPU procesów.
+> **Ostatnie publiczne wydanie: v1.3.0** ([GitHub Releases](https://github.com/9Erza/ProcessCoreOptimizer/releases)).
+> **v2.0.0 to kandydat do wydania (release candidate)** w finalnym przeglądzie — nieopublikowany.
+> Lekkie, samodzielne narzędzie do zarządzania CPU procesów.
 > Bez ukrytych optymalizacji i zbędnego obciążenia — każda zmiana jest jawna, odwracalna i logowana.
 
 ## Co nowego w 2.0
@@ -35,7 +38,7 @@
 - **Niezawodność:** przywracanie ustawień sprzed optymalizacji, aktualizator
   powiadamiający tylko o opublikowanych wydaniach z assetem instalatora,
   rejestracja autostartu tylko przy zmianie ustawień startu, centralne wersjonowanie `version.txt`.
-- **Testy:** 72 przypadki MSTest, zielone CI (build + testy + `git diff --check`).
+- **Testy:** 143 passing + 3 warunkowe testy integracyjne, zielone CI (build + testy + `git diff --check`).
 
 Zobacz [CHANGELOG.md](CHANGELOG.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 i [docs/RELEASE_NOTES_2.0.0.pl.md](docs/RELEASE_NOTES_2.0.0.pl.md).
@@ -150,7 +153,10 @@ Ręczne akcje **Apply / Save / Update** używają `force: true` i omijają cache
 
 ## Instalacja i uruchomienie
 
-1. Otwórz [GitHub Releases](https://github.com/9Erza/ProcessCoreOptimizer/releases) i pobierz najnowszy build `ProcessCoreOptimizer`.
+> **Status wydania:** aktualne publiczne wydanie to **v1.3.0**. Poniższy **v2.0.0**
+> to kandydat do wydania oczekujący na ręczny odbiór — nie traktuj tej gałęzi jako opublikowanego release.
+
+1. Otwórz [GitHub Releases](https://github.com/9Erza/ProcessCoreOptimizer/releases) i pobierz najnowszy **opublikowany** build `ProcessCoreOptimizer` (v1.3.0).
 2. Wypakuj i uruchom `ProcessCoreOptimizer.exe` na Windows 10/11 x64.
 3. Opcjonalne flagi startu: `--minimized`, `--tray`, `--no-update-check`, `--safe-mode`.
 
@@ -270,7 +276,7 @@ benchmarki PresentMon, Companion).
 
 ## Changelog
 
-Zobacz [CHANGELOG.md](CHANGELOG.md). Aktualna wersja: **v2.0.0**.
+Zobacz [CHANGELOG.md](CHANGELOG.md). Wersja kodu na tej gałęzi: **v2.0.0 (kandydat, nieopublikowany)**; ostatnie publiczne wydanie GitHub: **v1.3.0**.
 Przegląd techniczny: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 Bez wyraźnej zgody nie publikujemy z automatyzacji release, instalatora ani podbicia wersji.
 

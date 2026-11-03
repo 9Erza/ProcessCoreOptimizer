@@ -12,12 +12,15 @@
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4?style=flat-square)
 [![CI](https://github.com/9Erza/ProcessCoreOptimizer/actions/workflows/ci.yml/badge.svg)](https://github.com/9Erza/ProcessCoreOptimizer/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-2EA44F?style=flat-square)](LICENSE)
-![Release](https://img.shields.io/badge/release-v2.0.0-EAB45D?style=flat-square)
+![Release](https://img.shields.io/badge/release-v1.3.0-EAB45D?style=flat-square)
+![RC](https://img.shields.io/badge/2.0.0-release--candidate-blue?style=flat-square)
 
 </div>
 
 > [!NOTE]
-> **Version: v2.0.0.** A focused, standalone utility for process CPU management.
+> **Latest public release: v1.3.0** ([GitHub Releases](https://github.com/9Erza/ProcessCoreOptimizer/releases)).
+> **v2.0.0 is a release candidate** in final review — not published yet.
+> A focused, standalone utility for process CPU management.
 > No hidden tweaks, no background bloat — every change is explicit, reversible and logged.
 
 ## What's new in 2.0
@@ -35,7 +38,7 @@
 - **Reliability:** session restore of pre-optimization settings, updater that
   notifies only for published releases with an installer asset, startup
   registration only on startup-setting changes, central `version.txt` versioning.
-- **Tests:** 72 MSTest cases, green CI (build + tests + `git diff --check`).
+- **Tests:** 143 passing + 3 environment-gated integration tests, green CI (build + tests + `git diff --check`).
 
 See [CHANGELOG.md](CHANGELOG.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 and [docs/RELEASE_NOTES_2.0.0.md](docs/RELEASE_NOTES_2.0.0.md).
@@ -151,7 +154,11 @@ Manual **Apply / Save / Update** actions use `force: true` and bypass the cache.
 
 ## Install and run
 
-1. Open [GitHub Releases](https://github.com/9Erza/ProcessCoreOptimizer/releases) and download the latest `ProcessCoreOptimizer` build.
+> **Release status:** the current public release is **v1.3.0**. The **v2.0.0**
+> installer below is a release candidate awaiting manual acceptance —
+> do not treat this branch as the published release.
+
+1. Open [GitHub Releases](https://github.com/9Erza/ProcessCoreOptimizer/releases) and download the latest **published** `ProcessCoreOptimizer` build (v1.3.0).
 2. Extract and run `ProcessCoreOptimizer.exe` on Windows 10/11 x64.
 3. Optional startup flags: `--minimized`, `--tray`, `--no-update-check`, `--safe-mode`.
 
@@ -238,7 +245,7 @@ dotnet publish ProcessCoreOptimizer/ProcessCoreOptimizer.csproj -c Release -p:Pu
 - Solution: `ProcessCoreOptimizer.slnx` (primary). `ProcessCoreOptimizer/ProcessCoreOptimizer.sln` is legacy.
 - Version source of truth: `version.txt`, propagated via `Directory.Build.props` to MSBuild, PE metadata, UI and updater.
 - Target: `net10.0-windows`, `win-x64`, WPF + WinForms (tray icon).
-- Tests: MSTest, 97 cases (fake backend + read-only checks + real Windows API on isolated self-owned probe processes), no user/system processes touched.
+- Tests: MSTest, 143 passing + 3 environment-gated integration tests (fake backend + read-only checks + real Windows API on isolated self-owned probe processes), no user/system processes touched.
 - CI: `.github/workflows/ci.yml` — restore, Release build, tests, `git diff --check`.
 - GUI: verified on Windows 11 via UI Automation (all 6 tabs, maximize/minimize/restore, tray-intercept close) — see `tools/Run-GuiVerification.ps1`, evidence in `.evidence/` (gitignored).
 - Installer: `installer/ProcessCoreOptimizer.iss` (new identity, see [docs/INSTALLER.md](docs/INSTALLER.md)); build with `tools/Build-Installer.ps1`. No release is published without maintainer approval.
@@ -271,7 +278,7 @@ Neither project is abandoned; they have different jobs.
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md). Current version: **v2.0.0**.
+See [CHANGELOG.md](CHANGELOG.md). Code version on this branch: **v2.0.0 (release candidate, unpublished)**; latest public GitHub release: **v1.3.0**.
 Technical overview: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 No release, installer or version bump is published from automation without explicit approval.
 
