@@ -48,7 +48,7 @@
                             </DataTemplate>
                         </DataGridTextColumn.HeaderTemplate>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Binding="{Binding Priority}" Width="105">
+                    <DataGridTextColumn Binding="{Binding Priority}" Width="118">
                         <DataGridTextColumn.HeaderTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{DynamicResource StrColPriority}" />
@@ -85,7 +85,7 @@
                             </DataTemplate>
                         </DataGridTextColumn.HeaderTemplate>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Binding="{Binding CpuUsage}" Width="62" >
+                    <DataGridTextColumn Binding="{Binding CpuUsage}" Width="70" >
                         <DataGridTextColumn.HeaderTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{DynamicResource StrColCpu}" />

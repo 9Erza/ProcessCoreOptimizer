@@ -1432,16 +1432,25 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             OnPropertyChanged(nameof(HasProfileConflicts));
             ConflictSummaryText = ProfileConflicts.Count == 0
                 ? string.Empty
-                : $"{ProfileConflicts.Count} profile conflict(s): {string.Join(", ", ProfileConflicts.Select(c => c.ProcessName))}. Newest/path-bound wins; review in Profiles.";
+                : IsPolishLanguage
+                    ? $"{ProfileConflicts.Count} konflikt(ów) profili: {string.Join(", ", ProfileConflicts.Select(c => c.ProcessName))}. Wygrywa najnowszy / path-bound; sprawdź w Profilach."
+                    : $"{ProfileConflicts.Count} profile conflict(s): {string.Join(", ", ProfileConflicts.Select(c => c.ProcessName))}. Newest/path-bound wins; review in Profiles.";
         }
 
         private void RefreshWatcherStatus()
         {
             var last = _profileWatcher.LastRun;
-            WatcherStatusText = last.AtUtc == default
-                ? "Watcher idle."
-                : $"Last pass {last.AtUtc.ToLocalTime():HH:mm:ss} ({last.Source}): {last.FullyApplied}/{last.Total} applied, {last.Failed} failed, {last.Skipped} skipped in {last.Duration.TotalMilliseconds:F0} ms."
-                    + (string.IsNullOrWhiteSpace(last.Error) ? string.Empty : $" Error: {last.Error}");
+            if (last.AtUtc == default)
+            {
+                WatcherStatusText = IsPolishLanguage ? "Watcher bezczynny." : "Watcher idle.";
+                return;
+            }
+
+            string time = last.AtUtc.ToLocalTime().ToString("HH:mm:ss");
+            WatcherStatusText = IsPolishLanguage
+                ? $"Ostatni przebieg {time} ({last.Source}): {last.FullyApplied}/{last.Total} zastosowano, {last.Failed} błędów, {last.Skipped} pominięto w {last.Duration.TotalMilliseconds:F0} ms."
+                : $"Last pass {time} ({last.Source}): {last.FullyApplied}/{last.Total} applied, {last.Failed} failed, {last.Skipped} skipped in {last.Duration.TotalMilliseconds:F0} ms."
+                + (string.IsNullOrWhiteSpace(last.Error) ? string.Empty : $" Error: {last.Error}");
         }
 
         private void RefreshRecentOperations()
@@ -1688,7 +1697,11 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             _localizationService.ApplyLanguage(langCode);
             RefreshAvailablePriorities();
             RefreshDisplayedPriorities();
+            RefreshProfileConflicts();
+            RefreshWatcherStatus();
             OnPropertyChanged(nameof(CpuVendorText));
+            OnPropertyChanged(nameof(CurrentPrivilegesText));
+            _ = RefreshStartupStatusAsync();
             try
             {
                 (WpfApplication.Current.MainWindow as Views.MainWindow)?.ApplyTrayLanguage();
