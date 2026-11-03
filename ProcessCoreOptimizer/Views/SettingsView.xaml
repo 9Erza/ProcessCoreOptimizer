@@ -8,192 +8,344 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
-            <TextBlock Grid.Row="0" Text="{DynamicResource StrAppSettings}" FontSize="24" FontWeight="Bold" Foreground="White" Margin="0,0,0,30"/>
-            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                <StackPanel Width="440" HorizontalAlignment="Left">
+            <TextBlock Grid.Row="0" Text="{DynamicResource StrAppSettings}" FontSize="22" FontWeight="Bold" Foreground="White" Margin="0,0,0,16"/>
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="210"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
 
-                    <!-- General -->
-                    <TextBlock Text="{DynamicResource StrSetGroupGeneral}" Style="{StaticResource PcoSectionHeader}"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
-                        <TextBlock Text="{DynamicResource StrLanguage}" Foreground="{StaticResource PcoTextBrush}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Margin="0,0,15,0"/>
-                        <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedLanguageName, Mode=TwoWay}" Width="150" Style="{StaticResource ModernComboBox}"/>
-                    </StackPanel>
-                    <CheckBox Content="{DynamicResource StrMinToTray}" IsChecked="{Binding AppSettings.MinimizeToTray}" Command="{Binding ToggleSettingCommand}" Margin="0,0,0,20">
-                        <CheckBox.LayoutTransform>
-                            <ScaleTransform ScaleX="1.2" ScaleY="1.2"/>
-                        </CheckBox.LayoutTransform>
-                    </CheckBox>
-                    <CheckBox Content="{DynamicResource StrCloseToTray}" IsChecked="{Binding AppSettings.CloseToTray}" Command="{Binding ToggleSettingCommand}" Margin="0,0,0,5">
-                        <CheckBox.LayoutTransform>
-                            <ScaleTransform ScaleX="1.2" ScaleY="1.2"/>
-                        </CheckBox.LayoutTransform>
-                    </CheckBox>
-                    <TextBlock Text="{DynamicResource StrTrayHint}" Foreground="{StaticResource PcoMutedBrush}" FontSize="11" Margin="35,0,0,20" TextWrapping="Wrap"/>
+                <!-- Category navigation: pure selection, never persists anything. -->
+                <ListBox Grid.Column="0" Margin="0,0,16,0" Background="Transparent" BorderThickness="0"
+                         SelectedValuePath="Tag" SelectedValue="{Binding ActiveSettingsCategory, Mode=TwoWay}"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         ap:AutomationProperties.Name="{DynamicResource StrAppSettings}">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Padding" Value="12,9"/>
+                            <Setter Property="Margin" Value="0,0,0,4"/>
+                            <Setter Property="Foreground" Value="{StaticResource PcoMutedBrush}"/>
+                            <Setter Property="FontSize" Value="13"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                            <Setter Property="Cursor" Value="Hand"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <Border x:Name="Bd" Background="Transparent" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource PcoSelectedBrush}"/>
+                                                <Setter Property="Foreground" Value="{StaticResource PcoTextBrightBrush}"/>
+                                            </Trigger>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource PcoSelectedBrush}"/>
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </Trigger>
+                                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource PcoAccentBrush}"/>
+                                                <Setter TargetName="Bd" Property="BorderThickness" Value="1"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBoxItem Tag="General" Content="{DynamicResource StrSetGroupGeneral}"/>
+                    <ListBoxItem Tag="Startup" Content="{DynamicResource StrSetGroupStartup}"/>
+                    <ListBoxItem Tag="Optimization" Content="{DynamicResource StrSetGroupOptimization}"/>
+                    <ListBoxItem Tag="Hardware" Content="{DynamicResource StrSetGroupHardware}"/>
+                    <ListBoxItem Tag="Diagnostics" Content="{DynamicResource StrSetGroupDiagnostics}"/>
+                    <ListBoxItem Tag="Updates" Content="{DynamicResource StrSetGroupUpdates}"/>
+                    <ListBoxItem Tag="Data" Content="{DynamicResource StrSetGroupData}"/>
+                    <ListBoxItem Tag="About" Content="{DynamicResource StrSetGroupAbout}"/>
+                </ListBox>
 
-                    <!-- Startup & Privileges -->
-                    <TextBlock Text="{DynamicResource StrSetGroupStartup}" Style="{StaticResource PcoSectionHeader}"/>
-                    <CheckBox Content="{DynamicResource StrStartWindows}" IsChecked="{Binding AppSettings.StartWithWindows}" Command="{Binding ToggleSettingCommand}" Margin="0,0,0,15">
-                        <CheckBox.LayoutTransform>
-                            <ScaleTransform ScaleX="1.2" ScaleY="1.2"/>
-                        </CheckBox.LayoutTransform>
-                    </CheckBox>
-                    <TextBlock Text="{DynamicResource StrStartupWindowBehavior}" Foreground="{StaticResource PcoTextBrush}" FontWeight="SemiBold" FontSize="14" Margin="0,0,0,8"/>
-                    <ComboBox ItemsSource="{Binding StartupWindowModes}" SelectedItem="{Binding SelectedStartupWindowMode, Mode=TwoWay}" Width="220" HorizontalAlignment="Left" Style="{StaticResource ModernComboBox}" Margin="0,0,0,15"/>
-                    <CheckBox Content="{DynamicResource StrStartupRunElevated}" IsChecked="{Binding AppSettings.StartupRunElevated}" Command="{Binding ToggleSettingCommand}" Margin="0,0,0,5">
-                        <CheckBox.LayoutTransform>
-                            <ScaleTransform ScaleX="1.2" ScaleY="1.2"/>
-                        </CheckBox.LayoutTransform>
-                    </CheckBox>
-                    <TextBlock Text="{DynamicResource StrStartupElevatedHint}" Foreground="{StaticResource PcoMutedBrush}" FontSize="11" Margin="35,0,0,15" TextWrapping="Wrap"/>
+                <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+                    <StackPanel MaxWidth="600" HorizontalAlignment="Left">
 
-                    <Border Background="{StaticResource PcoBg3Brush}" CornerRadius="6" Padding="12" Margin="0,0,0,10" BorderThickness="1" BorderBrush="{StaticResource PcoBorderBrush}">
+                        <!-- General -->
                         <StackPanel>
-                            <TextBlock Text="{DynamicResource StrStartupStatus}" FontWeight="Bold" FontSize="13" Foreground="{StaticResource PcoAccentBrush}" Margin="0,0,0,4"/>
-                            <TextBlock Text="{Binding StartupStatusText}" Foreground="{StaticResource PcoTextBrightBrush}" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                            <TextBlock Text="{Binding StartupDetailText}" Style="{StaticResource PcoMutedText}" Margin="0,4,0,8"/>
-                            <StackPanel Orientation="Horizontal">
-                                <Button Content="{DynamicResource StrStartupRefresh}" Command="{Binding RefreshStartupStatusCommand}" Style="{StaticResource SmallFilterButton}" Padding="12,0" Margin="0,0,8,0"/>
-                                <TextBlock Text="{DynamicResource StrStartupWorking}" VerticalAlignment="Center" Foreground="{StaticResource PcoOrangeBrush}" FontSize="12">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsStartupBusy}" Value="True">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ActiveSettingsCategory}" Value="General">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <TextBlock Text="{DynamicResource StrSetGroupGeneral}" Style="{StaticResource PcoSectionHeader}"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                                <TextBlock Text="{DynamicResource StrLanguage}" Foreground="{StaticResource PcoTextBrush}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                                <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedLanguageName, Mode=TwoWay}" Width="150" Style="{StaticResource ModernComboBox}"/>
                             </StackPanel>
+                            <CheckBox Content="{DynamicResource StrMinToTray}" IsChecked="{Binding AppSettings.MinimizeToTray}" Command="{Binding ToggleSettingCommand}" Margin="0,0,0,20">
+                                <CheckBox.LayoutTransform>
+                                    <ScaleTransform ScaleX="1.2" ScaleY="1.2"/>
+                                </CheckBox.LayoutTransform>
+                            </CheckBox>
+                            <CheckBox Content="{DynamicResource StrCloseToTray}" IsChecked="{Binding AppSettings.CloseToTray}" Command="{Binding ToggleSettingCommand}" Margin="0,0,0,5">
+                                <CheckBox.LayoutTransform>
+                                    <ScaleTransform ScaleX="1.2" ScaleY="1.2"/>
+                                </CheckBox.LayoutTransform>
+                            </CheckBox>
+                            <TextBlock Text="{DynamicResource StrTrayHint}" Foreground="{StaticResource PcoMutedBrush}" FontSize="11" Margin="35,0,0,20" TextWrapping="Wrap"/>
                         </StackPanel>
-                    </Border>
 
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
-                        <TextBlock Text="{DynamicResource StrCurrentPrivileges}" Foreground="{StaticResource PcoTextBrush}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                        <TextBlock Text="{Binding CurrentPrivilegesText}" Foreground="{StaticResource PcoGreenBrush}" FontWeight="Bold" FontSize="14" VerticalAlignment="Center"/>
-                    </StackPanel>
-                    <Button Content="{DynamicResource StrRestartAsAdmin}" Command="{Binding RestartAsAdministratorCommand}" Style="{StaticResource SmallFilterButton}" Width="220" HorizontalAlignment="Left" Margin="0,8,0,20"/>
-
-                    <!-- Process monitoring -->
-                    <TextBlock Text="{DynamicResource StrSetGroupMonitoring}" Style="{StaticResource PcoSectionHeader}"/>
-                    <CheckBox Content="{DynamicResource StrAllowRealtime}" IsChecked="{Binding AppSettings.AllowRealtimePriority}" Command="{Binding ToggleSettingCommand}" Margin="0,0,0,5">
-                        <CheckBox.LayoutTransform>
-                            <ScaleTransform ScaleX="1.2" ScaleY="1.2"/>
-                        </CheckBox.LayoutTransform>
-                    </CheckBox>
-                    <TextBlock Text="{DynamicResource StrRealtimeWarn}" Foreground="{StaticResource PcoMutedBrush}" FontSize="11" Margin="35,0,0,20" TextWrapping="Wrap"/>
-
-                    <!-- Hardware monitoring -->
-                    <TextBlock Text="{DynamicResource StrSetGroupHardware}" Style="{StaticResource PcoSectionHeader}"/>
-                    <CheckBox Content="{DynamicResource StrEnableStorageSensors}" IsChecked="{Binding AppSettings.EnableStorageSensors}" Command="{Binding ToggleSettingCommand}" Margin="0,0,0,5">
-                        <CheckBox.LayoutTransform>
-                            <ScaleTransform ScaleX="1.2" ScaleY="1.2"/>
-                        </CheckBox.LayoutTransform>
-                    </CheckBox>
-                    <TextBlock Text="{DynamicResource StrStorageSensorsWarn}" Foreground="{StaticResource PcoMutedBrush}" FontSize="11" Margin="35,0,0,20" TextWrapping="Wrap"/>
-
-                    <!-- Diagnostics -->
-                    <TextBlock Text="{DynamicResource StrSetGroupDiagnostics}" Style="{StaticResource PcoSectionHeader}"/>
-                    <CheckBox Content="{DynamicResource StrLogEnabled}" IsChecked="{Binding AppSettings.LogEnabled}" Command="{Binding ToggleSettingCommand}" Margin="0,0,0,20">
-                        <CheckBox.LayoutTransform>
-                            <ScaleTransform ScaleX="1.2" ScaleY="1.2"/>
-                        </CheckBox.LayoutTransform>
-                    </CheckBox>
-
-                    <!-- Updates -->
-                    <TextBlock Text="{DynamicResource StrSetGroupUpdates}" Style="{StaticResource PcoSectionHeader}"/>
-                    <CheckBox Content="{DynamicResource StrCheckUpdates}" IsChecked="{Binding AppSettings.CheckForUpdates}" Command="{Binding ToggleSettingCommand}" Margin="0,0,0,10">
-                        <CheckBox.LayoutTransform>
-                            <ScaleTransform ScaleX="1.2" ScaleY="1.2"/>
-                        </CheckBox.LayoutTransform>
-                    </CheckBox>
-                    <Button Content="{DynamicResource StrCheckUpdatesNow}" Command="{Binding CheckForUpdatesNowCommand}" Style="{StaticResource SmallFilterButton}" Width="260" HorizontalAlignment="Left" Margin="0,0,0,8"/>
-                    <TextBlock Text="{Binding UpdateStatusText, Mode=OneWay}" Style="{StaticResource PcoMutedText}" Margin="0,0,0,20" TextWrapping="Wrap"/>
-
-                    <!-- Data & reset (S4) -->
-                    <TextBlock Text="{DynamicResource StrSetGroupData}" Style="{StaticResource PcoSectionHeader}"/>
-                    <Button Content="{DynamicResource StrOpenWizard}" Command="{Binding OpenWizardCommand}" Style="{StaticResource SmallFilterButton}" Width="260" HorizontalAlignment="Left" Margin="0,0,0,10"/>
-                    <Button Content="{DynamicResource StrRestoreDefaults}" Command="{Binding RestoreDefaultsCommand}" Style="{StaticResource SmallFilterButton}" Width="260" HorizontalAlignment="Left" Margin="0,0,0,10"/>
-                    <TextBlock Text="{Binding DataResetStatusText}" Style="{StaticResource PcoMutedText}" Margin="0,0,0,8" TextWrapping="Wrap"/>
-                    <Border Background="{StaticResource PcoBg3Brush}" CornerRadius="6" Padding="12" Margin="0,0,0,20" BorderThickness="1" BorderBrush="#5A2323">
+                        <!-- Startup & Privileges -->
                         <StackPanel>
-                            <TextBlock Text="{DynamicResource StrFactoryResetTitle}" FontWeight="Bold" FontSize="14" Foreground="{StaticResource PcoRedBrush}" Margin="0,0,0,6"/>
-                            <TextBlock Text="{DynamicResource StrFactoryResetWarning}" Style="{StaticResource PcoMutedText}" Margin="0,0,0,8" TextWrapping="Wrap"/>
-                            <TextBox Text="{Binding FactoryResetConfirmationText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource PcoFilterBox}" ToolTip="RESET"/>
-                            <Button Content="{DynamicResource StrFactoryReset}" Command="{Binding FactoryResetCommand}" Style="{StaticResource SmallFilterButton}" Width="260" HorizontalAlignment="Left" IsEnabled="{Binding IsFactoryResetArmed}"/>
-                        </StackPanel>
-                    </Border>
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ActiveSettingsCategory}" Value="Startup">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <TextBlock Text="{DynamicResource StrSetGroupStartup}" Style="{StaticResource PcoSectionHeader}"/>
+                            <CheckBox Content="{DynamicResource StrStartWindows}" IsChecked="{Binding AppSettings.StartWithWindows}" Command="{Binding ToggleSettingCommand}" Margin="0,0,0,15">
+                                <CheckBox.LayoutTransform>
+                                    <ScaleTransform ScaleX="1.2" ScaleY="1.2"/>
+                                </CheckBox.LayoutTransform>
+                            </CheckBox>
+                            <TextBlock Text="{DynamicResource StrStartupWindowBehavior}" Foreground="{StaticResource PcoTextBrush}" FontWeight="SemiBold" FontSize="14" Margin="0,0,0,8"/>
+                            <ComboBox ItemsSource="{Binding StartupWindowModes}" SelectedItem="{Binding SelectedStartupWindowMode, Mode=TwoWay}" Width="220" HorizontalAlignment="Left" Style="{StaticResource ModernComboBox}" Margin="0,0,0,15"/>
+                            <CheckBox Content="{DynamicResource StrStartupRunElevated}" IsChecked="{Binding AppSettings.StartupRunElevated}" Command="{Binding ToggleSettingCommand}" Margin="0,0,0,5">
+                                <CheckBox.LayoutTransform>
+                                    <ScaleTransform ScaleX="1.2" ScaleY="1.2"/>
+                                </CheckBox.LayoutTransform>
+                            </CheckBox>
+                            <TextBlock Text="{DynamicResource StrStartupElevatedHint}" Foreground="{StaticResource PcoMutedBrush}" FontSize="11" Margin="35,0,0,15" TextWrapping="Wrap"/>
 
-                    <!-- About -->
-                    <TextBlock x:Name="AboutHeader" Text="{DynamicResource StrSetGroupAbout}" Style="{StaticResource PcoSectionHeader}"/>
-                    <TextBlock Text="{DynamicResource StrAboutLine}" Style="{StaticResource PcoMutedText}" Margin="0,0,0,12"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8" VerticalAlignment="Center">
-                        <Button Style="{StaticResource IconLinkButton}" Command="{Binding OpenAuthorCommand}"
-                                ToolTip="{DynamicResource StrAuthorTooltip}"
-                                ap:AutomationProperties.Name="{DynamicResource StrAuthorTooltip}"
-                                Margin="0,0,8,0" Focusable="True">
-                            <ContentControl Content="{StaticResource IconGitHub}" Focusable="False"/>
-                        </Button>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="{DynamicResource StrDeveloper}" Foreground="{StaticResource PcoMutedBrush}" FontSize="11"/>
-                            <Button Content="9Erza" Command="{Binding OpenAuthorCommand}" Style="{StaticResource LinkTextButton}" ToolTip="{DynamicResource StrAuthorTooltip}" ap:AutomationProperties.Name="9Erza"/>
+                            <Border Background="{StaticResource PcoBg3Brush}" CornerRadius="6" Padding="12" Margin="0,0,0,10" BorderThickness="1" BorderBrush="{StaticResource PcoBorderBrush}">
+                                <StackPanel>
+                                    <TextBlock Text="{DynamicResource StrStartupStatus}" FontWeight="Bold" FontSize="13" Foreground="{StaticResource PcoAccentBrush}" Margin="0,0,0,4"/>
+                                    <TextBlock Text="{Binding StartupStatusText}" Foreground="{StaticResource PcoTextBrightBrush}" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                    <TextBlock Text="{Binding StartupDetailText}" Style="{StaticResource PcoMutedText}" Margin="0,4,0,8"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Content="{DynamicResource StrStartupRefresh}" Command="{Binding RefreshStartupStatusCommand}" Style="{StaticResource SmallFilterButton}" Padding="12,0" Margin="0,0,8,0"/>
+                                        <TextBlock Text="{DynamicResource StrStartupWorking}" VerticalAlignment="Center" Foreground="{StaticResource PcoOrangeBrush}" FontSize="12">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsStartupBusy}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                                <TextBlock Text="{DynamicResource StrCurrentPrivileges}" Foreground="{StaticResource PcoTextBrush}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                <TextBlock Text="{Binding CurrentPrivilegesText}" Foreground="{StaticResource PcoGreenBrush}" FontWeight="Bold" FontSize="14" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <Button Content="{DynamicResource StrRestartAsAdmin}" Command="{Binding RestartAsAdministratorCommand}" Style="{StaticResource SmallFilterButton}" Width="220" HorizontalAlignment="Left" Margin="0,8,0,20"/>
                         </StackPanel>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8" VerticalAlignment="Center">
-                        <Button Style="{StaticResource IconLinkButton}" Command="{Binding OpenRepositoryCommand}"
-                                ToolTip="{DynamicResource StrRepoTooltip}"
-                                ap:AutomationProperties.Name="{DynamicResource StrRepoTooltip}"
-                                Margin="0,0,8,0" Focusable="True">
-                            <ContentControl Content="{StaticResource IconGitHub}" Focusable="False"/>
-                        </Button>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="{DynamicResource StrSourceCode}" Foreground="{StaticResource PcoMutedBrush}" FontSize="11"/>
-                            <Button Content="Process Core Optimizer" Command="{Binding OpenRepositoryCommand}" Style="{StaticResource LinkTextButton}" ToolTip="{DynamicResource StrRepoTooltip}" ap:AutomationProperties.Name="Process Core Optimizer"/>
+
+                        <!-- Optimization -->
+                        <StackPanel>
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ActiveSettingsCategory}" Value="Optimization">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <TextBlock Text="{DynamicResource StrSetGroupOptimization}" Style="{StaticResource PcoSectionHeader}"/>
+                            <CheckBox Content="{DynamicResource StrAllowRealtime}" IsChecked="{Binding AppSettings.AllowRealtimePriority}" Command="{Binding ToggleSettingCommand}" Margin="0,0,0,5">
+                                <CheckBox.LayoutTransform>
+                                    <ScaleTransform ScaleX="1.2" ScaleY="1.2"/>
+                                </CheckBox.LayoutTransform>
+                            </CheckBox>
+                            <TextBlock Text="{DynamicResource StrRealtimeWarn}" Foreground="{StaticResource PcoMutedBrush}" FontSize="11" Margin="35,0,0,20" TextWrapping="Wrap"/>
                         </StackPanel>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8" VerticalAlignment="Center">
-                        <Button Style="{StaticResource IconLinkButton}" Command="{Binding OpenSupportCommand}"
-                                ToolTip="{DynamicResource StrSupportTooltip}"
-                                ap:AutomationProperties.Name="{DynamicResource StrSupportTooltip}"
-                                Margin="0,0,8,0" Focusable="True">
-                            <ContentControl Content="{StaticResource IconCoffee}" Focusable="False"/>
-                        </Button>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="{DynamicResource StrSupportDev}" Foreground="{StaticResource PcoMutedBrush}" FontSize="11"/>
-                            <Button Content="Buy Me a Coffee" Command="{Binding OpenSupportCommand}" Style="{StaticResource LinkTextButton}" ToolTip="{DynamicResource StrSupportTooltip}" ap:AutomationProperties.Name="Buy Me a Coffee"/>
+
+                        <!-- Hardware monitoring -->
+                        <StackPanel>
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ActiveSettingsCategory}" Value="Hardware">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <TextBlock Text="{DynamicResource StrSetGroupHardware}" Style="{StaticResource PcoSectionHeader}"/>
+                            <CheckBox Content="{DynamicResource StrEnableStorageSensors}" IsChecked="{Binding AppSettings.EnableStorageSensors}" Command="{Binding ToggleSettingCommand}" Margin="0,0,0,5">
+                                <CheckBox.LayoutTransform>
+                                    <ScaleTransform ScaleX="1.2" ScaleY="1.2"/>
+                                </CheckBox.LayoutTransform>
+                            </CheckBox>
+                            <TextBlock Text="{DynamicResource StrStorageSensorsWarn}" Foreground="{StaticResource PcoMutedBrush}" FontSize="11" Margin="35,0,0,20" TextWrapping="Wrap"/>
                         </StackPanel>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8" VerticalAlignment="Center">
-                        <Button Style="{StaticResource IconLinkButton}" Command="{Binding OpenWebsiteCommand}"
-                                ToolTip="{DynamicResource StrFooterWebsiteTooltip}"
-                                ap:AutomationProperties.Name="{DynamicResource StrFooterWebsiteTooltip}"
-                                Margin="0,0,8,0" Focusable="True">
-                            <ContentControl Content="{StaticResource IconGlobe}" Focusable="False"/>
-                        </Button>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="{DynamicResource StrWebsiteCaption}" Foreground="{StaticResource PcoMutedBrush}" FontSize="11"/>
-                            <Button Content="DobryPC.pl" Command="{Binding OpenWebsiteCommand}" Style="{StaticResource LinkTextButton}" ToolTip="{DynamicResource StrFooterWebsiteTooltip}" ap:AutomationProperties.Name="DobryPC.pl"/>
+
+                        <!-- Diagnostics -->
+                        <StackPanel>
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ActiveSettingsCategory}" Value="Diagnostics">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <TextBlock Text="{DynamicResource StrSetGroupDiagnostics}" Style="{StaticResource PcoSectionHeader}"/>
+                            <CheckBox Content="{DynamicResource StrLogEnabled}" IsChecked="{Binding AppSettings.LogEnabled}" Command="{Binding ToggleSettingCommand}" Margin="0,0,0,20">
+                                <CheckBox.LayoutTransform>
+                                    <ScaleTransform ScaleX="1.2" ScaleY="1.2"/>
+                                </CheckBox.LayoutTransform>
+                            </CheckBox>
                         </StackPanel>
+
+                        <!-- Updates -->
+                        <StackPanel>
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ActiveSettingsCategory}" Value="Updates">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <TextBlock Text="{DynamicResource StrSetGroupUpdates}" Style="{StaticResource PcoSectionHeader}"/>
+                            <CheckBox Content="{DynamicResource StrCheckUpdates}" IsChecked="{Binding AppSettings.CheckForUpdates}" Command="{Binding ToggleSettingCommand}" Margin="0,0,0,10">
+                                <CheckBox.LayoutTransform>
+                                    <ScaleTransform ScaleX="1.2" ScaleY="1.2"/>
+                                </CheckBox.LayoutTransform>
+                            </CheckBox>
+                            <Button Content="{DynamicResource StrCheckUpdatesNow}" Command="{Binding CheckForUpdatesNowCommand}" Style="{StaticResource SmallFilterButton}" Width="260" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                            <TextBlock Text="{Binding UpdateStatusText, Mode=OneWay}" Style="{StaticResource PcoMutedText}" Margin="0,0,0,20" TextWrapping="Wrap"/>
+                        </StackPanel>
+
+                        <!-- Data & reset -->
+                        <StackPanel>
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ActiveSettingsCategory}" Value="Data">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <TextBlock Text="{DynamicResource StrSetGroupData}" Style="{StaticResource PcoSectionHeader}"/>
+                            <Button Content="{DynamicResource StrOpenWizard}" Command="{Binding OpenWizardCommand}" Style="{StaticResource SmallFilterButton}" Width="260" HorizontalAlignment="Left" Margin="0,0,0,10"/>
+                            <Button Content="{DynamicResource StrRestoreDefaults}" Command="{Binding RestoreDefaultsCommand}" Style="{StaticResource SmallFilterButton}" Width="260" HorizontalAlignment="Left" Margin="0,0,0,10"/>
+                            <TextBlock Text="{Binding DataResetStatusText}" Style="{StaticResource PcoMutedText}" Margin="0,0,0,8" TextWrapping="Wrap"/>
+                            <Border Background="{StaticResource PcoBg3Brush}" CornerRadius="6" Padding="12" Margin="0,0,0,20" BorderThickness="1" BorderBrush="#5A2323">
+                                <StackPanel>
+                                    <TextBlock Text="{DynamicResource StrFactoryResetTitle}" FontWeight="Bold" FontSize="14" Foreground="{StaticResource PcoRedBrush}" Margin="0,0,0,6"/>
+                                    <TextBlock Text="{DynamicResource StrFactoryResetWarning}" Style="{StaticResource PcoMutedText}" Margin="0,0,0,8" TextWrapping="Wrap"/>
+                                    <TextBox Text="{Binding FactoryResetConfirmationText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource PcoFilterBox}" ToolTip="RESET"/>
+                                    <Button Content="{DynamicResource StrFactoryReset}" Command="{Binding FactoryResetCommand}" Style="{StaticResource SmallFilterButton}" Width="260" HorizontalAlignment="Left" IsEnabled="{Binding IsFactoryResetArmed}"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- About -->
+                        <StackPanel>
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ActiveSettingsCategory}" Value="About">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <TextBlock x:Name="AboutHeader" Text="{DynamicResource StrSetGroupAbout}" Style="{StaticResource PcoSectionHeader}" Focusable="True"/>
+                            <TextBlock Text="{DynamicResource StrAboutLine}" Style="{StaticResource PcoMutedText}" Margin="0,0,0,12"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8" VerticalAlignment="Center">
+                                <Button Style="{StaticResource IconLinkButton}" Command="{Binding OpenAuthorCommand}"
+                                        ToolTip="{DynamicResource StrAuthorTooltip}"
+                                        ap:AutomationProperties.Name="{DynamicResource StrAuthorTooltip}"
+                                        Margin="0,0,8,0" Focusable="True">
+                                    <ContentControl Content="{StaticResource IconGitHub}" Focusable="False"/>
+                                </Button>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="{DynamicResource StrDeveloper}" Foreground="{StaticResource PcoMutedBrush}" FontSize="11"/>
+                                    <Button Content="9Erza" Command="{Binding OpenAuthorCommand}" Style="{StaticResource LinkTextButton}" ToolTip="{DynamicResource StrAuthorTooltip}" ap:AutomationProperties.Name="9Erza"/>
+                                </StackPanel>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8" VerticalAlignment="Center">
+                                <Button Style="{StaticResource IconLinkButton}" Command="{Binding OpenRepositoryCommand}"
+                                        ToolTip="{DynamicResource StrRepoTooltip}"
+                                        ap:AutomationProperties.Name="{DynamicResource StrRepoTooltip}"
+                                        Margin="0,0,8,0" Focusable="True">
+                                    <ContentControl Content="{StaticResource IconGitHub}" Focusable="False"/>
+                                </Button>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="{DynamicResource StrSourceCode}" Foreground="{StaticResource PcoMutedBrush}" FontSize="11"/>
+                                    <Button Content="Process Core Optimizer" Command="{Binding OpenRepositoryCommand}" Style="{StaticResource LinkTextButton}" ToolTip="{DynamicResource StrRepoTooltip}" ap:AutomationProperties.Name="Process Core Optimizer"/>
+                                </StackPanel>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8" VerticalAlignment="Center">
+                                <Button Style="{StaticResource IconLinkButton}" Command="{Binding OpenSupportCommand}"
+                                        ToolTip="{DynamicResource StrSupportTooltip}"
+                                        ap:AutomationProperties.Name="{DynamicResource StrSupportTooltip}"
+                                        Margin="0,0,8,0" Focusable="True">
+                                    <ContentControl Content="{StaticResource IconCoffee}" Focusable="False"/>
+                                </Button>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="{DynamicResource StrSupportDev}" Foreground="{StaticResource PcoMutedBrush}" FontSize="11"/>
+                                    <Button Content="Buy Me a Coffee" Command="{Binding OpenSupportCommand}" Style="{StaticResource LinkTextButton}" ToolTip="{DynamicResource StrSupportTooltip}" ap:AutomationProperties.Name="Buy Me a Coffee"/>
+                                </StackPanel>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8" VerticalAlignment="Center">
+                                <Button Style="{StaticResource IconLinkButton}" Command="{Binding OpenWebsiteCommand}"
+                                        ToolTip="{DynamicResource StrFooterWebsiteTooltip}"
+                                        ap:AutomationProperties.Name="{DynamicResource StrFooterWebsiteTooltip}"
+                                        Margin="0,0,8,0" Focusable="True">
+                                    <ContentControl Content="{StaticResource IconGlobe}" Focusable="False"/>
+                                </Button>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="{DynamicResource StrWebsiteCaption}" Foreground="{StaticResource PcoMutedBrush}" FontSize="11"/>
+                                    <Button Content="DobryPC.pl" Command="{Binding OpenWebsiteCommand}" Style="{StaticResource LinkTextButton}" ToolTip="{DynamicResource StrFooterWebsiteTooltip}" ap:AutomationProperties.Name="DobryPC.pl"/>
+                                </StackPanel>
+                            </StackPanel>
+                            <TextBlock Text="{Binding ExternalLinkErrorText}" Foreground="{StaticResource PcoRedBrush}" FontSize="12" Margin="0,0,0,8" TextWrapping="Wrap">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ExternalLinkErrorText}" Value="{x:Null}">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBlock Foreground="{StaticResource PcoMutedBrush}" FontSize="12" Margin="0,0,0,20" TextWrapping="Wrap">
+                                <Run Text="Process Core Optimizer v"/>
+                                <Run Text="{Binding AppVersion, Mode=OneWay}"/>
+                            </TextBlock>
+                        </StackPanel>
+
                     </StackPanel>
-                    <TextBlock Text="{Binding ExternalLinkErrorText}" Foreground="{StaticResource PcoRedBrush}" FontSize="12" Margin="0,0,0,8" TextWrapping="Wrap">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="Visibility" Value="Visible"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding ExternalLinkErrorText}" Value="{x:Null}">
-                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
-                    <TextBlock Foreground="{StaticResource PcoMutedBrush}" FontSize="12" Margin="0,0,0,20" TextWrapping="Wrap">
-                        <Run Text="Process Core Optimizer v"/>
-                        <Run Text="{Binding AppVersion, Mode=OneWay}"/>
-                    </TextBlock>
-                </StackPanel>
-            </ScrollViewer>
+                </ScrollViewer>
+            </Grid>
         </Grid>
     </Border>
 </UserControl>

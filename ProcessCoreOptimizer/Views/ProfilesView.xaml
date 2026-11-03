@@ -7,7 +7,10 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <TextBlock Grid.Row="0" Text="{DynamicResource StrYourProfiles}" Style="{StaticResource PcoTitle}"/>
@@ -30,7 +33,56 @@
                 </StackPanel>
             </Border>
 
-            <DataGrid Grid.Row="3" ItemsSource="{Binding SavedProfiles}" SelectedItem="{Binding SelectedSavedProfile}" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single" CanUserAddRows="False" CanUserSortColumns="True">
+            <!-- Empty state: no saved profiles yet. Only Create + Import here. -->
+            <Border Grid.Row="3" Background="{StaticResource PcoBg3Brush}" CornerRadius="6" Padding="16" Margin="0,0,0,10" BorderThickness="1" BorderBrush="{StaticResource PcoBorderSoftBrush}">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasSavedProfiles}" Value="False">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <StackPanel>
+                    <TextBlock Text="{DynamicResource StrNoProfilesTitle}" FontWeight="Bold" FontSize="15" Foreground="{StaticResource PcoTextBrightBrush}" Margin="0,0,0,6"/>
+                    <TextBlock Text="{DynamicResource StrNoProfilesBody}" Foreground="{StaticResource PcoMutedBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,12"/>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="{DynamicResource StrNewProfile}" Command="{Binding NewProfileCommand}" Style="{StaticResource StandardButton}" Background="{StaticResource PcoAccentBrush}" Width="180" Margin="0,0,8,0"/>
+                        <Button Content="{DynamicResource StrImportProfiles}" Command="{Binding ImportProfilesCommand}" Style="{StaticResource SmallFilterButton}" Width="140"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <TextBlock Grid.Row="4" Text="{DynamicResource StrSelectProfileHint}" Foreground="{StaticResource PcoMutedBrush}" FontSize="12" Margin="0,0,0,6" TextWrapping="Wrap">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding HasSavedProfiles}" Value="True"/>
+                                    <Condition Binding="{Binding HasSavedProfileTarget}" Value="False"/>
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </MultiDataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+
+            <DataGrid Grid.Row="5" ItemsSource="{Binding SavedProfiles}" SelectedItem="{Binding SelectedSavedProfile}" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single" CanUserAddRows="False" CanUserSortColumns="True">
+                <DataGrid.Style>
+                    <Style TargetType="DataGrid">
+                        <Setter Property="Visibility" Value="Visible"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasSavedProfiles}" Value="False">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.Style>
                 <DataGrid.ContextMenu>
                     <ContextMenu>
                         <MenuItem Header="{DynamicResource StrEditProfile}" Command="{Binding EditProfileCommand}"/>
@@ -109,13 +161,36 @@
                 </DataGrid.Columns>
             </DataGrid>
 
-            <UniformGrid Grid.Row="4" Columns="2" Margin="0,12,0,0">
+            <UniformGrid Grid.Row="6" Columns="2" Margin="0,12,0,0">
+                <UniformGrid.Style>
+                    <Style TargetType="UniformGrid">
+                        <Setter Property="Visibility" Value="Visible"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasSavedProfiles}" Value="False">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </UniformGrid.Style>
                 <Button Content="{DynamicResource StrNewProfile}" Command="{Binding NewProfileCommand}" Style="{StaticResource SmallFilterButton}" Margin="0,0,4,4"/>
-                <Button Content="{DynamicResource StrEditProfile}" Command="{Binding EditProfileCommand}" Style="{StaticResource SmallFilterButton}" Margin="4,0,0,4"/>
-                <Button Content="{DynamicResource StrDuplicateProfile}" Command="{Binding DuplicateProfileCommand}" Style="{StaticResource SmallFilterButton}" Margin="0,0,4,4"/>
-                <Button Content="{DynamicResource StrExportProfiles}" Command="{Binding ExportProfilesCommand}" Style="{StaticResource SmallFilterButton}" Margin="4,0,0,4"/>
-                <Button Content="{DynamicResource StrImportProfiles}" Command="{Binding ImportProfilesCommand}" Style="{StaticResource SmallFilterButton}" Margin="0,0,4,4"/>
-                <Button Content="{DynamicResource StrCaptureLive}" Command="{Binding CaptureLiveSettingsCommand}" Style="{StaticResource SmallFilterButton}" Margin="4,0,0,4"/>
+                <Button Content="{DynamicResource StrImportProfiles}" Command="{Binding ImportProfilesCommand}" Style="{StaticResource SmallFilterButton}" Margin="4,0,0,4"/>
+                <Button Content="{DynamicResource StrExportProfiles}" Command="{Binding ExportProfilesCommand}" Style="{StaticResource SmallFilterButton}" Margin="0,0,4,0"/>
+                <Button Content="{DynamicResource StrCaptureLive}" Command="{Binding CaptureLiveSettingsCommand}" Style="{StaticResource SmallFilterButton}" Margin="4,0,0,0"/>
+            </UniformGrid>
+
+            <UniformGrid Grid.Row="7" Columns="2" Margin="0,8,0,0">
+                <UniformGrid.Style>
+                    <Style TargetType="UniformGrid">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasSavedProfileTarget}" Value="True">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </UniformGrid.Style>
+                <Button Content="{DynamicResource StrEditProfile}" Command="{Binding EditProfileCommand}" Style="{StaticResource SmallFilterButton}" Margin="0,0,4,4"/>
+                <Button Content="{DynamicResource StrDuplicateProfile}" Command="{Binding DuplicateProfileCommand}" Style="{StaticResource SmallFilterButton}" Margin="4,0,0,4"/>
                 <Button Content="{DynamicResource StrUpdateProfile}" Command="{Binding UpdateProfileCommand}" Style="{StaticResource SmallFilterButton}" Margin="0,0,4,0"/>
                 <Button Content="{DynamicResource StrDeleteProfile}" Command="{Binding DeleteProfileCommand}" Style="{StaticResource SmallFilterButton}" Margin="4,0,0,0"/>
             </UniformGrid>

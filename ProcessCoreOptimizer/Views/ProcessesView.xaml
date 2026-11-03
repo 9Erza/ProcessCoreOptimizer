@@ -1,9 +1,12 @@
 <UserControl x:Class="ProcessCoreOptimizer.WPF.Views.ProcessesView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ap="clr-namespace:System.Windows.Automation;assembly=PresentationCore">
     <Border Style="{StaticResource PcoCard}" Margin="0,0,25,0">
         <Grid>
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
@@ -16,8 +19,36 @@
                 <CheckBox Content="{DynamicResource StrOnlyOptimized}" IsChecked="{Binding ProcessOnlyOptimized, Mode=TwoWay}" VerticalAlignment="Center" Margin="12,0,0,4" Foreground="{StaticResource PcoTextBrush}"/>
                 <CheckBox Content="{DynamicResource StrOnlyWithProfile}" IsChecked="{Binding ProcessOnlyWithProfile, Mode=TwoWay}" VerticalAlignment="Center" Margin="12,0,0,4" Foreground="{StaticResource PcoTextBrush}"/>
             </WrapPanel>
+            <TextBlock Grid.Row="2" Text="{DynamicResource StrSelectProcessHint}" Foreground="{StaticResource PcoMutedBrush}" FontSize="12" Margin="0,0,0,6" TextWrapping="Wrap">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding HasProcessTarget}" Value="False"/>
+                                    <Condition Binding="{Binding IsProcessListLoading}" Value="False"/>
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </MultiDataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+            <TextBlock Grid.Row="3" Text="{DynamicResource StrInitialLoading}" Foreground="{StaticResource PcoMutedBrush}" FontSize="12" Margin="0,0,0,6">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsProcessListLoading}" Value="True">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
 
-            <DataGrid Grid.Row="2" ItemsSource="{Binding Processes}" SelectedItem="{Binding SelectedProcess}" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single" CanUserAddRows="False" CanUserSortColumns="True">
+            <DataGrid Grid.Row="4" ItemsSource="{Binding Processes}" SelectedItem="{Binding SelectedProcess}" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single" CanUserAddRows="False" CanUserSortColumns="True">
                 <DataGrid.Style>
                     <Style TargetType="DataGrid" BasedOn="{StaticResource {x:Type DataGrid}}">
                         <Setter Property="Visibility" Value="Visible"/>
@@ -124,7 +155,7 @@
                 </DataGrid.Columns>
             </DataGrid>
 
-            <DataGrid Grid.Row="2" ItemsSource="{Binding InstanceRows}" SelectedItem="{Binding SelectedInstanceRow}" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single" CanUserAddRows="False" CanUserSortColumns="True">
+            <DataGrid Grid.Row="4" ItemsSource="{Binding InstanceRows}" SelectedItem="{Binding SelectedInstanceRow}" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single" CanUserAddRows="False" CanUserSortColumns="True">
                 <DataGrid.Style>
                     <Style TargetType="DataGrid" BasedOn="{StaticResource {x:Type DataGrid}}">
                         <Setter Property="Visibility" Value="Collapsed"/>
@@ -200,7 +231,7 @@
                 </DataGrid.Columns>
             </DataGrid>
 
-            <Border Grid.Row="3" Background="{StaticResource PcoBg3Brush}" CornerRadius="6" Padding="12" Margin="0,12,0,0" BorderThickness="1" BorderBrush="{StaticResource PcoBorderBrush}">
+            <Border Grid.Row="5" Background="{StaticResource PcoBg3Brush}" CornerRadius="6" Padding="12" Margin="0,12,0,0" BorderThickness="1" BorderBrush="{StaticResource PcoBorderBrush}">
                 <Grid DataContext="{Binding SelectedProcessDetails}">
                     <Grid.Style>
                         <Style TargetType="Grid">
@@ -223,7 +254,20 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
-                    <TextBlock Grid.Row="0" Text="{DynamicResource StrProcessDetails}" FontWeight="Bold" FontSize="14" Foreground="{StaticResource PcoAccentBrush}" Margin="0,0,0,6"/>
+                    <Grid Grid.Row="0" Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="{DynamicResource StrProcessDetails}" FontWeight="Bold" FontSize="14" Foreground="{StaticResource PcoAccentBrush}"/>
+                            <TextBlock Text="{Binding DataContext.TargetScopeLabel, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWay}" Foreground="{StaticResource PcoAccentBrush}" FontSize="12" FontWeight="SemiBold"/>
+                        </StackPanel>
+                        <Button Grid.Column="1" Content="&#xE711;" Style="{StaticResource WindowBtnStyle}" Width="28" Height="28"
+                                Command="{Binding DataContext.CloseProcessTargetCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                ToolTip="{DynamicResource StrClosePanel}"
+                                ap:AutomationProperties.Name="{DynamicResource StrClosePanel}" VerticalAlignment="Top"/>
+                    </Grid>
                     <TextBlock Grid.Row="1" Foreground="{StaticResource PcoTextBrush}" FontSize="12" TextWrapping="Wrap">
                         <Run Text="PID: "/><Run Text="{Binding RepresentativePid, Mode=OneWay}"/><Run Text="   |   "/><Run Text="{Binding StartTimeLocalText, Mode=OneWay}"/>
                     </TextBlock>

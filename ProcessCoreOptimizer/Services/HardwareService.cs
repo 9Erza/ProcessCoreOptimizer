@@ -18,6 +18,7 @@ namespace ProcessCoreOptimizer.WPF.Services
         private const int MaxAffinityMaskLogicalProcessors = 64;
         private readonly ILogger _logger;
         private readonly List<PerformanceCounter> _cpuCounters = new();
+        private readonly object _counterGate = new();
         private bool _countersInitialized;
         private bool _disposed;
 
@@ -60,10 +61,15 @@ namespace ProcessCoreOptimizer.WPF.Services
 
         public List<double> GetCurrentLoads()
         {
-            EnsureCountersInitialized();
-            var loads = new List<double>();
+            List<PerformanceCounter> snapshot;
+            lock (_counterGate)
+            {
+                EnsureCountersInitialized();
+                snapshot = new List<PerformanceCounter>(_cpuCounters);
+            }
+            var loads = new List<double>(snapshot.Count);
 
-            foreach (var counter in _cpuCounters)
+            foreach (var counter in snapshot)
             {
                 try
                 {
@@ -349,18 +355,21 @@ namespace ProcessCoreOptimizer.WPF.Services
 
         public void ReleaseCpuLoadCounters()
         {
-            foreach (var counter in _cpuCounters)
+            lock (_counterGate)
             {
-                counter.Dispose();
-            }
+                foreach (var counter in _cpuCounters)
+                {
+                    counter.Dispose();
+                }
 
-            if (_cpuCounters.Count > 0)
-            {
-                _logger.Debug($"Released {_cpuCounters.Count} CPU performance counters");
-            }
+                if (_cpuCounters.Count > 0)
+                {
+                    _logger.Debug($"Released {_cpuCounters.Count} CPU performance counters");
+                }
 
-            _cpuCounters.Clear();
-            _countersInitialized = false;
+                _cpuCounters.Clear();
+                _countersInitialized = false;
+            }
         }
 
         public void Dispose()

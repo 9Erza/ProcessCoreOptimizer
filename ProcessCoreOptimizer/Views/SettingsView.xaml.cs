@@ -10,12 +10,11 @@ namespace ProcessCoreOptimizer.WPF.Views
         }
 
         /// <summary>
-        /// Brings the existing About section into view and moves keyboard focus
-        /// to its header (used by the sidebar Developer Hub "About" row).
+        /// Focuses the About header. The category is already selected by the
+        /// ViewModel, so no scrolling is needed; focus keeps keyboard users oriented.
         /// </summary>
         public void ScrollToAbout()
         {
-            AboutHeader.BringIntoView();
             AboutHeader.Focus();
         }
     }
