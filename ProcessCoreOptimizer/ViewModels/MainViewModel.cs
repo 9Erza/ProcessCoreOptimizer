@@ -69,6 +69,11 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         private string _activeTab = "Processes";
         private string _processFilterText = string.Empty;
         private string _profileFilterText = string.Empty;
+        private bool _processOnlyOptimized;
+        private bool _processOnlyWithProfile;
+        private ProcessViewMode _processViewMode = ProcessViewMode.Grouped;
+        private ProcessInstanceRow? _selectedInstanceRow;
+        private ProcessScanResult? _lastUiScan;
         private string? _topologyLimitation;
 
         private Visibility _viewProcesses = Visibility.Visible;
@@ -82,6 +87,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         private HardwareMetrics _fullMetrics = new();
 
         public ObservableCollection<ProcessItem> Processes { get; } = new();
+        public ObservableCollection<ProcessInstanceRow> InstanceRows { get; } = new();
         public ObservableCollection<CoreInfo> Cores { get; } = new();
         public ObservableCollection<string> ActionLogs { get; } = new();
         public ObservableCollection<ProcessProfile> SavedProfiles { get; } = new();
@@ -247,6 +253,45 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 if (!SetProperty(ref _processFilterText, value ?? string.Empty)) return;
                 RefreshProcessFilter();
             }
+        }
+
+        public bool ProcessOnlyOptimized
+        {
+            get => _processOnlyOptimized;
+            set
+            {
+                if (!SetProperty(ref _processOnlyOptimized, value)) return;
+                RefreshProcessFilter();
+            }
+        }
+
+        public bool ProcessOnlyWithProfile
+        {
+            get => _processOnlyWithProfile;
+            set
+            {
+                if (!SetProperty(ref _processOnlyWithProfile, value)) return;
+                RefreshProcessFilter();
+            }
+        }
+
+        public ProcessViewMode ProcessViewMode
+        {
+            get => _processViewMode;
+            set
+            {
+                if (!SetProperty(ref _processViewMode, value)) return;
+                OnPropertyChanged(nameof(IsInstanceView));
+                RebuildInstanceRows();
+            }
+        }
+
+        public bool IsInstanceView => _processViewMode == ProcessViewMode.Instances;
+
+        public ProcessInstanceRow? SelectedInstanceRow
+        {
+            get => _selectedInstanceRow;
+            set => SetProperty(ref _selectedInstanceRow, value);
         }
 
         public string ProfileFilterText
@@ -793,6 +838,8 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 UpdateCoreLoads();
                 AddMissingProcessRows(scan.Groups);
                 UpdateProcessRows(scan.Groups);
+                _lastUiScan = scan;
+                if (IsInstanceView) RebuildInstanceRows();
             }
             catch (Exception ex)
             {
@@ -822,7 +869,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             {
                 foreach (var group in groups)
                 {
-                    if (!MatchesProcessFilter(group.Name)) continue;
+                    if (!MatchesProcessFilter(group.Name, group.ExecutablePath, isOptimized: _profiles.Any(x => x.IsEnabled && x.ProcessName.Equals(group.Name, StringComparison.OrdinalIgnoreCase)))) continue;
                     if (Processes.Any(x => x.Name.Equals(group.Name, StringComparison.OrdinalIgnoreCase))) continue;
 
                     var profile = _profiles.FirstOrDefault(x => x.IsEnabled && x.ProcessName.Equals(group.Name, StringComparison.OrdinalIgnoreCase));
@@ -833,6 +880,8 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                     {
                         Id = group.FirstProcessId,
                         Name = group.Name,
+                        ExecutablePath = group.ExecutablePath,
+                        PriorityRank = PriorityService.Rank(profile?.Priority ?? group.Priority.ToString()),
                         InstanceCount = group.InstanceCount,
                         Priority = TranslatePriority(rawPrio),
                         IsOptimized = profile != null,
@@ -870,6 +919,8 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                     item.CpuUsage = $"{Math.Round(snapshot.CpuUsagePercent, 1)}%";
                     item.CpuUsageValue = snapshot.CpuUsagePercent;
                     item.MemoryBytes = snapshot.TotalMemoryBytes;
+                    item.ExecutablePath = snapshot.ExecutablePath;
+                    item.PriorityRank = PriorityService.Rank(profile?.Priority ?? snapshot.Priority.ToString());
                     item.Priority = TranslatePriority(profile?.Priority ?? snapshot.Priority.ToString());
                     item.IsOptimized = profile != null;
                     item.ModeTag = currentTag;
@@ -1471,10 +1522,14 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             }
         }
 
-        private bool MatchesProcessFilter(string name)
+        private bool MatchesProcessFilter(string name, string? executablePath = null, bool isOptimized = false)
         {
+            if (_processOnlyOptimized && !isOptimized) return false;
+            if (_processOnlyWithProfile && !isOptimized) return false;
             if (string.IsNullOrWhiteSpace(_processFilterText)) return true;
-            return name.Contains(_processFilterText.Trim(), StringComparison.OrdinalIgnoreCase);
+            string filter = _processFilterText.Trim();
+            return name.Contains(filter, StringComparison.OrdinalIgnoreCase)
+                || (executablePath?.Contains(filter, StringComparison.OrdinalIgnoreCase) == true);
         }
 
         private bool MatchesProfileFilter(ProcessProfile profile)
@@ -1492,9 +1547,34 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             {
                 for (int i = Processes.Count - 1; i >= 0; i--)
                 {
-                    if (!MatchesProcessFilter(Processes[i].Name)) Processes.RemoveAt(i);
+                    var item = Processes[i];
+                    if (!MatchesProcessFilter(item.Name, item.ExecutablePath, item.IsOptimized)) Processes.RemoveAt(i);
                 }
+
+                RebuildInstanceRows();
             });
+        }
+
+        /// <summary>
+        /// Rebuilds the flat instance list from the last UI scan (local op, no rescan).
+        /// Honors the same filter text/flags as the grouped view.
+        /// </summary>
+        private void RebuildInstanceRows()
+        {
+            var scan = _lastUiScan;
+            if (scan == null) return;
+
+            var rows = ProcessRowBuilder.BuildInstanceRows(
+                scan.InstanceDetails,
+                _profiles,
+                translatePriority: raw => TranslatePriority(NormalizePriority(raw)));
+
+            InstanceRows.Clear();
+            foreach (var row in rows.Where(r =>
+                MatchesProcessFilter(r.Name, r.ExecutablePath, !string.IsNullOrEmpty(r.ProfileName))))
+            {
+                InstanceRows.Add(row);
+            }
         }
 
         private ProcessDetails BuildProcessDetails(string processName)

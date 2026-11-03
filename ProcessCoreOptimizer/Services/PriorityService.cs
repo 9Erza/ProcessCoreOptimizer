@@ -75,5 +75,22 @@ namespace ProcessCoreOptimizer.WPF.Services
             string normalized = Normalize(priority, allowRealtime);
             return Enum.TryParse(normalized, out processPriority);
         }
+
+        /// <summary>
+        /// Semantic rank for column sorting (Idle &lt; BelowNormal &lt; Normal &lt;
+        /// AboveNormal &lt; High &lt; RealTime). Unknown normalizes to Normal.
+        /// </summary>
+        public static int Rank(string? priority)
+        {
+            return Normalize(priority, allowRealtime: true) switch
+            {
+                "Idle" => 0,
+                "BelowNormal" => 1,
+                "AboveNormal" => 3,
+                "High" => 4,
+                "RealTime" => 5,
+                _ => 2
+            };
+        }
     }
 }

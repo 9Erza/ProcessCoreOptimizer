@@ -21,6 +21,12 @@ namespace ProcessCoreOptimizer.WPF.Models
         public string Name { get; set; } = string.Empty;
         public string DisplayName => string.IsNullOrEmpty(ModeTag) ? Name : $"{Name} [{ModeTag}]";
 
+        /// <summary>EXE path when all instances agree; null on disagreement/refusal. Display + filter.</summary>
+        public string? ExecutablePath { get; set; }
+
+        /// <summary>Semantic priority rank for column sorting (see <see cref="Services.PriorityService.Rank"/>).</summary>
+        public int PriorityRank { get; set; } = 2;
+
         public int InstanceCount
         {
             get => _instanceCount;

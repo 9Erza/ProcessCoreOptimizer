@@ -12,7 +12,7 @@
             <TextBlock Grid.Row="0" Text="{DynamicResource StrProcessList}" Style="{StaticResource PcoTitle}"/>
             <TextBox Grid.Row="1" Text="{Binding ProcessFilterText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource PcoFilterBox}" ToolTip="{DynamicResource StrProcessFilter}"/>
 
-            <DataGrid Grid.Row="2" ItemsSource="{Binding Processes}" SelectedItem="{Binding SelectedProcess}" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single" CanUserAddRows="False">
+            <DataGrid Grid.Row="2" ItemsSource="{Binding Processes}" SelectedItem="{Binding SelectedProcess}" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single" CanUserAddRows="False" CanUserSortColumns="True">
                 <DataGrid.RowStyle>
                     <Style TargetType="DataGridRow">
                         <Setter Property="Background" Value="Transparent"/>
@@ -34,21 +34,21 @@
                 </DataGrid.RowStyle>
 
                 <DataGrid.Columns>
-                    <DataGridTextColumn Binding="{Binding DisplayName}" Width="*" MinWidth="120" >
+                    <DataGridTextColumn Binding="{Binding DisplayName}" SortMemberPath="Name" Width="*" MinWidth="120" >
                         <DataGridTextColumn.HeaderTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{DynamicResource StrColName}" />
                             </DataTemplate>
                         </DataGridTextColumn.HeaderTemplate>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Binding="{Binding InstanceCount}" Width="72">
+                    <DataGridTextColumn Binding="{Binding InstanceCount}" SortMemberPath="InstanceCount" Width="72">
                         <DataGridTextColumn.HeaderTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{DynamicResource StrColInstances}" />
                             </DataTemplate>
                         </DataGridTextColumn.HeaderTemplate>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Binding="{Binding Priority}" Width="118">
+                    <DataGridTextColumn Binding="{Binding Priority}" SortMemberPath="PriorityRank" Width="118">
                         <DataGridTextColumn.HeaderTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{DynamicResource StrColPriority}" />
@@ -78,14 +78,14 @@
                             </Style>
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Binding="{Binding RamUsageMB}" Width="72" >
+                    <DataGridTextColumn Binding="{Binding RamUsageMB}" SortMemberPath="MemoryBytes" Width="72" >
                         <DataGridTextColumn.HeaderTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{DynamicResource StrColRam}" />
                             </DataTemplate>
                         </DataGridTextColumn.HeaderTemplate>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Binding="{Binding CpuUsage}" Width="70" >
+                    <DataGridTextColumn Binding="{Binding CpuUsage}" SortMemberPath="CpuUsageValue" Width="70" >
                         <DataGridTextColumn.HeaderTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{DynamicResource StrColCpu}" />

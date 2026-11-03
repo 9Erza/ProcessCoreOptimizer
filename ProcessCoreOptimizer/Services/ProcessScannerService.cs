@@ -27,7 +27,7 @@ namespace ProcessCoreOptimizer.WPF.Services
 
         public Task<ProcessScanResult> ScanUserProcessesAsync()
         {
-            return Task.Run(ScanUserProcesses);
+            return Task.Run(() => ScanUserProcesses(includeInstanceDetails: true));
         }
 
         public Task<ProcessScanResult> ScanProfileProcessesAsync(IEnumerable<ProcessProfile> profiles)
@@ -123,7 +123,7 @@ namespace ProcessCoreOptimizer.WPF.Services
             }
         }
 
-        private ProcessScanResult ScanUserProcesses()
+        private ProcessScanResult ScanUserProcesses(bool includeInstanceDetails)
         {
             Process[] processes = Array.Empty<Process>();
             try
@@ -136,7 +136,7 @@ namespace ProcessCoreOptimizer.WPF.Services
                     .Where(p => _processService.IsUserProcess(p))
                     .ToList();
 
-                var result = BuildGroupedSnapshot(userProcesses, elapsedSeconds, includeResources: true);
+                var result = BuildGroupedSnapshot(userProcesses, elapsedSeconds, includeResources: true, includeInstanceDetails);
                 CleanupCpuCache(result.ActiveInstances);
                 return result;
             }
@@ -186,10 +186,11 @@ namespace ProcessCoreOptimizer.WPF.Services
             }
         }
 
-        private ProcessScanResult BuildGroupedSnapshot(IEnumerable<Process> processes, double elapsedSeconds, bool includeResources)
+        private ProcessScanResult BuildGroupedSnapshot(IEnumerable<Process> processes, double elapsedSeconds, bool includeResources, bool includeInstanceDetails = false)
         {
             var activeInstances = new HashSet<ProcessInstanceKey>();
             var snapshots = new List<ProcessGroupSnapshot>();
+            var instanceDetails = new List<ProcessInstanceData>();
 
             var groups = processes
                 .GroupBy(p => p.ProcessName, StringComparer.OrdinalIgnoreCase)
@@ -220,17 +221,36 @@ namespace ProcessCoreOptimizer.WPF.Services
                         {
                             totalMemory += process.WorkingSet64;
                             TimeSpan currentCpu = process.TotalProcessorTime;
+                            double? instanceCpu = null;
                             lock (_cpuTimesLock)
                             {
                                 if (_lastCpuTimes.TryGetValue(key, out TimeSpan lastCpu))
                                 {
                                     double usageMs = Math.Max((currentCpu - lastCpu).TotalMilliseconds, 0);
-                                    totalCpu += (usageMs / (elapsedSeconds * 1000 * Math.Max(Environment.ProcessorCount, 1))) * 100;
+                                    double pct = (usageMs / (elapsedSeconds * 1000 * Math.Max(Environment.ProcessorCount, 1))) * 100;
+                                    totalCpu += pct;
+                                    instanceCpu = pct;
                                 }
 
                                 _lastCpuTimes[key] = currentCpu;
                             }
+
                             priority = process.PriorityClass;
+
+                            if (includeInstanceDetails)
+                            {
+                                ProcessPriorityClass? rowPrio = null;
+                                try { rowPrio = process.PriorityClass; } catch { rowPrio = null; }
+                                instanceDetails.Add(new ProcessInstanceData
+                                {
+                                    Key = key,
+                                    ProcessName = process.ProcessName,
+                                    ExecutablePath = observedPaths.Count > 0 ? observedPaths[observedPaths.Count - 1] : null,
+                                    CpuUsagePercent = instanceCpu,
+                                    WorkingSetBytes = process.WorkingSet64,
+                                    Priority = rowPrio
+                                });
+                            }
                         }
                     }
                     catch (Exception ex)
@@ -257,7 +277,8 @@ namespace ProcessCoreOptimizer.WPF.Services
             return new ProcessScanResult
             {
                 Groups = snapshots,
-                ActiveInstances = activeInstances
+                ActiveInstances = activeInstances,
+                InstanceDetails = instanceDetails
             };
         }
 
