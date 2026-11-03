@@ -61,7 +61,7 @@ selection profiles/rules with empty states, and 8-category Settings.
   service or agent process is ever touched.
 - Startup architecture: plan → execute → verify with create-before-delete
   ordering; UAC cancel and failed-create paths proven by tests.
-- GUI: 24/24 UI Automation checks on Windows 11 (1920×1080, 100% DPI):
+- GUI: 25/25 UI Automation checks on Windows 11 (1920×1080, 100% DPI):
   all seven views incl. Smart Rules via real clicks, instance-view toggle,
   mini activity console, slim scrollbar, compact hardware empty-state,
   maximize/minimize/restore, tray-aware close, startup status text, scrolled
@@ -70,7 +70,9 @@ selection profiles/rules with empty states, and 8-category Settings.
   isolated portable first-run smoke test, Developer Hub collapsed/expanded
   EN+PL with per-row checks, Space-toggle keyboard path, in-app About
   navigation, 1000×700 minimum-size overflow check, update dialog EN+PL
-  (real dialog code, canned API answers) and manual check flow.
+  (real dialog code, canned API answers) and manual check flow, process
+  scope UX (no-target/selected/close/mode-switch), read-only CPU hub, settings
+  categories, 8-tiles-visible selector gate at 1000x700.
   Harness: `tools/Run-GuiVerification.ps1` (backs up and restores `%APPDATA%`,
   launches with `--safe-mode`).
 - GUI defects found live and fixed: theme scope crash at startup (now
