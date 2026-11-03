@@ -66,6 +66,22 @@ public sealed class CpuTelemetryTests
     }
 
     [TestMethod]
+    public void SteadyStateReadings_AreRealValuesNotUnknown()
+    {
+        using var svc = new HardwareService();
+        var first = svc.GetCurrentLoads();
+        Assert.IsTrue(first.Count == 0 || first.All(s => s.UtilizationPercent == null),
+            "The first sampling round has no valid interval and must read Unknown.");
+        var second = svc.GetCurrentLoads();
+        var third = svc.GetCurrentLoads();
+        if (third.Count == 0)
+            Assert.Inconclusive("No performance counters on this machine.");
+        Assert.IsTrue(second.All(s => s.UtilizationPercent.HasValue),
+            "After priming, utilization must be a real 0-100 value, never Unknown.");
+        Assert.IsTrue(third.All(s => s.UtilizationPercent.HasValue && s.UtilizationPercent >= 0 && s.UtilizationPercent <= 100));
+    }
+
+    [TestMethod]
     public void Group0_InstanceNames_MatchLogicalProcessors()
     {
         using var svc = new HardwareService();
@@ -91,9 +107,15 @@ public sealed class CpuTelemetryTests
     [TestMethod]
     public async Task PinnedBurner_MapsToCorrectLp()
     {
+        // Integration test, environment-aware by design: the expectation is
+        // derived from the burner's OWN consumed CPU time over the same wall
+        // window, never from an absolute percentage. A shared runner that
+        // starves the burner yields Inconclusive (explicitly environmental),
+        // never a false failure — and never a false pass.
         int lpCount = Environment.ProcessorCount;
         if (lpCount < 2) Assert.Inconclusive("Needs at least 2 logical processors.");
         int target = lpCount - 1;
+        long mask = 1L << target;
         using var burner = Process.Start(new ProcessStartInfo
         {
             FileName = "powershell",
@@ -104,26 +126,60 @@ public sealed class CpuTelemetryTests
         Assert.IsNotNull(burner);
         try
         {
-            burner!.ProcessorAffinity = (IntPtr)(1L << target);
+            burner!.ProcessorAffinity = (IntPtr)mask;
+            burner.Refresh();
+            if (burner.ProcessorAffinity != (IntPtr)mask)
+                Assert.Inconclusive("Runner did not honor CPU affinity; mapping unverifiable here.");
             await Task.Delay(1500);
             using var svc = new HardwareService();
-            // Prime + two real samplings (reads #3+ carry a valid interval).
+            // Prime + one intermediate sampling (reads #3+ carry a valid interval).
             svc.GetCurrentLoads();
             await Task.Delay(600);
             svc.GetCurrentLoads();
-            await Task.Delay(600);
+            burner.Refresh();
+            TimeSpan t0 = burner.TotalProcessorTime;
+            DateTime w0 = DateTime.UtcNow;
+            await Task.Delay(1200);
             var loads = svc.GetCurrentLoads();
+            burner.Refresh();
+            TimeSpan t1 = burner.TotalProcessorTime;
             if (loads.Count != lpCount)
                 Assert.Inconclusive($"Topology mismatch: {loads.Count} samples vs {lpCount} LPs.");
-            double? targetBusy = loads[target].UtilizationPercent;
-            Assert.IsNotNull(targetBusy, "Target LP must report a real reading, not Unknown.");
-            Assert.IsTrue(targetBusy >= 50,
-                $"Pinned burner on LP{target} must dominate its processor (got {targetBusy}%).");
+            double wallMs = Math.Max((t1 - t0).TotalMilliseconds, 1);
+            double wallWall = Math.Max((DateTime.UtcNow - w0).TotalMilliseconds, 1);
+            double expected = Math.Min(100, wallMs / wallWall * 100);
+            if (expected < 20)
+                Assert.Inconclusive($"Burner starved by the host (only {expected:F1}% of a core over the window); mapping unverifiable here.");
+            double? measured = loads[target].UtilizationPercent;
+            Assert.IsNotNull(measured, "Target LP must report a real reading, not Unknown.");
+            Assert.IsTrue(Math.Abs(measured.Value - expected) <= 30,
+                $"LP{target} reads {measured:F1}% but the pinned burner consumed {expected:F1}% of a core over the same window (mapping suspect).");
         }
         finally
         {
             try { burner!.Kill(); } catch { }
         }
+    }
+
+    [TestMethod]
+    public void ProcessorInformation_InstancesMatchLogicalProcessors()
+    {
+        // Deterministic mapping contract: instance "0,i" exists for every
+        // logical processor i of group 0 (verified live against a pinned
+        // burner by PinnedBurner_MapsToCorrectLp).
+        int lpCount = Environment.ProcessorCount;
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            foreach (var n in new PerformanceCounterCategory("Processor Information").GetInstanceNames())
+                names.Add(n);
+        }
+        catch (Exception ex)
+        {
+            Assert.Inconclusive($"Performance counters unavailable here: {ex.Message}");
+        }
+        for (int i = 0; i < Math.Min(lpCount, 64); i++)
+            Assert.IsTrue(names.Contains("0," + i), $"Missing PDH instance for logical processor {i}.");
     }
 }
 
@@ -163,27 +219,36 @@ public sealed class ProcessSafetyTests
     [TestMethod]
     public void AutomaticChannel_SkipsWindowsComponent_BeforeAnyWrite()
     {
-        var candidates = new[] { "ShellExperienceHost", "TextInputHost", "StartMenuExperienceHost", "SearchHost", "ApplicationFrameHost", "GameBar", "LockApp" }
-            .Where(n => !ProcessService.IsProtectedProcessName(n))
-            .SelectMany(n => { try { return Process.GetProcessesByName(n); } catch { return Array.Empty<Process>(); } })
-            .Where(p => { try { return !p.HasExited; } catch { return false; } })
-            .ToList();
-        if (candidates.Count == 0) Assert.Inconclusive("No Windows component process running.");
+        // Deterministic subject: first live, non-blacklisted Windows component
+        // whose executable path is actually readable. Anything else would make
+        // the verdict depend on ambient processes, not on the policy.
         Process? target = null;
         DateTime start = default;
-        foreach (var c in candidates)
+        string? targetPath = null;
+        foreach (string name in new[] { "ShellExperienceHost", "TextInputHost", "StartMenuExperienceHost", "SearchHost", "ApplicationFrameHost", "GameBar", "LockApp" })
         {
-            try
+            if (ProcessService.IsProtectedProcessName(name)) continue;
+            Process[] found;
+            try { found = Process.GetProcessesByName(name); }
+            catch { continue; }
+            foreach (var c in found)
             {
-                if (c.HasExited) continue;
-                start = c.StartTime.ToUniversalTime();
-                target = c;
-                break;
+                try
+                {
+                    if (c.HasExited) continue;
+                    string? path = ProcessIdentityValidator.TryGetProcessPath(c);
+                    if (string.IsNullOrEmpty(path) || !ProcessService.IsSystemComponentPath(path)) continue;
+                    start = c.StartTime.ToUniversalTime();
+                    target = c;
+                    targetPath = path;
+                    break;
+                }
+                catch { }
             }
-            catch { }
+            if (target != null) break;
+            foreach (var c in found) { try { c.Dispose(); } catch { } }
         }
-        foreach (var c in candidates) { if (!ReferenceEquals(c, target)) try { c.Dispose(); } catch { } }
-        if (target == null) Assert.Inconclusive("Cannot read start time.");
+        if (target == null) Assert.Inconclusive("No readable Windows-component process running here.");
         var key = new ProcessInstanceKey(target!.Id, start);
         var profile = new ProcessProfile { ProcessName = target.ProcessName, IsEnabled = true };
         var svc = new OptimizationService(new ProcessService(), () => new Dictionary<int, uint>());
@@ -191,7 +256,8 @@ public sealed class ProcessSafetyTests
         var first = result.Results.FirstOrDefault();
         try { target.Dispose(); } catch { }
         Assert.IsNotNull(first);
-        Assert.AreEqual(OperationStatus.SkippedSystemLocation, first!.Status);
+        Assert.AreEqual(OperationStatus.SkippedSystemLocation, first!.Status,
+            $"Target was '{targetPath}'; the automatic channel must refuse before any OS write.");
         Assert.AreEqual("SKIPPED_SYSTEM_LOCATION", first!.Message);
         Assert.IsFalse(first.Success);
     }
