@@ -8,5 +8,15 @@ namespace ProcessCoreOptimizer.WPF.Views
         {
             InitializeComponent();
         }
+
+        /// <summary>
+        /// Brings the existing About section into view and moves keyboard focus
+        /// to its header (used by the sidebar Developer Hub "About" row).
+        /// </summary>
+        public void ScrollToAbout()
+        {
+            AboutHeader.BringIntoView();
+            AboutHeader.Focus();
+        }
     }
 }

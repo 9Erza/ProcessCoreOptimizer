@@ -65,6 +65,7 @@
 - Startup registration applied only when startup settings actually change.
 - One-line version truth: `version.txt` → `Directory.Build.props` → PE metadata (`2.0.0.0`), UI, updater, docs.
 - Localization parity enforced by tests (EN/PL key sets identical).
+- Sidebar Developer Hub: collapsible `PCO <version>` footer card expanding to the four official links (project repo, 9Erza, DobryPC.pl, Buy Me a Coffee) plus in-app About navigation (Settings + scroll, no browser); slim quick-icon row while collapsed; real GitHub mark and BMC cup asset; full PL/EN with keyboard support.
 
 ### Reliability (P1/P2)
 - `AtomicFileService` is now per-file locked and uses atomic `File.Replace` with `.bak`; loads fall back to `.bak` when live JSON is truncated/invalid, for both profiles and settings.

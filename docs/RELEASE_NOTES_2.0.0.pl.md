@@ -27,8 +27,10 @@ grupy 0, ścieżki EXE w snapshotach, szczegóły procesów (PID, czas startu,
 **Pulpit 2.0** — tokeny projektu (`Themes/`), sześć widoków
 (Processes, CPU & Topology, Profiles, Hardware, Settings, Diagnostics),
 przywracanie ustawień sprzed optymalizacji (tylko zweryfikowana tożsamość),
-aktualizator świadomy wydań (bez fałszywych powiadomień przed publikacją)
-oraz rejestracja autostartu tylko przy zmianie ustawień startu.
+aktualizator świadomy wydań (bez fałszywych powiadomień przed publikacją),
+rejestracja autostartu tylko przy zmianie ustawień startu oraz zwijany
+Developer Hub w sidebarze (karta wersji + oficjalne linki + nawigacja
+do About w aplikacji, pełne PL/EN).
 
 ## Zgodność
 

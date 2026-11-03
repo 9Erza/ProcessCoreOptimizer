@@ -9,10 +9,11 @@ namespace ProcessCoreOptimizer.Tests;
 public sealed class ExternalLinksTests
 {
     [TestMethod]
-    public void Allowlist_ContainsExactlyTheThreeOfficialUrls()
+    public void Allowlist_ContainsExactlyTheFourOfficialUrls()
     {
         Assert.AreEqual("https://github.com/9Erza", ExternalLinks.GetUrl(PcoExternalLink.Author));
         Assert.AreEqual("https://github.com/9Erza/ProcessCoreOptimizer", ExternalLinks.GetUrl(PcoExternalLink.Repository));
+        Assert.AreEqual("https://dobrypc.pl", ExternalLinks.GetUrl(PcoExternalLink.Website));
         Assert.AreEqual("https://buymeacoffee.com/9erza", ExternalLinks.GetUrl(PcoExternalLink.Support));
     }
 
@@ -21,12 +22,15 @@ public sealed class ExternalLinksTests
     {
         Assert.IsTrue(ExternalLinks.IsAllowed("https://github.com/9Erza"));
         Assert.IsTrue(ExternalLinks.IsAllowed("https://github.com/9Erza/ProcessCoreOptimizer"));
+        Assert.IsTrue(ExternalLinks.IsAllowed("https://dobrypc.pl"));
         Assert.IsTrue(ExternalLinks.IsAllowed("https://buymeacoffee.com/9erza"));
         Assert.IsFalse(ExternalLinks.IsAllowed(null));
         Assert.IsFalse(ExternalLinks.IsAllowed(""));
         Assert.IsFalse(ExternalLinks.IsAllowed("https://github.com/ErykZ"));
         Assert.IsFalse(ExternalLinks.IsAllowed("https://github.com/9Erza/FrameHub"));
         Assert.IsFalse(ExternalLinks.IsAllowed("https://buymeacoffee.com/other"));
+        Assert.IsFalse(ExternalLinks.IsAllowed("https://dobrypc.pl/sklep"));
+        Assert.IsFalse(ExternalLinks.IsAllowed("http://dobrypc.pl"));
         Assert.IsFalse(ExternalLinks.IsAllowed("javascript:alert(1)"));
         Assert.IsFalse(ExternalLinks.IsAllowed("file:///etc/passwd"));
         Assert.IsFalse(ExternalLinks.IsAllowed("https://github.com/9Erza?tab=repositories"));

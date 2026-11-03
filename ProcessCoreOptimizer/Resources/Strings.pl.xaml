@@ -126,6 +126,10 @@
     <system:String x:Key="StrAuthorTooltip">GitHub autora — 9Erza</system:String>
     <system:String x:Key="StrRepoTooltip">Repozytorium projektu — Process Core Optimizer</system:String>
     <system:String x:Key="StrSupportTooltip">Postaw kawę — Wesprzyj rozwój</system:String>
+    <system:String x:Key="StrFooterRepoLabel">Repozytorium projektu</system:String>
+    <system:String x:Key="StrFooterWebsiteTooltip">Strona autora — DobryPC.pl</system:String>
+    <system:String x:Key="StrFooterSupportLabel">Wesprzyj projekt</system:String>
+    <system:String x:Key="StrWebsiteCaption">Strona internetowa</system:String>
     <system:String x:Key="StrLinkOpenFailed">Nie udało się otworzyć strony w przeglądarce.</system:String>
     <system:String x:Key="StrViewGrouped">Grupy</system:String>
     <system:String x:Key="StrViewInstances">Instancje</system:String>

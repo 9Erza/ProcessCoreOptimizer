@@ -28,7 +28,9 @@ source, last status), and process/profile filters.
 (Processes, CPU & Topology, Profiles, Hardware, Settings, Diagnostics),
 session restore of pre-optimization settings (verified identity only),
 releases-aware updater (no false positives before a release is published),
-and startup registration applied only when startup settings change.
+startup registration applied only when startup settings change, and a
+collapsible sidebar Developer Hub (version card + official links + in-app
+About navigation, full PL/EN).
 
 ## Compatibility
 

@@ -170,31 +170,101 @@
                         </Border>
                     </Grid>
 
-                    <Grid Grid.Row="2" Margin="20,0,20,15">
+                    <Grid Grid.Row="2" Margin="12,0,12,12">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
-                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
-                            <Button Style="{StaticResource IconLinkButton}" Command="{Binding OpenAuthorCommand}"
-                                    ToolTip="{DynamicResource StrAuthorTooltip}"
-                                    ap:AutomationProperties.Name="{DynamicResource StrAuthorTooltip}"
+
+                        <!-- Developer / Project Hub: compact version card when collapsed,
+                             full link list when expanded (same commands as About). -->
+                        <Expander Grid.Row="0" x:Name="FooterExpander" Style="{StaticResource PcoFooterExpander}" Margin="0,0,0,8">
+                            <Expander.Header>
+                                <TextBlock Text="{Binding FooterTitle}" FontWeight="SemiBold" FontSize="12.5" VerticalAlignment="Center"/>
+                            </Expander.Header>
+                            <Expander.ToolTip>
+                                <TextBlock>
+                                    <Run Text="Process Core Optimizer v"/><Run Text="{Binding AppVersion, Mode=OneWay}"/>
+                                </TextBlock>
+                            </Expander.ToolTip>
+                            <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                <StackPanel Margin="0,4,0,0">
+                                    <Button Style="{StaticResource PcoFooterRowButton}" Command="{Binding OpenRepositoryCommand}"
+                                            ToolTip="{DynamicResource StrRepoTooltip}"
+                                            ap:AutomationProperties.Name="{DynamicResource StrRepoTooltip}">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Grid Width="20"><ContentControl Content="{StaticResource IconGitHub}" Focusable="False" HorizontalAlignment="Center" VerticalAlignment="Center"/></Grid>
+                                            <TextBlock Text="{DynamicResource StrFooterRepoLabel}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" FontSize="12" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource PcoFooterRowButton}" Command="{Binding OpenAuthorCommand}"
+                                            ToolTip="{DynamicResource StrAuthorTooltip}"
+                                            ap:AutomationProperties.Name="{DynamicResource StrAuthorTooltip}">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Grid Width="20"><ContentControl Content="{StaticResource IconGitHub}" Focusable="False" HorizontalAlignment="Center" VerticalAlignment="Center"/></Grid>
+                                            <TextBlock Text="9Erza" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource PcoFooterRowButton}" Command="{Binding OpenWebsiteCommand}"
+                                            ToolTip="{DynamicResource StrFooterWebsiteTooltip}"
+                                            ap:AutomationProperties.Name="{DynamicResource StrFooterWebsiteTooltip}">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Grid Width="20"><ContentControl Content="{StaticResource IconGlobe}" Focusable="False" HorizontalAlignment="Center" VerticalAlignment="Center"/></Grid>
+                                            <TextBlock Text="DobryPC.pl" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" FontSize="12" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource PcoFooterRowButton}" Command="{Binding OpenSupportCommand}"
+                                            ToolTip="{DynamicResource StrSupportTooltip}"
+                                            ap:AutomationProperties.Name="{DynamicResource StrSupportTooltip}">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Grid Width="20"><Image Source="/Images/buymeacoffee.png" Width="17" Height="17" Stretch="Uniform" VerticalAlignment="Center" HorizontalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality" Focusable="False"/></Grid>
+                                            <TextBlock Text="{DynamicResource StrFooterSupportLabel}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" FontSize="12" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource PcoFooterRowButton}" Command="{Binding OpenAboutCommand}"
+                                            ToolTip="{DynamicResource StrSetGroupAbout}"
+                                            ap:AutomationProperties.Name="{DynamicResource StrSetGroupAbout}">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Grid Width="20"><TextBlock Text="&#xE946;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" VerticalAlignment="Center" HorizontalAlignment="Center"/></Grid>
+                                            <TextBlock Text="{DynamicResource StrSetGroupAbout}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Expander>
+
+                        <!-- Slim quick links: repo + support while the hub is collapsed. -->
+                        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsExpanded, ElementName=FooterExpander}" Value="False">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <Button Style="{StaticResource IconLinkButton}" Command="{Binding OpenRepositoryCommand}"
+                                    ToolTip="{DynamicResource StrRepoTooltip}"
+                                    ap:AutomationProperties.Name="{DynamicResource StrRepoTooltip}"
                                     Margin="0,0,8,0">
                                 <ContentControl Content="{StaticResource IconGitHub}" Focusable="False"/>
                             </Button>
                             <Button Style="{StaticResource IconLinkButton}" Command="{Binding OpenSupportCommand}"
                                     ToolTip="{DynamicResource StrSupportTooltip}"
                                     ap:AutomationProperties.Name="{DynamicResource StrSupportTooltip}">
-                                <ContentControl Content="{StaticResource IconCoffee}" Focusable="False"/>
+                                <Image Source="/Images/buymeacoffee.png" Width="17" Height="17" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality" Focusable="False"/>
                             </Button>
                         </StackPanel>
-                        <Grid Grid.Row="1">
+
+                        <Grid Grid.Row="2">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <ToggleButton Grid.Column="0" Style="{StaticResource FlagSwitchStyle}" IsChecked="{Binding IsPolishLanguage}"/>
-                            <TextBlock Grid.Column="1" Text="{Binding AppVersion, StringFormat=v{0}}" Foreground="{StaticResource PcoFaintBrush}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
                     </Grid>
                 </Grid>
@@ -211,7 +281,7 @@
                 <views:SmartRulesView Grid.Column="0" Grid.ColumnSpan="2" Visibility="{Binding ViewSmartRules}"/>
                 <views:CpuView Grid.Column="0" Visibility="{Binding ViewCpu}"/>
                 <views:HardwareView Grid.Column="0" Grid.ColumnSpan="2" Visibility="{Binding ViewHardwareMonitor}"/>
-                <views:SettingsView Grid.Column="0" Grid.ColumnSpan="2" Visibility="{Binding ViewSettings}"/>
+                <views:SettingsView Grid.Column="0" Grid.ColumnSpan="2" Visibility="{Binding ViewSettings}" x:Name="SettingsViewControl"/>
                 <views:DiagnosticsView Grid.Column="0" Grid.ColumnSpan="2" Visibility="{Binding ViewDiagnostics}"/>
 
                 <Border Grid.Column="1">
