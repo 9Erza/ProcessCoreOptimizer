@@ -114,8 +114,8 @@
     <system:String x:Key="StrWatcherTitle">Watcher status</system:String>
     <system:String x:Key="StrCaptureLive">Capture live settings</system:String>
     <system:String x:Key="StrDuplicateProfile">Duplicate</system:String>
-    <system:String x:Key="StrExportProfiles">Export...</system:String>
-    <system:String x:Key="StrImportProfiles">Import...</system:String>
+    <system:String x:Key="StrExportProfiles">Export</system:String>
+    <system:String x:Key="StrImportProfiles">Import</system:String>
     <system:String x:Key="StrColStatus">STATUS</system:String>
     <system:String x:Key="StrUnknown">Unknown</system:String>
     <system:String x:Key="StrApplyPreset">Apply</system:String>

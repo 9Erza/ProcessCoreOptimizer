@@ -125,8 +125,8 @@ namespace ProcessCoreOptimizer.WPF.Services
                 res["StrWatcherTitle"] = isPl ? "Status watchera" : "Watcher status";
                 res["StrCaptureLive"] = isPl ? "Przechwyć bieżące ustawienia" : "Capture live settings";
                 res["StrDuplicateProfile"] = isPl ? "Duplikuj" : "Duplicate";
-                res["StrExportProfiles"] = isPl ? "Eksportuj..." : "Export...";
-                res["StrImportProfiles"] = isPl ? "Importuj..." : "Import...";
+                res["StrExportProfiles"] = isPl ? "Eksport" : "Export";
+                res["StrImportProfiles"] = isPl ? "Import" : "Import";
                 res["StrColStatus"] = isPl ? "STATUS" : "STATUS";
                 res["StrUnknown"] = isPl ? "Nieznany" : "Unknown";
                 res["StrApplyPreset"] = isPl ? "Zastosuj" : "Apply";

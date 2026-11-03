@@ -107,14 +107,14 @@
                             </Style>
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Binding="{Binding RamUsageMB}" SortMemberPath="MemoryBytes" Width="72" >
+                    <DataGridTextColumn Binding="{Binding RamUsageMB}" SortMemberPath="MemoryBytes" Width="80" >
                         <DataGridTextColumn.HeaderTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{DynamicResource StrColRam}" />
                             </DataTemplate>
                         </DataGridTextColumn.HeaderTemplate>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Binding="{Binding CpuUsage}" SortMemberPath="CpuUsageValue" Width="70" >
+                    <DataGridTextColumn Binding="{Binding CpuUsage}" SortMemberPath="CpuUsageValue" Width="78" >
                         <DataGridTextColumn.HeaderTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{DynamicResource StrColCpu}" />
