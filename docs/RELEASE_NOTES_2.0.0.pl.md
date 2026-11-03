@@ -98,8 +98,8 @@ edycja profili/reguł po wyborze z pustymi stanami oraz Ustawienia w 8 kategoria
 - CI: restore → Release build → testy → `git diff --check`, zielone.
 - Artefakty lokalne: samowystarczalny jednoplikowy `ProcessCoreOptimizer.exe` 2.0.0
   oraz `installer/Output/ProcessCoreOptimizer_Setup_2.0.0.exe` (finalny build
-  main: 54 060 618 bajtów, SHA-256
-  `4EBFC85BFB12A4C4085DD657A9AD9ED47EF5DC681F2F7BA759C6B2DF70E1F52E`,
+  main: 54 066 298 bajtów, SHA-256
+  `8E1C8366FC40407163E2D33CCA24767BF3561CDD412AE9231D865BED8DAB0239`,
   PE 2.0.0; odtwarzalny przez `tools/Build-Installer.ps1`) — patrz
   `docs/INSTALLER.md` i `tools/Validate-Release.ps1` (8/8 kontroli zielonych).
 - Interaktywne screenshoty: prawdziwe UI 2.0 (7 widoków + przełącznik instancji

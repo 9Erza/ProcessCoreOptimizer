@@ -106,8 +106,8 @@ selection profiles/rules with empty states, and 8-category Settings.
 - CI: restore → Release build → tests → `git diff --check`, green.
 - Local artifacts: self-contained single-file `ProcessCoreOptimizer.exe` 2.0.0
   and `installer/Output/ProcessCoreOptimizer_Setup_2.0.0.exe` (final main
-  build: 54,060,618 bytes, SHA-256
-  `4EBFC85BFB12A4C4085DD657A9AD9ED47EF5DC681F2F7BA759C6B2DF70E1F52E`,
+  build: 54,066,298 bytes, SHA-256
+  `8E1C8366FC40407163E2D33CCA24767BF3561CDD412AE9231D865BED8DAB0239`,
   PE 2.0.0; reproducible via `tools/Build-Installer.ps1`) — see
   `docs/INSTALLER.md` and `tools/Validate-Release.ps1` (8/8 static checks green).
 - Interactive screenshots: real 2.0 UI (7 views + instances toggle + wizard
