@@ -282,33 +282,44 @@
             <Grid Grid.Row="1" Grid.Column="1" Margin="25,5,25,25">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="380"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
                 <views:ProcessesView Grid.Column="0" Visibility="{Binding ViewProcesses}"/>
                 <views:ProfilesView Grid.Column="0" Visibility="{Binding ViewProfiles}"/>
                 <views:SmartRulesView Grid.Column="0" Grid.ColumnSpan="2" Visibility="{Binding ViewSmartRules}"/>
-                <views:CpuView Grid.Column="0" Visibility="{Binding ViewCpu}"/>
+                <views:CpuView Grid.Column="0" Grid.ColumnSpan="2" Visibility="{Binding ViewCpu}"/>
                 <views:HardwareView Grid.Column="0" Grid.ColumnSpan="2" Visibility="{Binding ViewHardwareMonitor}"/>
                 <views:SettingsView Grid.Column="0" Grid.ColumnSpan="2" Visibility="{Binding ViewSettings}" x:Name="SettingsViewControl"/>
                 <views:DiagnosticsView Grid.Column="0" Grid.ColumnSpan="2" Visibility="{Binding ViewDiagnostics}"/>
 
-                <Border Grid.Column="1">
+                <!-- Contextual target panel: only with a live selection, never without a target.
+                     Narrow windows overlay it as a right-side drawer (IsNarrowLayout). -->
+                <Border Grid.Column="1" MaxWidth="400">
                     <Border.Style>
                         <Style TargetType="Border" BasedOn="{StaticResource PcoCard}">
-                            <Setter Property="Visibility" Value="Visible"/>
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Setter Property="Width" Value="380"/>
+                            <Setter Property="HorizontalAlignment" Value="Stretch"/>
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding ActiveTab}" Value="Hardware">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding ActiveTab}" Value="Settings">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding ActiveTab}" Value="Diagnostics">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding ActiveTab}" Value="Rules">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding ActiveTab}" Value="Processes"/>
+                                        <Condition Binding="{Binding HasProcessTarget}" Value="True"/>
+                                    </MultiDataTrigger.Conditions>
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </MultiDataTrigger>
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding ActiveTab}" Value="Profiles"/>
+                                        <Condition Binding="{Binding HasSavedProfileTarget}" Value="True"/>
+                                    </MultiDataTrigger.Conditions>
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </MultiDataTrigger>
+                                <DataTrigger Binding="{Binding IsNarrowLayout}" Value="True">
+                                    <Setter Property="Width" Value="340"/>
+                                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                                    <Setter Property="Panel.ZIndex" Value="5"/>
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
@@ -323,7 +334,19 @@
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
-                        <TextBlock Grid.Row="0" Text="{DynamicResource StrCpuCores}" Style="{StaticResource PcoTitle}"/>
+                        <Grid Grid.Row="0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="{Binding TargetPanelTitle, Mode=OneWay}" Style="{StaticResource PcoTitle}"/>
+                                <TextBlock Text="{Binding TargetScopeLabel, Mode=OneWay}" Foreground="{StaticResource PcoAccentBrush}" FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                            </StackPanel>
+                            <Button Grid.Column="1" Content="&#xE711;" Style="{StaticResource WindowBtnStyle}" Width="32" Height="32"
+                                    Command="{Binding CloseProcessTargetCommand}" ToolTip="{DynamicResource StrClosePanel}"
+                                    ap:AutomationProperties.Name="{DynamicResource StrClosePanel}" VerticalAlignment="Top"/>
+                        </Grid>
 
                         <UniformGrid Grid.Row="1" Columns="2" Rows="2" Margin="0,0,0,15">
                             <Button Content="{DynamicResource StrSelectAll}" Command="{Binding SelectAllCommand}" Style="{StaticResource SmallFilterButton}" Margin="0,0,5,5"/>
@@ -336,21 +359,12 @@
                             <ItemsControl ItemsSource="{Binding Cores}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <UniformGrid Columns="2"/>
+                                        <WrapPanel Orientation="Horizontal"/>
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border Margin="4" Padding="10" Background="{StaticResource PcoBg3Brush}" CornerRadius="6" BorderThickness="1" BorderBrush="{StaticResource PcoBorderSoftBrush}">
-                                            <Grid>
-                                                <Grid.RowDefinitions>
-                                                    <RowDefinition Height="Auto"/>
-                                                    <RowDefinition Height="Auto"/>
-                                                </Grid.RowDefinitions>
-                                                <CheckBox Grid.Row="0" IsChecked="{Binding IsChecked}" Content="{Binding DisplayName}"/>
-                                                <ProgressBar Grid.Row="1" Value="{Binding LoadUsage}" Maximum="100" Height="4" Margin="0,8,0,0" Foreground="{StaticResource PcoAccentBrush}" Background="#111" BorderThickness="0"/>
-                                            </Grid>
-                                        </Border>
+                                        <views:CoreTile TileLabel="{Binding DisplayName, Mode=OneWay}" IsTileChecked="{Binding IsChecked, Mode=TwoWay}" LoadUsage="{Binding LoadUsage, Mode=OneWay}"/>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
@@ -395,10 +409,6 @@
                         <StackPanel Grid.Row="4" Visibility="{Binding ViewProfiles}">
                             <Button Content="{DynamicResource StrUpdateProfile}" Command="{Binding UpdateProfileCommand}" Background="{StaticResource PcoOrangeBrush}" Margin="0,0,0,10" Style="{StaticResource StandardButton}"/>
                             <Button Content="{DynamicResource StrDeleteProfile}" Command="{Binding DeleteProfileCommand}" Background="{StaticResource PcoRedBrush}" Style="{StaticResource StandardButton}"/>
-                        </StackPanel>
-
-                        <StackPanel Grid.Row="4" Visibility="{Binding ViewCpu}">
-                            <Button Content="{DynamicResource StrSetAffinity}" Command="{Binding ApplySettingsCommand}" Background="{StaticResource PcoAccentBrush}" Style="{StaticResource StandardButton}"/>
                         </StackPanel>
                     </Grid>
                 </Border>

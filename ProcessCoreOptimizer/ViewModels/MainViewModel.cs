@@ -77,6 +77,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         private bool _isElevated;
 
         private bool _isRefreshing;
+        private bool _firstRefreshDone;
         private bool _disposed;
 
         private double _monCpuTemp;
@@ -170,8 +171,15 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         public SmartRule? SelectedRule
         {
             get => _selectedRule;
-            set => SetProperty(ref _selectedRule, value);
+            set
+            {
+                if (!SetProperty(ref _selectedRule, value)) return;
+                OnPropertyChanged(nameof(HasSelectedRule));
+            }
         }
+
+        public bool HasRules => Rules.Count > 0;
+        public bool HasSelectedRule => SelectedRule != null;
         private string _ruleStatusText = string.Empty;
 
         public string RuleStatusText
@@ -224,6 +232,14 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         public string ActivitySummary => ActionLogs.Count == 0
             ? (IsPolishLanguage ? "Brak aktywności." : "No activity yet.")
             : ActionLogs[ActionLogs.Count - 1];
+
+        private bool _processListLoading = true;
+        /// <summary>True until the first process scan populates the list (loading hint, no fake empty state).</summary>
+        public bool IsProcessListLoading
+        {
+            get => _processListLoading;
+            private set => SetProperty(ref _processListLoading, value);
+        }
 
         private bool _hasStartupConflict;
 
@@ -454,6 +470,10 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             set
             {
                 if (!SetProperty(ref _processViewMode, value)) return;
+                // Grouped <-> Instances switches the row identity space:
+                // drop the old selection so no stale target survives.
+                SelectedProcess = null;
+                SelectedInstanceRow = null;
                 OnPropertyChanged(nameof(IsInstanceView));
                 RebuildInstanceRows();
             }
@@ -480,6 +500,13 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                     SelectedProcessDetails = BuildProcessDetails(value.Name);
                     UpdateProfileWhy();
                 }
+                else
+                {
+                    SelectedProcessDetails = null;
+                    UpdateProfileWhy();
+                }
+                OnPropertyChanged(nameof(HasProcessTarget));
+                OnPropertyChanged(nameof(TargetScopeLabel));
             }
         }
 
@@ -499,12 +526,103 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             private set => SetProperty(ref _topologyLimitation, value);
         }
 
+        /// <summary>True when a live process/instance row is selected (right CPU panel may show).</summary>
+        public bool HasProcessTarget => SelectedProcess != null || SelectedInstanceRow != null;
+
+        /// <summary>Explicit mutation scope label: group with instance count or single PID.</summary>
+        public string TargetScopeLabel
+        {
+            get
+            {
+                if (SelectedInstanceRow != null)
+                {
+                    return IsPolishLanguage
+                        ? $"Instancja — PID {SelectedInstanceRow.ProcessId}"
+                        : $"Instance — PID {SelectedInstanceRow.ProcessId}";
+                }
+                if (SelectedProcess != null && SelectedProcessDetails != null)
+                {
+                    return IsPolishLanguage
+                        ? $"Grupa procesów — {SelectedProcessDetails.InstanceCount} instancji"
+                        : $"Process group — {SelectedProcessDetails.InstanceCount} instances";
+                }
+                if (SelectedSavedProfile != null)
+                {
+                    return IsPolishLanguage
+                        ? $"Profil: {SelectedSavedProfile.ProcessName}"
+                        : $"Profile: {SelectedSavedProfile.ProcessName}";
+                }
+                return string.Empty;
+            }
+        }
+
+        /// <summary>Right-panel header follows the target kind (process vs profile).</summary>
+        public string TargetPanelTitle => ActiveTab == "Profiles"
+            ? (IsPolishLanguage ? "Wybrany profil" : "Selected profile")
+            : (IsPolishLanguage ? "Wybrany proces" : "Selected process");
+
+        public ICommand CloseProcessTargetCommand { get; }
+
+        /// <summary>True when at least one saved profile exists.</summary>
+        public bool HasSavedProfiles => SavedProfiles.Count > 0;
+
+        /// <summary>True when a saved profile is selected (right CPU panel may show).</summary>
+        public bool HasSavedProfileTarget => SelectedSavedProfile != null;
+
+        public int LogicalProcessorCount => Cores.Count;
+        public int PhysicalCoreCount => Cores.Count(c => !c.IsThread);
+        public int SmtThreadCount => Cores.Count(c => c.IsThread);
+        public int PerformanceCoreCount => Cores.Count(c => !c.IsECore && !c.IsThread && !c.IsClassificationUnknown);
+        public int EfficiencyCoreCount => Cores.Count(c => c.IsECore);
+        public bool TopologyIsUnknown => Cores.Count > 0 && Cores.All(c => c.IsClassificationUnknown);
+        public string AffinityRangeText => Cores.Count == 0 ? "—" : $"0–{Cores.Count - 1}";
+
+        /// <summary>Preview-only preset selection for the informational CPU tab (never mutates).</summary>
+        public string? PreviewPresetId
+        {
+            get => _previewPresetId;
+            private set => SetProperty(ref _previewPresetId, value);
+        }
+        private string? _previewPresetId;
+
+        public System.Collections.Generic.IReadOnlyList<int> PreviewLogicalProcessors { get; private set; } = System.Array.Empty<int>();
+
+        public ICommand PreviewCorePresetCommand { get; private set; } = null!;
+
+        private bool _narrowLayout;
+        public bool IsNarrowLayout
+        {
+            get => _narrowLayout;
+            private set => SetProperty(ref _narrowLayout, value);
+        }
+
+        /// <summary>Called from the view on window resize (narrow = overlay drawer mode).</summary>
+        public void SetNarrowLayout(bool narrow) => IsNarrowLayout = narrow;
+
+        /// <summary>Active Settings category (pure navigation state, never persisted).</summary>
+        public string ActiveSettingsCategory
+        {
+            get => _activeSettingsCategory;
+            set => SetProperty(ref _activeSettingsCategory, string.IsNullOrWhiteSpace(value) ? "General" : value);
+        }
+        private string _activeSettingsCategory = "General";
+
         public ProcessItem? SelectedProcess
         {
             get => _selectedProcess;
             set
             {
-                if (!SetProperty(ref _selectedProcess, value) || value == null) return;
+                if (!SetProperty(ref _selectedProcess, value)) return;
+                if (value == null)
+                {
+                    // Stale target invalidated (process exited / row removed / user cleared):
+                    // never keep a mutation context without a live selection.
+                    SelectedProcessDetails = null;
+                    UpdateProfileWhy();
+                    OnPropertyChanged(nameof(HasProcessTarget));
+                    OnPropertyChanged(nameof(TargetScopeLabel));
+                    return;
+                }
                 _insightsSampler.Reset();
                 SelectedProcessDetails = BuildProcessDetails(value.Name);
                 UpdateProfileWhy();
@@ -525,6 +643,8 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 OnPropertyChanged(nameof(SelectedPriority));
                 SelectedOptimizationMode = OptimizationMode.Affinity;
                 UpdateCoreSelectionFromAffinity(value.Name);
+                OnPropertyChanged(nameof(HasProcessTarget));
+                OnPropertyChanged(nameof(TargetScopeLabel));
             }
         }
 
@@ -533,7 +653,16 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             get => _selectedSavedProfile;
             set
             {
-                if (!SetProperty(ref _selectedSavedProfile, value) || value == null) return;
+                if (!SetProperty(ref _selectedSavedProfile, value))
+                {
+                    OnPropertyChanged(nameof(HasSavedProfileTarget));
+                    return;
+                }
+                if (value == null)
+                {
+                    OnPropertyChanged(nameof(HasSavedProfileTarget));
+                    return;
+                }
 
                 value.Priority = NormalizePriority(value.Priority, allowRealtime: true);
                 string effectivePriority = NormalizePriority(value.Priority);
@@ -545,6 +674,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
 
                 SelectedOptimizationMode = value.OptimizationMode;
                 ApplyMaskToCoreSelection(value.AffinityMask);
+                OnPropertyChanged(nameof(HasSavedProfileTarget));
             }
         }
 
@@ -597,6 +727,11 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         }
 
         public string CpuVendor => _cachedCpuVendor ??= _hardwareService.GetCpuVendor();
+
+        private string? _cachedCpuModel;
+
+        /// <summary>CPU model for the informational overview (cached; Unknown when unreadable).</summary>
+        public string CpuModelText => _cachedCpuModel ??= _hardwareService.GetCpuModel();
 
         public string CpuVendorText
         {
@@ -743,6 +878,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         private void NavigateToAbout()
         {
             SwitchTab("Settings");
+            ActiveSettingsCategory = "About";
             AboutRequested?.Invoke(this, EventArgs.Empty);
         }
 
@@ -917,6 +1053,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
 
         public MainViewModel()
         {
+            Services.StartupProfiler.Mark("VM ctor start");
             bool hadSettings = _settingsService.HadExistingSettings();
             bool hadProfiles = File.Exists(AppPaths.GetUserDataFilePath("profiles.json"));
             _appSettings = _settingsService.LoadSettings();
@@ -950,7 +1087,25 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             {
                 Cores.Add(core);
             }
+            Services.StartupProfiler.Mark("VM ctor: WMI topology done");
             OnPropertyChanged(nameof(HasECores));
+            // Warm the CPU model name off the UI thread (WMI); UI updates when ready.
+            _ = System.Threading.Tasks.Task.Run(() =>
+            {
+                try
+                {
+                    var _ = CpuModelText;
+                    WpfApplication.Current?.Dispatcher.Invoke(() => OnPropertyChanged(nameof(CpuModelText)));
+                }
+                catch { }
+            });
+            OnPropertyChanged(nameof(LogicalProcessorCount));
+            OnPropertyChanged(nameof(PhysicalCoreCount));
+            OnPropertyChanged(nameof(SmtThreadCount));
+            OnPropertyChanged(nameof(PerformanceCoreCount));
+            OnPropertyChanged(nameof(EfficiencyCoreCount));
+            OnPropertyChanged(nameof(TopologyIsUnknown));
+            OnPropertyChanged(nameof(AffinityRangeText));
             RefreshCorePresets();
             RefreshTopologyLimitation();
 
@@ -967,8 +1122,15 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             };
             RefreshRecentOperations();
             LogProfileWatcherStartupSummary();
-            // Mini console: event-driven summary refresh, no timer.
+            Services.StartupProfiler.Mark("VM ctor: profiles+rules loaded");
+            // Event-driven UI flags (no timers).
             ActionLogs.CollectionChanged += (s, e) => OnPropertyChanged(nameof(ActivitySummary));
+            SavedProfiles.CollectionChanged += (s, e) => OnPropertyChanged(nameof(HasSavedProfiles));
+            Rules.CollectionChanged += (s, e) =>
+            {
+                OnPropertyChanged(nameof(HasRules));
+                if (SelectedRule != null && !Rules.Contains(SelectedRule)) SelectedRule = null;
+            };
 
             _hwTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(AppSettings.HardwareRefreshSeconds) };
             _hwTimer.Tick += (s, e) => UpdateHardwareMetrics();
@@ -977,6 +1139,11 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             _refreshTimer.Tick += async (s, e) => await RefreshStatisticsAsync();
 
             SwitchTabCommand = new RelayCommand(tab => SwitchTab(tab?.ToString()));
+            CloseProcessTargetCommand = new RelayCommand(_ =>
+            {
+                SelectedProcess = null;
+                SelectedInstanceRow = null;
+            });
             ApplySettingsCommand = new RelayCommand(_ => ApplyOptimization());
             SaveProfileCommand = new RelayCommand(_ => SaveCurrentAsProfile());
             UpdateProfileCommand = new RelayCommand(_ => UpdateSelectedProfile());
@@ -998,6 +1165,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             OpenSupportCommand = new RelayCommand(_ => OpenExternalLink(PcoExternalLink.Support));
             OpenAboutCommand = new RelayCommand(_ => NavigateToAbout());
             ApplyCorePresetCommand = new RelayCommand(preset => ApplyCorePreset(preset?.ToString()));
+            PreviewCorePresetCommand = new RelayCommand(preset => PreviewCorePreset(preset?.ToString()));
             DuplicateProfileCommand = new RelayCommand(_ => DuplicateSelectedProfile());
             ExportProfilesCommand = new RelayCommand(_ => ExportProfilesToFile());
             ImportProfilesCommand = new RelayCommand(_ => ImportProfilesFromFile());
@@ -1022,7 +1190,11 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
 
             _updateSession = new UpdateCheckSession(AppVersion);
             ApplyLanguage(_appSettings.Language);
+            Services.StartupProfiler.Mark("VM ctor end");
             _refreshTimer.Start();
+            // Kick the first scan immediately instead of waiting a full interval:
+            // the scan runs async and the list fills as soon as data is ready.
+            _ = RefreshStatisticsAsync();
             AddLog($"System initialized. App Version v{AppVersion}");
             if (AppSettings.CheckForUpdates && !ProcessCoreOptimizer.WPF.App.StartupOptions.DisableUpdateCheck)
             {
@@ -1042,10 +1214,14 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         {
             if (_isRefreshing || _disposed) return;
             _isRefreshing = true;
+            Services.StartupProfiler.Mark("refresh tick start");
 
             try
             {
-                bool fullUiScan = IsProcessListUiActive();
+                // The very first pass always takes a full UI scan so the list fills
+                // immediately even if the window is not visible yet (data only;
+                // charts still wait for a visible Processes tab).
+                bool fullUiScan = !_firstRefreshDone || IsProcessListUiActive();
                 _refreshTimer.Interval = TimeSpan.FromSeconds(fullUiScan ? AppSettings.ProcessListRefreshSeconds : AppSettings.ProfileWatcherSeconds);
 
                 if (!fullUiScan)
@@ -1086,7 +1262,9 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                     return;
                 }
 
+                Services.StartupProfiler.Mark("scan bg start");
                 ProcessScanResult scan = await _processScannerService.ScanUserProcessesAsync();
+                Services.StartupProfiler.Mark($"scan bg end groups={scan.Groups.Count}");
                 _optimizationService.CleanupStaleCache(scan.ActiveInstances);
                 CleanupOptimizationDiagnosticLogCache();
                 bool paused = AppSettings.AutomationPaused;
@@ -1098,11 +1276,16 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 _operationHistory.RecordBatch(uiBatch, "process list refresh");
                 LogOptimizationBatch(uiBatch, "process list refresh");
                 if (!paused) EvaluateAndApplyRules(scan.Groups, "process list refresh");
+                Services.StartupProfiler.Mark("engine+rules done");
 
-                UpdateCoreLoads();
+                _ = UpdateCoreLoadsAsync();
+                Services.StartupProfiler.Mark("core loads dispatched");
                 AddMissingProcessRows(scan.Groups);
+                Services.StartupProfiler.Mark("add-missing rows done");
                 UpdateProcessRows(scan.Groups);
+                Services.StartupProfiler.Mark($"update rows done procs={Processes.Count}");
                 _lastUiScan = scan;
+                if (IsProcessListLoading) IsProcessListLoading = false;
                 if (IsInstanceView) RebuildInstanceRows();
                 if (IsProcessListUiActive())
                     UpdateInsights(SelectedInstanceRow?.ProcessId ?? SelectedProcessDetails?.RepresentativePid);
@@ -1114,84 +1297,131 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             finally
             {
                 _isRefreshing = false;
+                _firstRefreshDone = true;
             }
         }
 
-        private void UpdateCoreLoads()
+        private async Task UpdateCoreLoadsAsync()
         {
-            var coreLoads = _hardwareService.GetCurrentLoads();
-            WpfApplication.Current.Dispatcher.Invoke(() =>
+            // First call warms up PDH counters (seconds): never on the UI thread.
+            try
             {
+                var coreLoads = await Task.Run(() => _hardwareService.GetCurrentLoads()).ConfigureAwait(true);
                 for (int i = 0; i < Cores.Count && i < coreLoads.Count; i++)
                 {
                     Cores[i].LoadUsage = coreLoads[i];
                 }
-            });
+            }
+            catch (Exception ex)
+            {
+                LoggerService.Instance.Debug($"Core loads update failed: {ex.Message}");
+            }
+            Services.StartupProfiler.Mark("core loads applied");
         }
 
         private void AddMissingProcessRows(IReadOnlyList<ProcessGroupSnapshot> groups)
         {
+            RefreshProcessRows(groups);
+        }
+
+        /// <summary>
+        /// Single Dispatcher hop per refresh: dictionary lookups instead of O(n^2)
+        /// scans, one deferred CollectionView refresh instead of per-change resorts.
+        /// Row objects are updated in place so selection survives valid refreshes.
+        /// </summary>
+        private void RefreshProcessRows(IReadOnlyList<ProcessGroupSnapshot> groups)
+        {
+            var byName = new Dictionary<string, ProcessGroupSnapshot>(groups.Count, StringComparer.OrdinalIgnoreCase);
+            foreach (var g in groups) byName[g.Name] = g;
+            var enabledProfiles = new Dictionary<string, ProcessProfile>(StringComparer.OrdinalIgnoreCase);
+            foreach (var p in _profiles)
+            {
+                if (p.IsEnabled && !enabledProfiles.ContainsKey(p.ProcessName)) enabledProfiles[p.ProcessName] = p;
+            }
+
             WpfApplication.Current.Dispatcher.Invoke(() =>
             {
-                foreach (var group in groups)
+                // Pause live re-sorting while rows mutate (restored below);
+                // the grid keeps the user's column arrows, just no per-change resort.
+                var view = System.Windows.Data.CollectionViewSource.GetDefaultView(Processes);
+                var sortBackup = view?.SortDescriptions.ToList();
+                view?.SortDescriptions.Clear();
+                try
                 {
-                    if (!MatchesProcessFilter(group.Name, group.ExecutablePath, isOptimized: _profiles.Any(x => x.IsEnabled && x.ProcessName.Equals(group.Name, StringComparison.OrdinalIgnoreCase)))) continue;
-                    if (Processes.Any(x => x.Name.Equals(group.Name, StringComparison.OrdinalIgnoreCase))) continue;
-
-                    var profile = _profiles.FirstOrDefault(x => x.IsEnabled && x.ProcessName.Equals(group.Name, StringComparison.OrdinalIgnoreCase));
-                    string rawPrio = profile?.Priority ?? group.Priority.ToString();
-                    string tag = profile != null ? GetModeTag(profile.OptimizationMode) : string.Empty;
-
-                    Processes.Add(new ProcessItem
+                    for (int i = Processes.Count - 1; i >= 0; i--)
                     {
-                        Id = group.FirstProcessId,
-                        Name = group.Name,
-                        ExecutablePath = group.ExecutablePath,
-                        PriorityRank = PriorityService.Rank(profile?.Priority ?? group.Priority.ToString()),
-                        InstanceCount = group.InstanceCount,
-                        Priority = TranslatePriority(rawPrio),
-                        IsOptimized = profile != null,
-                        ModeTag = tag,
-                        RamUsageMB = $"{group.TotalMemoryBytes / 1024 / 1024} MB",
-                        CpuUsage = $"{Math.Round(group.CpuUsagePercent, 1)}%",
-                        CpuUsageValue = group.CpuUsagePercent,
-                        MemoryBytes = group.TotalMemoryBytes
-                    });
+                        var item = Processes[i];
+                        if (!byName.TryGetValue(item.Name, out var snapshot) ||
+                            !MatchesProcessFilter(item.Name, item.ExecutablePath, item.IsOptimized))
+                        {
+                            Processes.RemoveAt(i);
+                            continue;
+                        }
+
+                        ApplySnapshotToRow(item, snapshot, enabledProfiles);
+                    }
+
+                    var existingNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    foreach (var existing in Processes) existingNames.Add(existing.Name);
+
+                    foreach (var group in groups)
+                    {
+                        bool isOptimized = enabledProfiles.ContainsKey(group.Name);
+                        if (!MatchesProcessFilter(group.Name, group.ExecutablePath, isOptimized: isOptimized)) continue;
+                        if (existingNames.Contains(group.Name)) continue;
+
+                        enabledProfiles.TryGetValue(group.Name, out var profile);
+                        string rawPrio = profile?.Priority ?? group.Priority.ToString();
+                        string tag = profile != null ? GetModeTag(profile.OptimizationMode) : string.Empty;
+
+                        Processes.Add(new ProcessItem
+                        {
+                            Id = group.FirstProcessId,
+                            Name = group.Name,
+                            ExecutablePath = group.ExecutablePath,
+                            PriorityRank = PriorityService.Rank(profile?.Priority ?? group.Priority.ToString()),
+                            InstanceCount = group.InstanceCount,
+                            Priority = TranslatePriority(rawPrio),
+                            IsOptimized = profile != null,
+                            ModeTag = tag,
+                            RamUsageMB = $"{group.TotalMemoryBytes / 1024 / 1024} MB",
+                            CpuUsage = $"{Math.Round(group.CpuUsagePercent, 1)}%",
+                            CpuUsageValue = group.CpuUsagePercent,
+                            MemoryBytes = group.TotalMemoryBytes
+                        });
+                    }
+                }
+                finally
+                {
+                    if (view != null && sortBackup != null)
+                    {
+                        foreach (var sort in sortBackup) view.SortDescriptions.Add(sort);
+                    }
                 }
             });
         }
 
+        private void ApplySnapshotToRow(ProcessItem item, ProcessGroupSnapshot snapshot, Dictionary<string, ProcessProfile> enabledProfiles)
+        {
+            enabledProfiles.TryGetValue(item.Name, out var profile);
+            string currentTag = profile != null ? GetModeTag(profile.OptimizationMode) : string.Empty;
+
+            item.Id = snapshot.FirstProcessId;
+            item.InstanceCount = snapshot.InstanceCount;
+            item.RamUsageMB = $"{snapshot.TotalMemoryBytes / 1024 / 1024} MB";
+            item.CpuUsage = $"{Math.Round(snapshot.CpuUsagePercent, 1)}%";
+            item.CpuUsageValue = snapshot.CpuUsagePercent;
+            item.MemoryBytes = snapshot.TotalMemoryBytes;
+            item.ExecutablePath = snapshot.ExecutablePath;
+            item.PriorityRank = PriorityService.Rank(profile?.Priority ?? snapshot.Priority.ToString());
+            item.Priority = TranslatePriority(profile?.Priority ?? snapshot.Priority.ToString());
+            item.IsOptimized = profile != null;
+            item.ModeTag = currentTag;
+        }
+
         private void UpdateProcessRows(IReadOnlyList<ProcessGroupSnapshot> groups)
         {
-            WpfApplication.Current.Dispatcher.Invoke(() =>
-            {
-                for (int i = Processes.Count - 1; i >= 0; i--)
-                {
-                    var item = Processes[i];
-                    var snapshot = groups.FirstOrDefault(p => p.Name.Equals(item.Name, StringComparison.OrdinalIgnoreCase));
-
-                    if (snapshot == null)
-                    {
-                        Processes.RemoveAt(i);
-                        continue;
-                    }
-
-                    var profile = _profiles.FirstOrDefault(x => x.IsEnabled && x.ProcessName.Equals(item.Name, StringComparison.OrdinalIgnoreCase));
-                    string currentTag = profile != null ? GetModeTag(profile.OptimizationMode) : string.Empty;
-
-                    item.Id = snapshot.FirstProcessId;
-                    item.InstanceCount = snapshot.InstanceCount;
-                    item.RamUsageMB = $"{snapshot.TotalMemoryBytes / 1024 / 1024} MB";
-                    item.CpuUsage = $"{Math.Round(snapshot.CpuUsagePercent, 1)}%";
-                    item.CpuUsageValue = snapshot.CpuUsagePercent;
-                    item.MemoryBytes = snapshot.TotalMemoryBytes;
-                    item.ExecutablePath = snapshot.ExecutablePath;
-                    item.PriorityRank = PriorityService.Rank(profile?.Priority ?? snapshot.Priority.ToString());
-                    item.Priority = TranslatePriority(profile?.Priority ?? snapshot.Priority.ToString());
-                    item.IsOptimized = profile != null;
-                    item.ModeTag = currentTag;
-                }
-            });
+            RefreshProcessRows(groups);
         }
 
         private void UpdateHardwareMetrics()
@@ -1273,6 +1503,8 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             if (string.IsNullOrEmpty(tabName)) return;
 
             ActiveTab = tabName;
+            OnPropertyChanged(nameof(TargetPanelTitle));
+            OnPropertyChanged(nameof(TargetScopeLabel));
             ViewProcesses = tabName == "Processes" ? Visibility.Visible : Visibility.Collapsed;
             ViewProfiles = tabName == "Profiles" ? Visibility.Visible : Visibility.Collapsed;
             ViewCpu = tabName == "Cpu" ? Visibility.Visible : Visibility.Collapsed;
@@ -1283,6 +1515,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             OnPropertyChanged(nameof(IsRightPanelVisible));
 
             SelectedProcess = null;
+            SelectedInstanceRow = null;
             SelectedSavedProfile = null;
             SelectedRule = null;
 
@@ -1901,6 +2134,50 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             }
 
             AddLog($"Core preset '{preset.DisplayName}' applied: {wanted.Count} logical processor(s) selected.");
+        }
+
+        /// <summary>
+        /// Informational-tab preset preview: highlights logical processors and logs
+        /// the range. Never touches the editor working selection (Cores[].IsChecked)
+        /// and never mutates the OS. Clicking the active preview again clears it.
+        /// </summary>
+        private void PreviewCorePreset(string? presetId)
+        {
+            if (string.IsNullOrWhiteSpace(presetId)) return;
+            if (PreviewPresetId == presetId)
+            {
+                PreviewPresetId = null;
+                PreviewLogicalProcessors = System.Array.Empty<int>();
+                OnPropertyChanged(nameof(PreviewLogicalProcessors));
+                OnPropertyChanged(nameof(PreviewPresetSummary));
+                return;
+            }
+
+            var preset = CorePresets.FirstOrDefault(p => p.Id == presetId);
+            if (preset == null || !preset.IsAvailable)
+            {
+                AddLog($"Core preset '{presetId}' is not available on this CPU.");
+                return;
+            }
+
+            PreviewPresetId = presetId;
+            PreviewLogicalProcessors = preset.LogicalProcessors.ToList();
+            OnPropertyChanged(nameof(PreviewLogicalProcessors));
+            OnPropertyChanged(nameof(PreviewPresetSummary));
+            AddLog($"Preset preview '{preset.DisplayName}': {PreviewLogicalProcessors.Count} logical processor(s) highlighted (no changes applied).");
+        }
+
+        public string PreviewPresetSummary
+        {
+            get
+            {
+                if (PreviewPresetId == null) return string.Empty;
+                var preset = CorePresets.FirstOrDefault(p => p.Id == PreviewPresetId);
+                if (preset == null) return string.Empty;
+                return IsPolishLanguage
+                    ? $"Podgląd: {preset.DisplayName} — {PreviewLogicalProcessors.Count} procesorów"
+                    : $"Preview: {preset.DisplayName} — {PreviewLogicalProcessors.Count} processors";
+            }
         }
 
         private void DuplicateSelectedProfile()
@@ -2839,6 +3116,9 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             _localizationService.ApplyLanguage(langCode);
             OnPropertyChanged(nameof(ActivitySummary));
             OnPropertyChanged(nameof(ActivityStatus));
+            OnPropertyChanged(nameof(TargetScopeLabel));
+            OnPropertyChanged(nameof(TargetPanelTitle));
+            OnPropertyChanged(nameof(PreviewPresetSummary));
             OnPropertyChanged(nameof(UpdateStatusText));
             RefreshAvailablePriorities();
             RefreshDisplayedPriorities();

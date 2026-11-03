@@ -24,13 +24,17 @@ tylko gdy poprawne dla maszyny), wykrywanie wielu grup z jawnym limitem
 grupy 0, ścieżki EXE w snapshotach, szczegóły procesów (PID, czas startu,
 ścieżka, źródło affinity, ostatni status) oraz filtry procesów i profili.
 
-**Pulpit 2.0** — tokeny projektu (`Themes/`), sześć widoków
-(Processes, CPU & Topology, Profiles, Hardware, Settings, Diagnostics),
+**Pulpit 2.0** — tokeny projektu (`Themes/`), siedem widoków
+(Processes, CPU & Topology, Profiles, Smart Rules, Hardware, Settings, Diagnostics),
 przywracanie ustawień sprzed optymalizacji (tylko zweryfikowana tożsamość),
 aktualizator świadomy wydań (bez fałszywych powiadomień przed publikacją),
 rejestracja autostartu tylko przy zmianie ustawień startu oraz zwijany
 Developer Hub w sidebarze (karta wersji + oficjalne linki + nawigacja
 do About w aplikacji, pełne PL/EN).
+Kontekstowy Process Explorer (panel CPU tylko z żywym targetem, jawne etykiety
+zakresu, zamknięcie czyści target), informacyjne centrum CPU & Topology
+(read-only kafelki, podglądy presetów, wyjaśnienie Affinity vs CPU Sets),
+edycja profili/reguł po wyborze z pustymi stanami oraz Ustawienia w 8 kategoriach.
 
 ## Zgodność
 
@@ -43,7 +47,7 @@ do About w aplikacji, pełne PL/EN).
 ## Weryfikacja
 
 - Release build: 0 ostrzeżeń, 0 błędów.
-- Testy: 258 przypadków MSTest — 255 zielonych, 3 integracyjne testy prawdziwego
+- Testy: 268 przypadków MSTest — 265 zielonych, 3 integracyjne testy prawdziwego
   startupu pominięte bez `PCO_REAL_STARTUP_TESTS=1`
   (fałszywy backend, read-only, negatywne testy tożsamości P0, macierz restore/
   suspension CPU Sets, planner/koordynator/backend startupu, bezpieczeństwo
@@ -58,7 +62,7 @@ do About w aplikacji, pełne PL/EN).
 - Architektura startup: plan → wykonaj → zweryfikuj z kolejnością
   create-before-delete; ścieżki anulowania UAC i nieudanego tworzenia
   udowodnione testami.
-- GUI: 21/21 kontroli UI Automation na Windows 11 (1920×1080, 100% DPI):
+- GUI: 24/24 kontroli UI Automation na Windows 11 (1920×1080, 100% DPI):
   siedem widoków (w tym Smart Rules) prawdziwymi kliknięciami, przełącznik
   widoku instancji, mini konsola aktywności, smukły scrollbar, zwarty pusty
   stan sprzętu, maximize/minimize/restore, close świadomy tray, tekst statusu
@@ -84,6 +88,11 @@ do About w aplikacji, pełne PL/EN).
   start 1,5–1,6 s; idle 60 s ≈ 190 MB WS / 90 MB Private / 0,55% CPU /
   ~786 uchwytów / 23 wątki; 100 syntetycznych profili ≈ brak delty CPU, +2 MB WS;
   monitor HW ON ≈ +14 MB WS, +60 uchwytów; zminimalizowany ≈ 0,27% CPU.
+  Start zmierzony ponownie po remediacji (ta sama maszyna, 3× `--safe-mode`):
+  pierwszy paint ~1,3–1,7 s, pierwsza lista procesów ~1,3 s (było ~7,5 s
+  z 4,6 s rozgrzewką PDH na wątku UI); brak stallu UI poza jednorazowym ~400 ms
+  budowaniem XAML; tick odświeżania bez zmian (~35–70 ms skan+mapowanie
+  przy 34 grupach).
   Harness: `tools/Measure-Performance.ps1`, `tools/Measure-Cpu.ps1`;
   surowe CSV w ignorowanym `.evidence/perf`.
 - CI: restore → Release build → testy → `git diff --check`, zielone.

@@ -195,6 +195,160 @@ try {
         Start-Sleep -Milliseconds 800
     }
 
+    Check "process scope UX: no target, select, close, mode switch" {
+        # No selection -> no CPU editor anywhere.
+        $window = Get-Window "Process Core Optimizer" 10
+        if (!$window) { throw "Main window lost before scope check." }
+        foreach ($candidate in @("System Processes", "Procesy Systemowe")) {
+            try { Click-Button $window $candidate; break } catch { }
+        }
+        Start-Sleep -Milliseconds 800
+        $applyBtn = $null
+        try {
+            $applyBtn = $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants,
+                (New-Object System.Windows.Automation.PropertyCondition(
+                    [System.Windows.Automation.AutomationElement]::NameProperty, "Apply Optimization")))
+        } catch { }
+        if ($applyBtn) { throw "Apply Optimization visible with no process selected." }
+
+        # Select the first process row via SelectionItemPattern; verify explicit scope + editor.
+        $scoped = $false
+        foreach ($it in $window.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+            (New-Object System.Windows.Automation.PropertyCondition(
+                [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+                [System.Windows.Automation.ControlType]::DataItem)))) {
+            try {
+                $it.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select()
+                Start-Sleep -Milliseconds 900
+                $scoped = $true
+                break
+            } catch { }
+        }
+        if (!$scoped) { throw "No selectable process row found." }
+        Start-Sleep -Milliseconds 500
+        $scopeOk = $false
+        foreach ($t in $window.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+            (New-Object System.Windows.Automation.PropertyCondition(
+                [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+                [System.Windows.Automation.ControlType]::Text)))) {
+            try { if ($t.Current.Name -like "Process group *" -or $t.Current.Name -like "Instance *") { $scopeOk = $true; break } } catch { }
+        }
+        if (!$scopeOk) { throw "No explicit scope label after selecting a process." }
+        Save-Shot "29-scope-selected.png" $window
+        $applyBtn = $null
+        try {
+            $applyBtn = $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants,
+                (New-Object System.Windows.Automation.PropertyCondition(
+                    [System.Windows.Automation.AutomationElement]::NameProperty, "Apply Optimization")))
+        } catch { }
+        if (!$applyBtn) { throw "Apply Optimization missing after selecting a process." }
+
+        # Close panel -> editor gone, no mutation possible.
+        Click-Button $window "Close panel"
+        Start-Sleep -Milliseconds 800
+        $applyBtn = $null
+        try {
+            $applyBtn = $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants,
+                (New-Object System.Windows.Automation.PropertyCondition(
+                    [System.Windows.Automation.AutomationElement]::NameProperty, "Apply Optimization")))
+        } catch { }
+        if ($applyBtn) { throw "CPU editor still visible after closing the target panel." }
+
+        # Grouped -> Instances clears stale selection.
+        foreach ($candidate in @("Instances", "Instancje")) {
+            try {
+                $cb = $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants,
+                    (New-Object System.Windows.Automation.PropertyCondition(
+                        [System.Windows.Automation.AutomationElement]::NameProperty, $candidate)))
+                if ($cb -ne $null) {
+                    $cb.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern).Toggle()
+                    Start-Sleep -Milliseconds 900
+                    break
+                }
+            } catch { }
+        }
+        $applyBtn = $null
+        try {
+            $applyBtn = $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants,
+                (New-Object System.Windows.Automation.PropertyCondition(
+                    [System.Windows.Automation.AutomationElement]::NameProperty, "Apply Optimization")))
+        } catch { }
+        if ($applyBtn) { throw "Stale target survived the Grouped/Instances switch." }
+        foreach ($candidate in @("Instances", "Instancje")) {
+            try {
+                $cb = $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants,
+                    (New-Object System.Windows.Automation.PropertyCondition(
+                        [System.Windows.Automation.AutomationElement]::NameProperty, $candidate)))
+                if ($cb -ne $null) {
+                    $cb.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern).Toggle()
+                    Start-Sleep -Milliseconds 900
+                    break
+                }
+            } catch { }
+        }
+    }
+
+    Check "cpu tab has no apply without target" {
+        $window = Get-Window "Process Core Optimizer" 10
+        if (!$window) { throw "Main window lost before CPU check." }
+        foreach ($candidate in @("CPU & Topology", "CPU i topologia")) {
+            try { Click-Button $window $candidate; break } catch { }
+        }
+        Start-Sleep -Milliseconds 900
+        $applyBtn = $null
+        try {
+            $applyBtn = $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants,
+                (New-Object System.Windows.Automation.PropertyCondition(
+                    [System.Windows.Automation.AutomationElement]::NameProperty, "Apply Optimization")))
+        } catch { }
+        if ($applyBtn) { throw "CPU tab must not offer Apply Optimization without a target." }
+        $preview = $null
+        try {
+            $preview = $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants,
+                (New-Object System.Windows.Automation.PropertyCondition(
+                    [System.Windows.Automation.AutomationElement]::NameProperty, "Preview")))
+        } catch { }
+        if (!$preview) { throw "Preset Preview button not found on CPU tab." }
+        Save-Shot "30-cpu-readonly.png" $window
+    }
+
+    Check "settings categories navigate without side effects" {
+        function Select-SettingsCategory($scope, $name) {
+            $it = $scope.FindFirst([System.Windows.Automation.TreeScope]::Descendants,
+                (New-Object System.Windows.Automation.PropertyCondition(
+                    [System.Windows.Automation.AutomationElement]::NameProperty, $name)))
+            if (!$it) { throw "Settings category $name not found." }
+            $it.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select()
+            Start-Sleep -Milliseconds 800
+        }
+        $window = Get-Window "Process Core Optimizer" 10
+        if (!$window) { throw "Main window lost before settings check." }
+        foreach ($candidate in @("Settings", "Ustawienia")) {
+            try { Click-Button $window $candidate; break } catch { }
+        }
+        Start-Sleep -Milliseconds 800
+        Select-SettingsCategory $window "Updates"
+        Start-Sleep -Milliseconds 700
+        $chk = $null
+        try {
+            $chk = $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants,
+                (New-Object System.Windows.Automation.PropertyCondition(
+                    [System.Windows.Automation.AutomationElement]::NameProperty, "Check for updates")))
+        } catch { }
+        if (!$chk) { throw "Updates category did not show the manual check." }
+        Save-Shot "31-settings-updates.png" $window
+        Select-SettingsCategory $window "About"
+        Start-Sleep -Milliseconds 700
+        $about = $null
+        try {
+            $about = $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants,
+                (New-Object System.Windows.Automation.PropertyCondition(
+                    [System.Windows.Automation.AutomationElement]::NameProperty, "DobryPC.pl")))
+        } catch { }
+        if (!$about) { throw "About category did not show official links." }
+        Save-Shot "32-settings-about.png" $window
+    }
+
     Check "maximize/restore" {
         $wp = $window.GetCurrentPattern([System.Windows.Automation.WindowPattern]::Pattern)
         $wp.SetWindowVisualState([System.Windows.Automation.WindowVisualState]::Maximized)
@@ -275,6 +429,20 @@ try {
         # Re-fetch: the language toggle re-renders resources and stale elements return nothing.
         $window = Get-Window "Process Core Optimizer" 10
         if (!$window) { throw "Main window lost." }
+        # Category navigation: startup status lives in the Startup category now.
+        foreach ($scat in @("Startup & Privileges", "Uruchamianie i uprawnienia")) {
+            try {
+                $sitem = $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants,
+                    (New-Object System.Windows.Automation.PropertyCondition(
+                        [System.Windows.Automation.AutomationElement]::NameProperty, $scat)))
+                if ($sitem -ne $null) {
+                    $sitem.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select()
+                    Start-Sleep -Milliseconds 800
+                    $window = Get-Window "Process Core Optimizer" 10
+                    break
+                }
+            } catch { }
+        }
         # Status text is rendered in Settings; find any realized status line
         # ("Startup: ..." / "Autostart: ..."). Planner log lines only appear on apply.
         $texts = $window.FindAll([System.Windows.Automation.TreeScope]::Descendants,
@@ -303,6 +471,21 @@ try {
     }
 
     Check "about links present with automation names" {
+        # About links live in the About category now; navigate first (Settings tab assumed).
+        foreach ($acat in @("About", "O programie")) {
+            try {
+                $aitem = $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants,
+                    (New-Object System.Windows.Automation.PropertyCondition(
+                        [System.Windows.Automation.AutomationElement]::NameProperty, $acat)))
+                if ($aitem -ne $null) {
+                    $aitem.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select()
+                    Start-Sleep -Milliseconds 800
+                    $window = Get-Window "Process Core Optimizer" 10
+                    if (!$window) { throw "Main window lost before about check." }
+                    break
+                }
+            } catch { }
+        }
         # Focus the settings scroll area first (a plain click), otherwise keys go elsewhere.
         $r = $window.Current.BoundingRectangle
         [PcoMouse]::Click([int]($r.X + 600), [int]($r.Y + 400))

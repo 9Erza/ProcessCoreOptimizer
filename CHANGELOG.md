@@ -97,8 +97,8 @@ refined for daily use.
   caches, throttled logging.
 - External links (repository, author, website, support) are allowlisted, open only on
   user click, with no tracking and no network requests by the app itself.
-- 240 automated tests (237 passing + 3 environment-gated), UI Automation GUI suite
-  21/21, installer validation 8/8.
+- 268 automated tests (265 passing + 3 environment-gated), UI Automation GUI suite
+  24/24, installer validation 8/8.
 
 ### Performance
 
@@ -140,6 +140,16 @@ refined for daily use.
   are refused with a reason. Compatibility with online games is not guaranteed.
 - Install / upgrade / uninstall on a spare machine is documented but was not run
   by automation; the manual acceptance procedure in `docs/INSTALLER.md` applies.
+
+### Startup responsiveness & context-aware UI (final)
+- Measured root cause of first-launch jank (3× runs, `PCO_STARTUP_PROFILE=1`, reference i5-10210U/8LP machine): the first PDH counter warmup (~4.6 s) ran on the UI thread inside the first refresh tick; time-to-first-list ~7.5 s with a frozen window.
+- Fix: counter warmup moved off the UI thread (thread-safe init/read/release), immediate first scan instead of waiting a full interval, single Dispatcher hop per refresh with name/profile dictionaries (no O(n²) scans) and paused CollectionView re-sorting during row mutation (no `DeferRefresh` around mutations).
+- Result on the same machine: first paint ~1.3–1.7 s, first process list ~1.3 s (was ~7.5 s), no UI stall beyond a ~400 ms one-time XAML build. Event-driven mini console (no timers), full history stays in Diagnostics.
+- Process Explorer is now context-aware: full-width list with a select-process hint and loading state when nothing is selected; the right CPU panel appears only with a live process/instance or profile target (overlay drawer under 1130 DIP); the header shows the explicit scope (Process group — N instances / Instance — PID / Profile: name); close clears the target without any mutation; switching Grouped/Instances or tabs drops stale selections; exited processes invalidate the details panel.
+- CPU & Topology is an informational hub, not a second editor: processor overview (vendor, logical/physical/SMT/P-E counts, affinity range), legend for `[P]`/`[T]`/`[E]`/`[?]` tags, read-only compact Core Tiles in a wrapping grid, presets as non-mutating previews with highlight and summary, Affinity vs CPU Sets explainer; the duplicate no-target Apply editor was removed.
+- Saved Profiles: empty state (Create/Import only), select hint, selection-gated Edit row; Smart Rules: empty state, selection-gated actions.
+- Settings: 8-category navigation (General / Startup / Optimization / Hardware / Diagnostics / Updates / Data / About) with a single active panel; factory reset stays an explicit typed-RESET danger zone; category switches persist nothing; About deep link (Developer Hub → Settings → About) preserved.
+- Save semantics unchanged and explicit: Save/Update Profile persist and apply to running processes (logged per action); Profile Studio Save persists only.
 
 ## Previous releases
 

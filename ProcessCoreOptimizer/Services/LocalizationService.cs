@@ -26,6 +26,20 @@ namespace ProcessCoreOptimizer.WPF.Services
                 res["StrSettings"] = isPl ? "Ustawienia" : "Settings";
                 res["StrConsoleLog"] = isPl ? "LOGI KONSOLI" : "CONSOLE LOG";
                 res["StrActivity"] = isPl ? "Aktywność" : "Activity";
+                res["StrSelectProcessHint"] = isPl ? "Wybierz proces, aby zobaczyć szczegóły i dostępne działania." : "Select a process to view details and available actions.";
+                res["StrSelectedProcess"] = isPl ? "Wybrany proces" : "Selected process";
+                res["StrInitialLoading"] = isPl ? "Ładowanie procesów…" : "Loading processes…";
+                res["StrClosePanel"] = isPl ? "Zamknij panel" : "Close panel";
+                res["StrNoProfilesTitle"] = isPl ? "Brak zapisanych profili" : "No saved profiles yet";
+                res["StrNoProfilesBody"] = isPl ? "Utwórz profil, aby automatycznie stosować ustawienia CPU i priorytetu przy starcie aplikacji." : "Create a profile to automatically apply CPU and priority settings when an application starts.";
+                res["StrSelectProfileHint"] = isPl ? "Wybierz profil, aby zobaczyć szczegóły i go edytować." : "Select a profile to view and edit its configuration.";
+                res["StrNoRulesTitle"] = isPl ? "Brak reguł" : "No rules yet";
+                res["StrNoRulesBody"] = isPl ? "Reguły stosują profil, gdy proces startuje lub trafia na pierwszy plan. Utwórz pierwszą regułę, aby zautomatyzować optymalizację." : "Rules apply a profile when a process launches or comes to the foreground. Create your first rule to automate optimization.";
+                res["StrProcessorOverview"] = isPl ? "Przegląd procesora" : "Processor overview";
+                res["StrCoreTopology"] = isPl ? "Topologia rdzeni" : "Core topology";
+                res["StrTopologyLegend"] = isPl ? "[P] wątek główny · [T] wątek SMT · [E] rdzeń efficiency · [?] nieznany" : "[P] primary thread · [T] SMT sibling · [E] efficiency core · [?] unknown";
+                res["StrAffinityExplained"] = isPl ? "Affinity to twarde ograniczenie: proces może działać tylko na wybranych procesorach logicznych." : "Affinity is a hard limit: the process may run only on the selected logical processors.";
+                res["StrCpuSetsExplained"] = isPl ? "CPU Sets to preferencja: Windows preferuje wybrane procesory, ale może szeregować gdzie indziej. Żaden FPS nie jest gwarantowany." : "CPU Sets are a preference: Windows prefers the selected processors but may schedule elsewhere. No FPS is guaranteed.";
                 res["StrProcessList"] = isPl ? "Lista Procesów" : "Process List";
                 res["StrYourProfiles"] = isPl ? "Twoje Profile" : "Your Profiles";
                 res["StrCpuUsage"] = isPl ? "UŻYCIE CPU" : "CPU USAGE";
@@ -43,6 +57,7 @@ namespace ProcessCoreOptimizer.WPF.Services
                 res["StrMinToTray"] = isPl ? "Minimalizuj do zasobnika" : "Minimize to Tray";
                 res["StrCloseToTray"] = isPl ? "Zamykaj do zasobnika" : "Close to Tray";
                 res["StrSetGroupGeneral"] = isPl ? "Ogólne" : "General";
+                res["StrSetGroupOptimization"] = isPl ? "Optymalizacja" : "Optimization";
                 res["StrSetGroupStartup"] = isPl ? "Uruchamianie i uprawnienia" : "Startup & Privileges";
                 res["StrSetGroupMonitoring"] = isPl ? "Monitorowanie procesów" : "Process Monitoring";
                 res["StrSetGroupHardware"] = isPl ? "Monitor sprzętu" : "Hardware Monitoring";
@@ -89,6 +104,7 @@ namespace ProcessCoreOptimizer.WPF.Services
                 res["StrCheckUpdates"] = isPl ? "Sprawdzaj aktualizacje przy starcie" : "Check for updates on startup";
                 res["StrCheckUpdatesNow"] = isPl ? "Sprawdź aktualizacje" : "Check for updates";
                 res["StrSetGroupGeneral"] = isPl ? "Ogólne" : "General";
+                res["StrSetGroupOptimization"] = isPl ? "Optymalizacja" : "Optimization";
                 res["StrCpuCores"] = isPl ? "Rdzenie CPU" : "CPU Cores";
                 res["StrSelectAll"] = isPl ? "Zaznacz Wszystko" : "Select All";
                 res["StrClearAll"] = isPl ? "Odznacz Wszystko" : "Clear All";
@@ -122,6 +138,7 @@ namespace ProcessCoreOptimizer.WPF.Services
                 res["StrProcessDetails"] = isPl ? "Szczegóły procesu" : "Process details";
                 res["StrNoSelection"] = isPl ? "Wybierz proces lub profil, aby zobaczyć szczegóły." : "Select a process or profile to see details.";
                 res["StrCorePresets"] = isPl ? "Presety rdzeni" : "Core presets";
+                res["StrPreviewPreset"] = isPl ? "Podgląd" : "Preview";
                 res["StrTopologyNote"] = isPl ? "Uwaga o topologii" : "Topology note";
                 res["StrConflictsTitle"] = isPl ? "Konflikty profili" : "Profile conflicts";
                 res["StrNoConflicts"] = isPl ? "Brak konfliktów. Kolejność: path-bound, potem najnowszy." : "No conflicts. Precedence: path-bound, then newest.";

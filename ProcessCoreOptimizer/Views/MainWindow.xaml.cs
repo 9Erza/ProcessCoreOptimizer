@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using ProcessCoreOptimizer.WPF.Logging;
@@ -27,8 +28,11 @@ namespace ProcessCoreOptimizer.WPF.Views
 
         public MainWindow()
         {
+            Services.StartupProfiler.Mark("MainWindow ctor start");
             InitializeComponent();
+            Services.StartupProfiler.Mark("MainWindow InitializeComponent done");
             _viewModel = new MainViewModel();
+            Services.StartupProfiler.Mark("MainWindow VM created");
             this.DataContext = _viewModel;
             _viewModel.AboutRequested += (s, e) =>
             {
@@ -48,6 +52,8 @@ namespace ProcessCoreOptimizer.WPF.Views
             // the sidebar mini console shows only the latest message.
 
             this.Loaded += MainWindow_Loaded;
+            this.Loaded += (s, e) => Services.StartupProfiler.Mark("MainWindow Loaded");
+            this.SizeChanged += (s, e) => _viewModel.SetNarrowLayout(ActualWidth < 1130);
             this.ContentRendered += MainWindow_ContentRendered;
         }
 
@@ -198,6 +204,19 @@ namespace ProcessCoreOptimizer.WPF.Views
 
         private void MainWindow_ContentRendered(object? sender, EventArgs e)
         {
+            Services.StartupProfiler.Mark("MainWindow ContentRendered (first paint)");
+            if (Services.StartupProfiler.IsEnabled)
+            {
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await Task.Delay(12000);
+                        Services.StartupProfiler.Dump("t+12s");
+                    }
+                    catch { }
+                });
+            }
             LoggerService.Instance.Info($"First-run check: NeedsWizard={_viewModel.NeedsFirstRunWizard}.");
             if (!_viewModel.NeedsFirstRunWizard) return;
             try
@@ -264,6 +283,7 @@ namespace ProcessCoreOptimizer.WPF.Views
             }
             else
             {
+                Services.StartupProfiler.Dump("closing");
                 _notifyIcon.Visible = false;
                 _notifyIcon.Dispose();
                 try { _trayIcon?.Dispose(); } catch { }

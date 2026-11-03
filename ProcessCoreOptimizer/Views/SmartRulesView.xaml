@@ -18,7 +18,36 @@
             </StackPanel>
             <TextBlock Grid.Row="2" Text="{Binding RuleStatusText}" Style="{StaticResource PcoMutedText}" Margin="0,0,0,8" TextWrapping="Wrap"/>
 
+            <!-- Empty state: no rules yet. Only New here; the rest needs a selection. -->
+            <Border Grid.Row="3" Background="{StaticResource PcoBg3Brush}" CornerRadius="6" Padding="16" Margin="0,0,0,10" BorderThickness="1" BorderBrush="{StaticResource PcoBorderSoftBrush}">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasRules}" Value="False">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <StackPanel>
+                    <TextBlock Text="{DynamicResource StrNoRulesTitle}" FontWeight="Bold" FontSize="15" Foreground="{StaticResource PcoTextBrightBrush}" Margin="0,0,0,6"/>
+                    <TextBlock Text="{DynamicResource StrNoRulesBody}" Foreground="{StaticResource PcoMutedBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,12"/>
+                    <Button Content="{DynamicResource StrNewProfile}" Command="{Binding NewRuleCommand}" Style="{StaticResource StandardButton}" Background="{StaticResource PcoAccentBrush}" Width="180" HorizontalAlignment="Left"/>
+                </StackPanel>
+            </Border>
+
             <DataGrid Grid.Row="3" ItemsSource="{Binding Rules}" SelectedItem="{Binding SelectedRule}" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single" CanUserAddRows="False" CanUserSortColumns="True">
+                <DataGrid.Style>
+                    <Style TargetType="DataGrid">
+                        <Setter Property="Visibility" Value="Visible"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasRules}" Value="False">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.Style>
                 <DataGrid.ContextMenu>
                     <ContextMenu>
                         <MenuItem Header="{DynamicResource StrEditProfile}" Command="{Binding EditRuleCommand}"/>
@@ -68,11 +97,65 @@
             </DataGrid>
 
             <UniformGrid Grid.Row="4" Columns="2" Margin="0,12,0,0">
+                <UniformGrid.Style>
+                    <Style TargetType="UniformGrid">
+                        <Setter Property="Visibility" Value="Visible"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasRules}" Value="False">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </UniformGrid.Style>
                 <Button Content="{DynamicResource StrNewProfile}" Command="{Binding NewRuleCommand}" Style="{StaticResource SmallFilterButton}" Margin="0,0,4,4"/>
-                <Button Content="{DynamicResource StrEditProfile}" Command="{Binding EditRuleCommand}" Style="{StaticResource SmallFilterButton}" Margin="4,0,0,4"/>
-                <Button Content="{DynamicResource StrCtxToggleEnabled}" Command="{Binding ToggleRuleEnabledCommand}" Style="{StaticResource SmallFilterButton}" Margin="0,0,4,4"/>
-                <Button Content="{DynamicResource StrClearOverride}" Command="{Binding ClearRuleOverrideCommand}" Style="{StaticResource SmallFilterButton}" Margin="4,0,0,4"/>
-                <Button Content="{DynamicResource StrDeleteRule}" Command="{Binding DeleteRuleCommand}" Style="{StaticResource SmallFilterButton}" Margin="0,0,4,0"/>
+                <Button Content="{DynamicResource StrEditProfile}" Command="{Binding EditRuleCommand}" Margin="4,0,0,4">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource SmallFilterButton}">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasSelectedRule}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+                <Button Content="{DynamicResource StrCtxToggleEnabled}" Command="{Binding ToggleRuleEnabledCommand}" Margin="0,0,4,4">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource SmallFilterButton}">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasSelectedRule}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+                <Button Content="{DynamicResource StrClearOverride}" Command="{Binding ClearRuleOverrideCommand}" Margin="4,0,0,4">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource SmallFilterButton}">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasSelectedRule}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+                <Button Content="{DynamicResource StrDeleteRule}" Command="{Binding DeleteRuleCommand}" Margin="0,0,4,0">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource SmallFilterButton}">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasSelectedRule}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
             </UniformGrid>
 
             <Border Grid.Row="5" Background="{StaticResource PcoBg3Brush}" CornerRadius="6" Padding="12" Margin="0,12,0,0" BorderThickness="1" BorderBrush="{StaticResource PcoBorderBrush}">

@@ -71,6 +71,7 @@ namespace ProcessCoreOptimizer.WPF
             }
 
             base.OnStartup(e);
+            Services.StartupProfiler.Mark("App.OnStartup end");
         }
 
         /// <summary>

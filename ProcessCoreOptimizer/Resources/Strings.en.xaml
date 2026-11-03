@@ -8,6 +8,20 @@
     <system:String x:Key="StrSettings">Settings</system:String>
     <system:String x:Key="StrConsoleLog">CONSOLE LOG</system:String>
     <system:String x:Key="StrActivity">Activity</system:String>
+    <system:String x:Key="StrSelectProcessHint">Select a process to view details and available actions.</system:String>
+    <system:String x:Key="StrSelectedProcess">Selected process</system:String>
+    <system:String x:Key="StrInitialLoading">Loading processes…</system:String>
+    <system:String x:Key="StrClosePanel">Close panel</system:String>
+    <system:String x:Key="StrNoProfilesTitle">No saved profiles yet</system:String>
+    <system:String x:Key="StrNoProfilesBody">Create a profile to automatically apply CPU and priority settings when an application starts.</system:String>
+    <system:String x:Key="StrSelectProfileHint">Select a profile to view and edit its configuration.</system:String>
+    <system:String x:Key="StrNoRulesTitle">No rules yet</system:String>
+    <system:String x:Key="StrNoRulesBody">Rules apply a profile when a process launches or comes to the foreground. Create your first rule to automate optimization.</system:String>
+    <system:String x:Key="StrProcessorOverview">Processor overview</system:String>
+    <system:String x:Key="StrCoreTopology">Core topology</system:String>
+    <system:String x:Key="StrTopologyLegend">[P] primary thread · [T] SMT sibling · [E] efficiency core · [?] unknown</system:String>
+    <system:String x:Key="StrAffinityExplained">Affinity is a hard limit: the process may run only on the selected logical processors.</system:String>
+    <system:String x:Key="StrCpuSetsExplained">CPU Sets are a preference: Windows prefers the selected processors but may schedule elsewhere. No FPS is guaranteed.</system:String>
     <system:String x:Key="StrProcessList">Process List</system:String>
     <system:String x:Key="StrYourProfiles">Your Profiles</system:String>
     <system:String x:Key="StrCpuCores">CPU Cores</system:String>
@@ -19,6 +33,7 @@
     <system:String x:Key="StrCloseToTray">Close to Tray</system:String>
 
     <system:String x:Key="StrSetGroupGeneral">General</system:String>
+    <system:String x:Key="StrSetGroupOptimization">Optimization</system:String>
     <system:String x:Key="StrSetGroupStartup">Startup &amp; Privileges</system:String>
     <system:String x:Key="StrSetGroupMonitoring">Process Monitoring</system:String>
     <system:String x:Key="StrSetGroupHardware">Hardware Monitoring</system:String>
@@ -111,6 +126,7 @@
     <system:String x:Key="StrProcessDetails">Process details</system:String>
     <system:String x:Key="StrNoSelection">Select a process or profile to see details.</system:String>
     <system:String x:Key="StrCorePresets">Core presets</system:String>
+    <system:String x:Key="StrPreviewPreset">Preview</system:String>
     <system:String x:Key="StrTopologyNote">Topology note</system:String>
     <system:String x:Key="StrConflictsTitle">Profile conflicts</system:String>
     <system:String x:Key="StrNoConflicts">No conflicts. Precedence: path-bound, then newest.</system:String>

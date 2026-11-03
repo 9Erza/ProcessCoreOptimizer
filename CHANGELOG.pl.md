@@ -105,7 +105,7 @@ codziennego użytku.
   ograniczone cache, throttled logowanie.
 - Linki zewnętrzne (repozytorium, autor, strona, wsparcie) na allowliście, otwierane
   tylko po kliknięciu, bez trackingu i bez żądań sieciowych samej aplikacji.
-- 240 testów automatycznych (237 zielonych + 3 warunkowe), suita GUI 21/21,
+- 268 testów automatycznych (265 zielonych + 3 warunkowe), suita GUI 24/24,
   walidacja instalatora 8/8.
 
 ### Wydajność
@@ -147,6 +147,16 @@ codziennego użytku.
   chronione są odmawiane z przyczyną. Zgodność z grami online niegwarantowana.
 - Instalacja/deinstalacja na zapasowej maszynie jest udokumentowana, lecz nie była
   wykonana przez automatyzację; obowiązuje ręczna procedura odbioru z `docs/INSTALLER.md`.
+
+### Responsywność startu i kontekstowy UI (finał)
+- Zmierzona przyczyna przycięcia przy starcie (3 przebiegi, `PCO_STARTUP_PROFILE=1`, referencyjna maszyna i5-10210U/8LP): pierwsza rozgrzewka liczników PDH (~4,6 s) działała na wątku UI wewnątrz pierwszego ticku odświeżania; czas do pierwszej listy ~7,5 s z zamrożonym oknem.
+- Poprawka: rozgrzewka liczników poza wątkiem UI (wątkowo bezpieczne init/odczyt/zwalnianie), natychmiastowy pierwszy skan zamiast czekania pełnego interwału, jeden hop Dispatcher na odświeżenie ze słownikami nazw/profili (bez skanów O(n²)) i wstrzymane resortowanie CollectionView podczas mutacji wierszy (bez `DeferRefresh` wokół mutacji).
+- Wynik na tej samej maszynie: pierwszy paint ~1,3–1,7 s, pierwsza lista procesów ~1,3 s (było ~7,5 s), brak stallu UI poza jednorazowym ~400 ms budowaniem XAML. Mini konsola sterowana zdarzeniami (bez timerów), pełna historia zostaje w Diagnostyce.
+- Process Explorer jest kontekstowy: pełna lista z podpowiedzią wyboru i stanem ładowania, gdy nic nie wybrano; prawy panel CPU tylko z żywym targetem procesu/instancji lub profilu (szuflada overlay poniżej 1130 DIP); nagłówek pokazuje jawny zakres (Grupa procesów — N instancji / Instancja — PID / Profil: nazwa); zamknięcie czyści target bez mutacji; przełączenie Grupy/Instancje i zakładek kasuje nieaktualne selekcje; zakończone procesy unieważniają szczegóły.
+- CPU & Topology to centrum informacji, nie drugi edytor: przegląd procesora (producent, liczby logiczne/fizyczne/SMT/P-E, zakres affinity), legenda tagów `[P]`/`[T]`/`[E]`/`[?]`, read-only zwarte kafelki Core w siatce WrapPanel, presety jako niemutujące podglądy z highlightem i podsumowaniem, wyjaśnienie Affinity vs CPU Sets; zduplikowany edytor Apply bez targetu usunięty.
+- Zapisane profile: pusty stan (tylko Utwórz/Import), podpowiedź wyboru, wiersz edycji gated selekcją; Smart Rules: pusty stan, akcje gated selekcją.
+- Ustawienia: nawigacja 8 kategorii (Ogólne / Uruchamianie i uprawnienia / Optymalizacja / Monitorowanie sprzętu / Diagnostyka / Aktualizacje / Dane aplikacji i reset / O programie) z jednym aktywnym panelem; reset fabryczny to jawna strefa typed-RESET; przełączenie kategorii nic nie zapisuje; deep link About (Developer Hub → Settings → About) zachowany.
+- Semantyka zapisu bez zmian i jawna: Zapisz/Aktualizuj profil zapisują i stosują do działających procesów (log per akcja); Zapisz w Profile Studio tylko zapisuje.
 
 ## Poprzednie wydania
 

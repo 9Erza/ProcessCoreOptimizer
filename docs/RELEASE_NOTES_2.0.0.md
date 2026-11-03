@@ -24,13 +24,17 @@ valid for the machine), multi-group detection with a clear group-0 limitation
 note, snapshot EXE paths, process details (PID, start time, path, affinity
 source, last status), and process/profile filters.
 
-**Desktop 2.0** — design tokens (`Themes/`), six views
-(Processes, CPU & Topology, Profiles, Hardware, Settings, Diagnostics),
+**Desktop 2.0** — design tokens (`Themes/`), seven views
+(Processes, CPU & Topology, Profiles, Smart Rules, Hardware, Settings, Diagnostics),
 session restore of pre-optimization settings (verified identity only),
 releases-aware updater (no false positives before a release is published),
 startup registration applied only when startup settings change, and a
 collapsible sidebar Developer Hub (version card + official links + in-app
 About navigation, full PL/EN).
+Context-aware Process Explorer (CPU panel only with a live target, explicit
+scope labels, close clears the target), informational CPU & Topology hub
+(read-only tiles, preset previews, Affinity vs CPU Sets explainer), editor-on-
+selection profiles/rules with empty states, and 8-category Settings.
 
 ## Compatibility
 
@@ -43,7 +47,7 @@ About navigation, full PL/EN).
 ## Verification
 
 - Release build: 0 warnings, 0 errors.
-- Tests: 258 MSTest cases — 255 passing, 3 environment-gated real-startup
+- Tests: 268 MSTest cases — 265 passing, 3 environment-gated real-startup
   integration tests skipped without `PCO_REAL_STARTUP_TESTS=1`
   (fake backend, read-only checks, negative P0 identity tests, CPU Sets
   restore/suspension matrix, startup planner/coordinator/backend,
@@ -57,7 +61,7 @@ About navigation, full PL/EN).
   service or agent process is ever touched.
 - Startup architecture: plan → execute → verify with create-before-delete
   ordering; UAC cancel and failed-create paths proven by tests.
-- GUI: 21/21 UI Automation checks on Windows 11 (1920×1080, 100% DPI):
+- GUI: 24/24 UI Automation checks on Windows 11 (1920×1080, 100% DPI):
   all seven views incl. Smart Rules via real clicks, instance-view toggle,
   mini activity console, slim scrollbar, compact hardware empty-state,
   maximize/minimize/restore, tray-aware close, startup status text, scrolled
@@ -93,6 +97,10 @@ About navigation, full PL/EN).
   startup 1.5–1.6 s; idle 60 s ≈ 190 MB WS / 90 MB Private / 0.55% CPU /
   ~786 handles / 23 threads; 100 synthetic profiles ≈ no CPU delta, +2 MB WS;
   HW monitor ON ≈ +14 MB WS, +60 handles; minimized ≈ 0.27% CPU.
+  Startup re-measured after the remediation (same machine, 3× `--safe-mode`
+  runs): first paint ~1.3–1.7 s, first process list ~1.3 s (was ~7.5 s with
+  a 4.6 s UI-thread PDH warmup); no UI stall beyond a ~400 ms one-time XAML
+  build; refresh tick unchanged (~35–70 ms scan+mapping at 34 groups).
   Harnesses: `tools/Measure-Performance.ps1`, `tools/Measure-Cpu.ps1`;
   raw CSV in gitignored `.evidence/perf`.
 - CI: restore → Release build → tests → `git diff --check`, green.
