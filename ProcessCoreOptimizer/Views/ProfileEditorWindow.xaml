@@ -1,0 +1,65 @@
+<Window x:Class="ProcessCoreOptimizer.WPF.Views.ProfileEditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Profile Editor" Height="620" Width="520" MinWidth="440" MinHeight="540"
+        Icon="/Images/processcoreoptimizer.ico"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        ShowInTaskbar="False">
+    <Border Background="{StaticResource PcoBg0Brush}" CornerRadius="8" BorderBrush="{StaticResource PcoBorderSoftBrush}" BorderThickness="1" Padding="24" SnapsToDevicePixels="True">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Text="{DynamicResource StrProfileEditorTitle}" FontSize="20" FontWeight="Bold" Foreground="White" Margin="0,0,0,16"/>
+
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <TextBlock Text="{DynamicResource StrProfileName}" Foreground="{StaticResource PcoTextBrush}" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                    <TextBox x:Name="NameBox" Style="{StaticResource PcoFilterBox}" Margin="0,0,0,12" AutomationProperties.Name="Process name"/>
+
+                    <TextBlock Text="{DynamicResource StrProfilePath}" Foreground="{StaticResource PcoTextBrush}" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="PathBox" Grid.Column="0" Style="{StaticResource PcoFilterBox}" AutomationProperties.Name="Executable path"/>
+                        <Button Grid.Column="1" Content="{DynamicResource StrBrowse}" Click="BrowseButton_Click" Style="{StaticResource SmallFilterButton}" Margin="8,0,0,0" Padding="12,4" AutomationProperties.Name="Browse"/>
+                    </Grid>
+                    <TextBlock x:Name="ConflictHint" Foreground="{StaticResource PcoOrangeBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,12" Visibility="Collapsed"/>
+
+                    <TextBlock Text="{DynamicResource StrAffinityMaskHex}" Foreground="{StaticResource PcoTextBrush}" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                    <TextBox x:Name="MaskBox" Style="{StaticResource PcoFilterBox}" Margin="0,0,0,12" AutomationProperties.Name="Affinity mask hex"/>
+
+                    <TextBlock Text="{DynamicResource StrSetPriority}" Foreground="{StaticResource PcoTextBrush}" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                    <ComboBox x:Name="PriorityBox" Style="{StaticResource ModernComboBox}" Margin="0,0,0,12" AutomationProperties.Name="Priority"/>
+
+                    <TextBlock Text="{DynamicResource StrOptimizationMode}" Foreground="{StaticResource PcoTextBrush}" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                    <ComboBox x:Name="ModeBox" Style="{StaticResource ModernComboBox}" Margin="0,0,0,12" AutomationProperties.Name="Optimization mode">
+                        <ComboBoxItem Content="{DynamicResource ModeAffinity}"/>
+                        <ComboBoxItem Content="{DynamicResource ModeCpuSets}"/>
+                    </ComboBox>
+
+                    <CheckBox x:Name="ApplyPriorityBox" Content="{DynamicResource StrApplyPriority}" Foreground="{StaticResource PcoTextBrush}" Margin="0,0,0,6" VerticalContentAlignment="Center"/>
+                    <CheckBox x:Name="ApplyCoresBox" Content="{DynamicResource StrApplyCores}" Foreground="{StaticResource PcoTextBrush}" Margin="0,0,0,6" VerticalContentAlignment="Center"/>
+                    <CheckBox x:Name="EcoQosBox" Content="{DynamicResource StrEcoQos}" Foreground="{StaticResource PcoTextBrush}" Margin="0,0,0,6" VerticalContentAlignment="Center" IsThreeState="True" ToolTip="{DynamicResource StrEcoQosHint}"/>
+                    <CheckBox x:Name="EnabledBox" Content="{DynamicResource StrProfileEnabled}" Foreground="{StaticResource PcoTextBrush}" Margin="0,0,0,12" VerticalContentAlignment="Center"/>
+
+                    <TextBlock Text="{DynamicResource StrNotes}" Foreground="{StaticResource PcoTextBrush}" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                    <TextBox x:Name="NotesBox" Style="{StaticResource PcoFilterBox}" Margin="0,0,0,12" Height="60" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Notes"/>
+
+                    <TextBlock x:Name="ErrorText" Foreground="{StaticResource PcoRedBrush}" FontSize="12" TextWrapping="Wrap" Visibility="Collapsed"/>
+                </StackPanel>
+            </ScrollViewer>
+
+            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                <Button Content="{DynamicResource StrSave}" Click="OkButton_Click" Style="{StaticResource StandardButton}" MinWidth="100" Margin="0,0,8,0" IsDefault="True" AutomationProperties.Name="Save"/>
+                <Button Content="{DynamicResource StrCancel}" Click="CancelButton_Click" Style="{StaticResource SmallFilterButton}" MinWidth="100" IsCancel="True" AutomationProperties.Name="Cancel"/>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

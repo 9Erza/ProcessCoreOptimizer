@@ -12,6 +12,7 @@ namespace ProcessCoreOptimizer.WPF.Models
         public string Message { get; set; } = string.Empty;
         public bool CoreApplied { get; set; }
         public bool PriorityApplied { get; set; }
+        public bool EcoQosApplied { get; set; }
         public bool RequiresAdmin { get; set; }
         public int? Win32Error { get; set; }
 
@@ -30,6 +31,7 @@ namespace ProcessCoreOptimizer.WPF.Models
 
         public bool RequestedCore { get; set; }
         public bool RequestedPriority { get; set; }
+        public bool RequestedEcoQos { get; set; }
     }
 
     public sealed class OptimizationBatchResult

@@ -34,11 +34,19 @@
   watcher jako wydzielony serwis.
 - **Zakładka CPU i topologia:** uczciwy stan Unknown, nazwane presety rdzeni,
   wykrywanie wielu grup, ścieżki EXE w snapshotach, szczegóły procesów, filtry.
-- **Zakładka Diagnostyka:** status watchera, ostatnie operacje, konflikty, log.
+- **Zakładka Diagnostyka:** status watchera, ostatnie operacje, konflikty, aktywność reguł, eksport ZIP, log.
+- **Process Explorer 2.0:** widoki Grupy / pojedyncze instancje PID, sortowanie numeryczne,
+  filtry po ścieżce, uczciwe szczegóły (Unknown), lekkie wykresy CPU/RAM,
+  menu kontekstowe, zastosowanie do jednej instancji.
+- **Profile Studio:** pełny edytor (nazwa, ścieżka EXE, affinity, priorytet, CPU Sets,
+  EcoQoS trójstanowy) z walidacją; update/delete po stabilnym Id.
+- **Inteligentne reguły:** wyzwalacze uruchomienia + aktywnego okna (debounce),
+  cooldowny, priorytety, globalna pauza, wytłumaczalny feed aktywności.
+- **EcoQoS:** jawne wł./wył. na profil przez oficjalne API Windows (nigdy automatycznie).
 - **Niezawodność:** przywracanie ustawień sprzed optymalizacji, aktualizator
   powiadamiający tylko o opublikowanych wydaniach z assetem instalatora,
   rejestracja autostartu tylko przy zmianie ustawień startu, centralne wersjonowanie `version.txt`.
-- **Testy:** 143 passing + 3 warunkowe testy integracyjne, zielone CI (build + testy + `git diff --check`).
+- **Testy:** 196 passing + 3 warunkowe testy integracyjne, zielone CI (build + testy + `git diff --check`).
 
 Zobacz [CHANGELOG.md](CHANGELOG.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 i [docs/RELEASE_NOTES_2.0.0.pl.md](docs/RELEASE_NOTES_2.0.0.pl.md).
@@ -243,9 +251,9 @@ dotnet publish ProcessCoreOptimizer/ProcessCoreOptimizer.csproj -c Release -p:Pu
 - Solution: `ProcessCoreOptimizer.slnx` (główny). `ProcessCoreOptimizer/ProcessCoreOptimizer.sln` to legacy.
 - Źródło wersji: `version.txt`, propagowane przez `Directory.Build.props` do MSBuild, metadanych PE, UI i aktualizatora.
 - Target: `net10.0-windows`, `win-x64`, WPF + WinForms (ikona tray).
-- Testy: MSTest, 97 przypadków (fałszywy backend + read-only + prawdziwe Windows API na izolowanych własnych procesach testowych), bez dotykania procesów użytkownika/systemu.
+- Testy: MSTest, 196 zaliczonych + 3 warunkowe integracyjne (fałszywy backend + read-only + prawdziwe Windows API na izolowanych własnych procesach testowych), bez dotykania procesów użytkownika/systemu.
 - CI: `.github/workflows/ci.yml` — restore, Release build, testy, `git diff --check`.
-- GUI: zweryfikowane na Windows 11 przez UI Automation (6 zakładek, maximize/minimize/restore, tray-intercept close) — patrz `tools/Run-GuiVerification.ps1`, dowody w `.evidence/` (gitignored).
+- GUI: zweryfikowane na Windows 11 przez UI Automation (7 zakładek, widok instancji, maximize/minimize/restore, tray-intercept close) — patrz `tools/Run-GuiVerification.ps1`, dowody w `.evidence/` (gitignored).
 - Instalator: `installer/ProcessCoreOptimizer.iss` (nowa tożsamość, patrz [docs/INSTALLER.md](docs/INSTALLER.md)); build przez `tools/Build-Installer.ps1`. Bez zgody opiekuna nie publikujemy wydania.
 
 ---

@@ -36,6 +36,10 @@
                     </Grid.RowDefinitions>
 
                     <Grid Grid.Row="0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                         <StackPanel VerticalAlignment="Top">
 
                             <TextBlock Text="Process Core Optimizer" FontWeight="Bold" FontSize="18" Foreground="{StaticResource PcoAccentBrush}" TextWrapping="Wrap" HorizontalAlignment="Center" Margin="0,30,0,10"/>
@@ -83,6 +87,19 @@
                                 </Button.Style>
                             </Button>
 
+                            <Button Content="{DynamicResource StrSmartRules}" Command="{Binding SwitchTabCommand}" CommandParameter="Rules">
+                                <Button.Style>
+                                    <Style TargetType="{x:Type Button}" BasedOn="{StaticResource SidebarButton}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ActiveTab}" Value="Rules">
+                                                <Setter Property="Background" Value="{StaticResource PcoSelectedBrush}"/>
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+
                             <Button Content="{DynamicResource StrHardwareMonitor}" Command="{Binding SwitchTabCommand}" CommandParameter="Hardware">
                                 <Button.Style>
                                     <Style TargetType="{x:Type Button}" BasedOn="{StaticResource SidebarButton}">
@@ -108,20 +125,21 @@
                                     </Style>
                                 </Button.Style>
                             </Button>
-                        </StackPanel>
 
-                        <Button Content="{DynamicResource StrSettings}" Command="{Binding SwitchTabCommand}" CommandParameter="Settings" VerticalAlignment="Bottom" Margin="10,0,10,15">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource SidebarButton}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding ActiveTab}" Value="Settings">
-                                            <Setter Property="Background" Value="{StaticResource PcoSelectedBrush}"/>
-                                            <Setter Property="Foreground" Value="White"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                        </Button>
+                            <Button Content="{DynamicResource StrSettings}" Command="{Binding SwitchTabCommand}" CommandParameter="Settings" Margin="10,8,10,15">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource SidebarButton}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ActiveTab}" Value="Settings">
+                                                <Setter Property="Background" Value="{StaticResource PcoSelectedBrush}"/>
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </StackPanel>
+                        </ScrollViewer>
                     </Grid>
 
                     <Grid Grid.Row="1" Margin="15,0,15,5" Height="220">
@@ -190,6 +208,7 @@
 
                 <views:ProcessesView Grid.Column="0" Visibility="{Binding ViewProcesses}"/>
                 <views:ProfilesView Grid.Column="0" Visibility="{Binding ViewProfiles}"/>
+                <views:SmartRulesView Grid.Column="0" Grid.ColumnSpan="2" Visibility="{Binding ViewSmartRules}"/>
                 <views:CpuView Grid.Column="0" Visibility="{Binding ViewCpu}"/>
                 <views:HardwareView Grid.Column="0" Grid.ColumnSpan="2" Visibility="{Binding ViewHardwareMonitor}"/>
                 <views:SettingsView Grid.Column="0" Grid.ColumnSpan="2" Visibility="{Binding ViewSettings}"/>
@@ -207,6 +226,9 @@
                                     <Setter Property="Visibility" Value="Collapsed"/>
                                 </DataTrigger>
                                 <DataTrigger Binding="{Binding ActiveTab}" Value="Diagnostics">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding ActiveTab}" Value="Rules">
                                     <Setter Property="Visibility" Value="Collapsed"/>
                                 </DataTrigger>
                             </Style.Triggers>

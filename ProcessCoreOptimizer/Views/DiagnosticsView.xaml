@@ -42,6 +42,18 @@
                 </ItemsControl>
 
                 <TextBlock Text="{DynamicResource StrRecentOps}" Style="{StaticResource PcoSectionHeader}"/>
+                <TextBlock Text="{Binding RuleStatusText}" Style="{StaticResource PcoMutedText}" Margin="0,0,0,4" TextWrapping="Wrap"/>
+                <ItemsControl ItemsSource="{Binding RecentRuleDecisions}" Margin="0,0,0,8">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Foreground="{StaticResource PcoMutedBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,2">
+                                <Run Text="{Binding RuleName}" FontWeight="SemiBold"/><Run Text=" → PID "/><Run Text="{Binding Key.ProcessId}"/><Run Text=": "/><Run Text="{Binding Reason}"/>
+                            </TextBlock>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Button Content="{DynamicResource StrExportDiagnostics}" Command="{Binding ExportDiagnosticsCommand}" Style="{StaticResource SmallFilterButton}" HorizontalAlignment="Left" Padding="16,6" Margin="0,0,0,12" AutomationProperties.Name="Export diagnostics"/>
+
                 <DataGrid ItemsSource="{Binding RecentOperations}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" MaxHeight="260" Margin="0,0,0,12">
                     <DataGrid.Columns>
                         <DataGridTextColumn Binding="{Binding ProcessName}" Width="*" >

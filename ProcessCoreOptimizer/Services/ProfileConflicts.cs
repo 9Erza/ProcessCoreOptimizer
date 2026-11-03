@@ -66,7 +66,7 @@ namespace ProcessCoreOptimizer.WPF.Services
 
         private static string EffectiveSettingsKey(ProcessProfile p)
         {
-            return $"{ProfileService.NormalizeProcessName(p.ProcessName)}|{p.AffinityMask:X}|{p.Priority}|{p.OptimizationMode}|{p.ApplyPriority}|{p.ApplyCoreOptimization}|path:{ProfileService.NormalizeExecutablePath(p.ExecutablePath) ?? "-"}";
+            return $"{ProfileService.NormalizeProcessName(p.ProcessName)}|{p.AffinityMask:X}|{p.Priority}|{p.OptimizationMode}|{p.ApplyPriority}|{p.ApplyCoreOptimization}|eco:{(p.EcoQos.HasValue ? p.EcoQos.Value ? "1" : "0" : "-")}|path:{ProfileService.NormalizeExecutablePath(p.ExecutablePath) ?? "-"}";
         }
 
         private static string BuildReason(List<ProcessProfile> members)

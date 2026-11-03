@@ -11,6 +11,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Media;
 using WpfApplication = System.Windows.Application;
 using WpfMessageBox = System.Windows.MessageBox;
 using System.Windows.Input;
@@ -69,6 +70,17 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         private string _activeTab = "Processes";
         private string _processFilterText = string.Empty;
         private string _profileFilterText = string.Empty;
+        private bool _processOnlyOptimized;
+        private bool _processOnlyWithProfile;
+        private ProcessViewMode _processViewMode = ProcessViewMode.Grouped;
+        private ProcessInstanceRow? _selectedInstanceRow;
+        private ProcessScanResult? _lastUiScan;
+        private readonly SmartRuleService _ruleService = new();
+        private List<SmartRule> _rules = new();
+        private List<SmartRule> _rulesSnapshot = new();
+        private readonly SmartRuleEngine _ruleEngine = new();
+        private readonly ProcessInsightsSampler _insightsSampler = new();
+        private readonly Dictionary<string, DateTime> _lastRuleLogUtc = new(StringComparer.OrdinalIgnoreCase);
         private string? _topologyLimitation;
 
         private Visibility _viewProcesses = Visibility.Visible;
@@ -77,11 +89,94 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         private Visibility _viewHardwareMonitor = Visibility.Collapsed;
         private Visibility _viewSettings = Visibility.Collapsed;
         private Visibility _viewDiagnostics = Visibility.Collapsed;
+        private Visibility _viewSmartRules = Visibility.Collapsed;
         private string _watcherStatusText = string.Empty;
         private string _conflictSummaryText = string.Empty;
         private HardwareMetrics _fullMetrics = new();
 
         public ObservableCollection<ProcessItem> Processes { get; } = new();
+        public ObservableCollection<ProcessInstanceRow> InstanceRows { get; } = new();
+        public ObservableCollection<SmartRule> Rules { get; } = new();
+        public ObservableCollection<RuleDecision> RecentRuleDecisions { get; } = new();
+        private PointCollection _cpuHistoryPoints = new();
+        private PointCollection _memWsHistoryPoints = new();
+        private PointCollection _memPrivateHistoryPoints = new();
+        private string _insightsSummary = string.Empty;
+        private bool _hasInsights;
+
+        public PointCollection CpuHistoryPoints
+        {
+            get => _cpuHistoryPoints;
+            private set => SetProperty(ref _cpuHistoryPoints, value);
+        }
+
+        public PointCollection MemWsHistoryPoints
+        {
+            get => _memWsHistoryPoints;
+            private set => SetProperty(ref _memWsHistoryPoints, value);
+        }
+
+        public PointCollection MemPrivateHistoryPoints
+        {
+            get => _memPrivateHistoryPoints;
+            private set => SetProperty(ref _memPrivateHistoryPoints, value);
+        }
+
+        public string InsightsSummary
+        {
+            get => _insightsSummary;
+            private set => SetProperty(ref _insightsSummary, value);
+        }
+
+        public bool HasInsights
+        {
+            get => _hasInsights;
+            private set => SetProperty(ref _hasInsights, value);
+        }
+
+        private string _profileMatchWhy = string.Empty;
+
+        public string ProfileMatchWhy
+        {
+            get => _profileMatchWhy;
+            private set => SetProperty(ref _profileMatchWhy, value);
+        }
+
+        public ICommand ExportDiagnosticsCommand { get; }
+        private SmartRule? _selectedRule;
+
+        public SmartRule? SelectedRule
+        {
+            get => _selectedRule;
+            set => SetProperty(ref _selectedRule, value);
+        }
+        private string _ruleStatusText = string.Empty;
+
+        public string RuleStatusText
+        {
+            get => _ruleStatusText;
+            private set => SetProperty(ref _ruleStatusText, value);
+        }
+
+        /// <summary>
+        /// Global pause for all automatic optimization (watcher + smart rules).
+        /// Observation continues; mutations stop. Persisted as user intent.
+        /// </summary>
+        public bool AutomationPaused
+        {
+            get => AppSettings.AutomationPaused;
+            set
+            {
+                if (AppSettings.AutomationPaused == value) return;
+                AppSettings.AutomationPaused = value;
+                _settingsService.SaveSettings(AppSettings);
+                OnPropertyChanged(nameof(AutomationPaused));
+                RefreshRuleStatus();
+                AddLog(value
+                    ? (IsPolishLanguage ? "Automatyczna optymalizacja wstrzymana (pauza). Obserwacja trwa." : "Automatic optimization paused. Observation continues.")
+                    : (IsPolishLanguage ? "Automatyczna optymalizacja wznowiona." : "Automatic optimization resumed."));
+            }
+        }
         public ObservableCollection<CoreInfo> Cores { get; } = new();
         public ObservableCollection<string> ActionLogs { get; } = new();
         public ObservableCollection<ProcessProfile> SavedProfiles { get; } = new();
@@ -132,6 +227,21 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         public ICommand ImportProfilesCommand { get; }
         public ICommand CaptureLiveSettingsCommand { get; }
         public ICommand RestoreSettingsCommand { get; }
+        public ICommand CopyPidCommand { get; }
+        public ICommand CopyExePathCommand { get; }
+        public ICommand OpenFileLocationCommand { get; }
+        public ICommand PreviewChangesCommand { get; }
+        public ICommand RefreshDetailsCommand { get; }
+        public ICommand CreateProfileFromInstanceCommand { get; }
+        public ICommand ApplyToInstanceCommand { get; }
+        public ICommand NewProfileCommand { get; }
+        public ICommand EditProfileCommand { get; }
+        public ICommand ToggleProfileEnabledCommand { get; }
+        public ICommand NewRuleCommand { get; }
+        public ICommand EditRuleCommand { get; }
+        public ICommand DeleteRuleCommand { get; }
+        public ICommand ToggleRuleEnabledCommand { get; }
+        public ICommand ClearRuleOverrideCommand { get; }
 
         public string AppVersion { get; } = FormatDisplayVersion(Assembly.GetExecutingAssembly()
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
@@ -170,6 +280,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         public Visibility ViewHardwareMonitor { get => _viewHardwareMonitor; set => SetProperty(ref _viewHardwareMonitor, value); }
         public Visibility ViewSettings { get => _viewSettings; set => SetProperty(ref _viewSettings, value); }
         public Visibility ViewDiagnostics { get => _viewDiagnostics; set => SetProperty(ref _viewDiagnostics, value); }
+        public Visibility ViewSmartRules { get => _viewSmartRules; set => SetProperty(ref _viewSmartRules, value); }
 
         public bool IsRightPanelVisible => ActiveTab is "Processes" or "Profiles" or "Cpu";
 
@@ -249,6 +360,61 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             }
         }
 
+        public bool ProcessOnlyOptimized
+        {
+            get => _processOnlyOptimized;
+            set
+            {
+                if (!SetProperty(ref _processOnlyOptimized, value)) return;
+                RefreshProcessFilter();
+            }
+        }
+
+        public bool ProcessOnlyWithProfile
+        {
+            get => _processOnlyWithProfile;
+            set
+            {
+                if (!SetProperty(ref _processOnlyWithProfile, value)) return;
+                RefreshProcessFilter();
+            }
+        }
+
+        public ProcessViewMode ProcessViewMode
+        {
+            get => _processViewMode;
+            set
+            {
+                if (!SetProperty(ref _processViewMode, value)) return;
+                OnPropertyChanged(nameof(IsInstanceView));
+                RebuildInstanceRows();
+            }
+        }
+
+        public bool IsInstanceView => _processViewMode == ProcessViewMode.Instances;
+
+        /// <summary>Two-way toggle for the Grouped/Instances switch (XAML CheckBox/RadioButton).</summary>
+        public bool ShowInstances
+        {
+            get => IsInstanceView;
+            set => ProcessViewMode = value ? ProcessViewMode.Instances : ProcessViewMode.Grouped;
+        }
+
+        public ProcessInstanceRow? SelectedInstanceRow
+        {
+            get => _selectedInstanceRow;
+            set
+            {
+                if (!SetProperty(ref _selectedInstanceRow, value)) return;
+                _insightsSampler.Reset();
+                if (value != null)
+                {
+                    SelectedProcessDetails = BuildProcessDetails(value.Name);
+                    UpdateProfileWhy();
+                }
+            }
+        }
+
         public string ProfileFilterText
         {
             get => _profileFilterText;
@@ -271,7 +437,9 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             set
             {
                 if (!SetProperty(ref _selectedProcess, value) || value == null) return;
+                _insightsSampler.Reset();
                 SelectedProcessDetails = BuildProcessDetails(value.Name);
+                UpdateProfileWhy();
 
                 var savedProfile = _profiles.FirstOrDefault(p => p.ProcessName.Equals(value.Name, StringComparison.OrdinalIgnoreCase));
                 if (savedProfile != null)
@@ -688,6 +856,12 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             _profiles = _profileService.LoadProfiles();
             RefreshSavedProfilesView();
             RefreshProfileConflicts();
+            ReloadRules();
+            _profileWatcher.ScanCompleted += (s, scan) =>
+            {
+                try { EvaluateAndApplyRules(scan.Groups, "background rule engine"); }
+                catch (Exception ex) { LoggerService.Instance.Debug($"Background rule hook failed: {ex.Message}"); }
+            };
             RefreshRecentOperations();
             LogProfileWatcherStartupSummary();
 
@@ -721,6 +895,22 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             ImportProfilesCommand = new RelayCommand(_ => ImportProfilesFromFile());
             CaptureLiveSettingsCommand = new RelayCommand(_ => CaptureLiveSettings());
             RestoreSettingsCommand = new RelayCommand(_ => RestoreSessionSettings());
+            CopyPidCommand = new RelayCommand(_ => CopySelectedPid());
+            CopyExePathCommand = new RelayCommand(_ => CopySelectedExePath());
+            OpenFileLocationCommand = new RelayCommand(_ => OpenSelectedFileLocation());
+            PreviewChangesCommand = new RelayCommand(_ => PreviewSelectedChanges());
+            RefreshDetailsCommand = new RelayCommand(_ => RefreshSelectedDetails());
+            CreateProfileFromInstanceCommand = new RelayCommand(_ => CreateProfileFromSelectedInstance());
+            ApplyToInstanceCommand = new RelayCommand(_ => ApplyToSelectedInstance());
+            NewProfileCommand = new RelayCommand(_ => CreateNewProfile());
+            EditProfileCommand = new RelayCommand(_ => EditSelectedProfile());
+            ToggleProfileEnabledCommand = new RelayCommand(_ => ToggleSelectedProfileEnabled());
+            NewRuleCommand = new RelayCommand(_ => CreateNewRule());
+            EditRuleCommand = new RelayCommand(_ => EditSelectedRule());
+            DeleteRuleCommand = new RelayCommand(_ => DeleteSelectedRule());
+            ToggleRuleEnabledCommand = new RelayCommand(_ => ToggleSelectedRuleEnabled());
+            ClearRuleOverrideCommand = new RelayCommand(_ => ClearSelectedRuleOverride());
+            ExportDiagnosticsCommand = new RelayCommand(_ => ExportDiagnosticsPackage());
 
             ApplyLanguage(_appSettings.Language);
             _refreshTimer.Start();
@@ -762,9 +952,16 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                     // Background watcher: single authoritative pipeline with reentrancy,
                     // cancellation and shutdown guards (no UI touches inside).
                     // Safe mode: observe only, never mutate.
+                    // Global pause: same — observation continues, mutations stop.
                     if (IsSafeMode)
                     {
                         LogSafeModeSkipOnce();
+                        return;
+                    }
+
+                    if (AppSettings.AutomationPaused)
+                    {
+                        LogPausedSkipOnce();
                         return;
                     }
 
@@ -783,16 +980,23 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 ProcessScanResult scan = await _processScannerService.ScanUserProcessesAsync();
                 _optimizationService.CleanupStaleCache(scan.ActiveInstances);
                 CleanupOptimizationDiagnosticLogCache();
-                OptimizationBatchResult uiBatch = IsSafeMode
+                bool paused = AppSettings.AutomationPaused;
+                OptimizationBatchResult uiBatch = (IsSafeMode || paused)
                     ? new OptimizationBatchResult()
                     : _optimizationService.ApplyProfilesForSnapshots(profilesSnapshot, scan.Groups, AppSettings.AllowRealtimePriority, force: false);
                 if (IsSafeMode) LogSafeModeSkipOnce();
+                if (paused) LogPausedSkipOnce();
                 _operationHistory.RecordBatch(uiBatch, "process list refresh");
                 LogOptimizationBatch(uiBatch, "process list refresh");
+                if (!paused) EvaluateAndApplyRules(scan.Groups, "process list refresh");
 
                 UpdateCoreLoads();
                 AddMissingProcessRows(scan.Groups);
                 UpdateProcessRows(scan.Groups);
+                _lastUiScan = scan;
+                if (IsInstanceView) RebuildInstanceRows();
+                if (IsProcessListUiActive())
+                    UpdateInsights(SelectedInstanceRow?.ProcessId ?? SelectedProcessDetails?.RepresentativePid);
             }
             catch (Exception ex)
             {
@@ -822,7 +1026,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             {
                 foreach (var group in groups)
                 {
-                    if (!MatchesProcessFilter(group.Name)) continue;
+                    if (!MatchesProcessFilter(group.Name, group.ExecutablePath, isOptimized: _profiles.Any(x => x.IsEnabled && x.ProcessName.Equals(group.Name, StringComparison.OrdinalIgnoreCase)))) continue;
                     if (Processes.Any(x => x.Name.Equals(group.Name, StringComparison.OrdinalIgnoreCase))) continue;
 
                     var profile = _profiles.FirstOrDefault(x => x.IsEnabled && x.ProcessName.Equals(group.Name, StringComparison.OrdinalIgnoreCase));
@@ -833,12 +1037,16 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                     {
                         Id = group.FirstProcessId,
                         Name = group.Name,
+                        ExecutablePath = group.ExecutablePath,
+                        PriorityRank = PriorityService.Rank(profile?.Priority ?? group.Priority.ToString()),
                         InstanceCount = group.InstanceCount,
                         Priority = TranslatePriority(rawPrio),
                         IsOptimized = profile != null,
                         ModeTag = tag,
                         RamUsageMB = $"{group.TotalMemoryBytes / 1024 / 1024} MB",
-                        CpuUsage = $"{Math.Round(group.CpuUsagePercent, 1)}%"
+                        CpuUsage = $"{Math.Round(group.CpuUsagePercent, 1)}%",
+                        CpuUsageValue = group.CpuUsagePercent,
+                        MemoryBytes = group.TotalMemoryBytes
                     });
                 }
             });
@@ -866,6 +1074,10 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                     item.InstanceCount = snapshot.InstanceCount;
                     item.RamUsageMB = $"{snapshot.TotalMemoryBytes / 1024 / 1024} MB";
                     item.CpuUsage = $"{Math.Round(snapshot.CpuUsagePercent, 1)}%";
+                    item.CpuUsageValue = snapshot.CpuUsagePercent;
+                    item.MemoryBytes = snapshot.TotalMemoryBytes;
+                    item.ExecutablePath = snapshot.ExecutablePath;
+                    item.PriorityRank = PriorityService.Rank(profile?.Priority ?? snapshot.Priority.ToString());
                     item.Priority = TranslatePriority(profile?.Priority ?? snapshot.Priority.ToString());
                     item.IsOptimized = profile != null;
                     item.ModeTag = currentTag;
@@ -958,10 +1170,12 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             ViewHardwareMonitor = tabName == "Hardware" ? Visibility.Visible : Visibility.Collapsed;
             ViewSettings = tabName == "Settings" ? Visibility.Visible : Visibility.Collapsed;
             ViewDiagnostics = tabName == "Diagnostics" ? Visibility.Visible : Visibility.Collapsed;
+            ViewSmartRules = tabName == "Rules" ? Visibility.Visible : Visibility.Collapsed;
             OnPropertyChanged(nameof(IsRightPanelVisible));
 
             SelectedProcess = null;
             SelectedSavedProfile = null;
+            SelectedRule = null;
 
             if (tabName == "Hardware")
             {
@@ -1029,7 +1243,6 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             if (rawPriority == "RealTime" && !ConfirmRealTimePriority()) return;
 
             var mode = NormalizeOptimizationMode(SelectedOptimizationMode);
-            _profiles.RemoveAll(x => x.ProcessName.Equals(SelectedProcess.Name, StringComparison.OrdinalIgnoreCase));
 
             var newProfile = new ProcessProfile
             {
@@ -1044,7 +1257,8 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 UpdatedAt = DateTime.UtcNow
             };
 
-            _profiles.Add(newProfile);
+            // P0: replace only the name-only slot; path-bound siblings survive.
+            _profiles = ProfileService.ReplaceNameOnlyProfile(_profiles, newProfile);
             _profileService.SaveProfiles(_profiles);
             _profiles = _profileService.LoadProfiles();
             RefreshSavedProfilesView();
@@ -1087,7 +1301,9 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             RefreshSavedProfilesView();
             ClearAppliedProfileCache(processName);
 
-            var profileToApply = _profiles.FirstOrDefault(p => p.ProcessName.Equals(processName, StringComparison.OrdinalIgnoreCase));
+            // P0: re-resolve by stable Id — several path-bound profiles may share one name.
+            var profileToApply = ProfileService.FindById(_profiles, SelectedSavedProfile.Id)
+                ?? _profiles.FirstOrDefault(p => p.ProcessName.Equals(processName, StringComparison.OrdinalIgnoreCase));
             int affected = profileToApply != null ? ApplyProfileToRunningProcesses(profileToApply, force: true) : 0;
 
             var activeProcess = Processes.FirstOrDefault(p => p.Name.Equals(processName, StringComparison.OrdinalIgnoreCase));
@@ -1106,8 +1322,11 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             if (SelectedSavedProfile == null) return;
 
             string name = SelectedSavedProfile.ProcessName;
-            SavedProfiles.Remove(SelectedSavedProfile);
-            _profiles = SavedProfiles.ToList();
+            string deletedId = SelectedSavedProfile.Id;
+            // P0: delete exactly this profile by stable Id from the source list
+            // (never rebuild from the filtered SavedProfiles view — that would
+            // drop profiles hidden by the active filter). Siblings survive.
+            _profiles = ProfileService.RemoveById(_profiles, deletedId);
             _profileService.SaveProfiles(_profiles);
             _profiles = _profileService.LoadProfiles();
             RefreshSavedProfilesView();
@@ -1212,6 +1431,204 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             _safeModeNoticeShown = true;
             LoggerService.Instance.Info("Safe mode active: OS mutations disabled (--safe-mode).");
             AddLog("Safe mode: observing only, OS mutations disabled (--safe-mode).");
+        }
+
+        private bool _pausedNoticeShown;
+
+        private void LogPausedSkipOnce()
+        {
+            if (_pausedNoticeShown) return;
+            _pausedNoticeShown = true;
+            AddLog(IsPolishLanguage
+                ? "Pauza: obserwacja bez mutacji (AutomationPaused)."
+                : "Paused: observing only, no mutations (AutomationPaused).");
+        }
+
+        private void RefreshRuleStatus()
+        {
+            int enabled = _rulesSnapshot.Count(r => r.IsEnabled);
+            string status = AppSettings.AutomationPaused
+                ? (IsPolishLanguage ? $"Pauza — reguły wstrzymane ({enabled} włączonych)." : $"Paused — rules suspended ({enabled} enabled).")
+                : (IsPolishLanguage ? $"Reguły: {enabled} włączonych. {_ruleEngine.LastSummary}" : $"Rules: {enabled} enabled. {_ruleEngine.LastSummary}");
+            var recent = _ruleEngine.RecentDecisions;
+            WpfApplication.Current.Dispatcher.Invoke(() =>
+            {
+                RuleStatusText = status;
+                RecentRuleDecisions.Clear();
+                foreach (var d in recent.TakeLast(15).Reverse())
+                    RecentRuleDecisions.Add(d);
+            });
+        }
+
+        /// <summary>
+        /// Samples the selected PID on the existing refresh tick (no extra timer).
+        /// Charts carry the last known value forward for continuity; the summary
+        /// text always states the true readability of the latest point.
+        /// </summary>
+        private void UpdateProfileWhy()
+        {
+            string? name = SelectedInstanceRow?.Name ?? SelectedProcess?.Name;
+            if (string.IsNullOrWhiteSpace(name)) return;
+            string? path = SelectedInstanceRow?.ExecutablePath
+                ?? SelectedProcess?.ExecutablePath
+                ?? SelectedProcessDetails?.ExecutablePath;
+            ProfileMatchWhy = Services.ProfileMatchExplainer.Explain(name, path, _profiles, IsPolishLanguage);
+        }
+
+        private void ExportDiagnosticsPackage()
+        {
+            try
+            {
+                var dialog = new Microsoft.Win32.SaveFileDialog
+                {
+                    Filter = "ZIP archive (*.zip)|*.zip",
+                    FileName = $"PCO-diagnostics-{DateTime.Now:yyyyMMdd-HHmmss}.zip",
+                    OverwritePrompt = true
+                };
+                if (dialog.ShowDialog() != true) return;
+
+                string summary = Services.DiagnosticsExportService.BuildSummaryText(
+                    AppVersion,
+                    _profiles,
+                    _rulesSnapshot,
+                    profileId =>
+                    {
+                        var p = Services.ProfileService.FindById(_profiles, profileId);
+                        return p != null ? $"{p.DisplayName} ({(p.IsEnabled ? "enabled" : "disabled")})" : null;
+                    },
+                    _ruleEngine.RecentDecisions,
+                    WatcherStatusText,
+                    ActionLogs.TakeLast(100).ToList());
+                Services.DiagnosticsExportService.WriteZip(dialog.FileName, summary);
+                AddLog(IsPolishLanguage
+                    ? $"Zapisano pakiet diagnostyczny (zanonimizowany): {dialog.FileName}"
+                    : $"Saved anonymized diagnostics package: {dialog.FileName}");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Diagnostics export failed: {ex.Message}");
+            }
+        }
+
+        private void UpdateInsights(int? pid)
+        {
+            if (pid == null || pid == 0)
+            {
+                HasInsights = false;
+                return;
+            }
+
+            var reading = _insightsSampler.Sample(pid.Value);
+            var history = _insightsSampler.History.TakeLast(60).ToList();
+
+            double lastCpu = 0;
+            var cpu = new List<double>(history.Count);
+            foreach (var h in history)
+            {
+                if (h.CpuPercent.HasValue) lastCpu = h.CpuPercent.Value;
+                cpu.Add(lastCpu);
+            }
+
+            long lastWs = 0, lastPriv = 0;
+            var ws = new List<double>(history.Count);
+            var priv = new List<double>(history.Count);
+            foreach (var h in history)
+            {
+                if (h.WorkingSetBytes.HasValue) lastWs = h.WorkingSetBytes.Value;
+                if (h.PrivateBytes.HasValue) lastPriv = h.PrivateBytes.Value;
+                ws.Add(lastWs / 1024.0 / 1024.0);
+                priv.Add(lastPriv / 1024.0 / 1024.0);
+            }
+
+            double cpuMax = Math.Max(cpu.DefaultIfEmpty(0).Max(), 1);
+            double memMax = Math.Max(new[] { ws.DefaultIfEmpty(0).Max(), priv.DefaultIfEmpty(0).Max() }.Max(), 1);
+
+            CpuHistoryPoints = Converters.HistoryToPointsConverter.ConvertToPoints(cpu, cpuMax);
+            MemWsHistoryPoints = Converters.HistoryToPointsConverter.ConvertToPoints(ws, memMax);
+            MemPrivateHistoryPoints = Converters.HistoryToPointsConverter.ConvertToPoints(priv, memMax);
+
+            string cpuText = reading.CpuPercent.HasValue
+                ? $"{reading.CpuPercent.Value:F1}%"
+                : (IsPolishLanguage ? "niedostępne" : "unavailable");
+            string memText = reading.Readable && reading.WorkingSetBytes.HasValue
+                ? $"WS {reading.WorkingSetBytes.Value / 1024 / 1024} MB · {(IsPolishLanguage ? "pryw." : "priv.")} {(reading.PrivateBytes ?? 0) / 1024 / 1024} MB"
+                : (IsPolishLanguage ? "niedostępne" : "unavailable");
+            InsightsSummary = $"CPU {cpuText} · {memText}";
+            HasInsights = history.Count > 0;
+        }
+
+        private void ThrottledRuleLog(SmartRule rule, string message, int minutes = 5)
+        {
+            DateTime now = DateTime.UtcNow;
+            if (_lastRuleLogUtc.TryGetValue(rule.Id, out DateTime last) && now - last < TimeSpan.FromMinutes(minutes))
+                return;
+            _lastRuleLogUtc[rule.Id] = now;
+            AddLog(message);
+        }
+
+        private void EvaluateAndApplyRules(IReadOnlyList<ProcessGroupSnapshot> groups, string source)
+        {
+            try
+            {
+                if (IsSafeMode || AppSettings.AutomationPaused) return;
+                var snapshot = _rulesSnapshot;
+                if (snapshot.Count == 0 || !snapshot.Any(r => r.IsEnabled)) return;
+
+                int? fg = null;
+                if (snapshot.Any(r => r.IsEnabled && r.Trigger == RuleTrigger.OnForeground))
+                {
+                    try { fg = ForegroundService.GetForegroundPid(); } catch { fg = null; }
+                }
+
+                var decisions = _ruleEngine.Evaluate(groups, fg, DateTime.UtcNow, snapshot, automationPaused: false);
+                foreach (var d in decisions.Where(x => x.Ready))
+                    ApplyRuleDecision(d, source);
+                RefreshRuleStatus();
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Rules evaluation failed: {ex.Message}");
+            }
+        }
+
+        private void ApplyRuleDecision(RuleDecision d, string source)
+        {
+            var rule = SmartRuleService.FindById(_rulesSnapshot, d.RuleId);
+            if (rule == null || !rule.IsEnabled) return;
+            try
+            {
+                if (rule.Action == RuleAction.ApplyProfile)
+                {
+                    var profile = ProfileService.FindById(_profiles, rule.ProfileId);
+                    if (profile == null || !profile.IsEnabled)
+                    {
+                        ThrottledRuleLog(rule, IsPolishLanguage
+                            ? $"Reguła '{rule.Name}': brak włączonego profilu — pominięto ({d.Reason})."
+                            : $"Rule '{rule.Name}': no enabled profile — skipped ({d.Reason}).");
+                        return;
+                    }
+
+                    var batch = _optimizationService.ApplyProfileToInstances(
+                        profile, d.ProcessName, new[] { d.Key }, AppSettings.AllowRealtimePriority, force: true);
+                    var first = batch.Results.FirstOrDefault();
+                    _ruleEngine.MarkApplied(rule.Id, d.Key, DateTime.UtcNow);
+                    AddLog($"Rule '{rule.Name}' → '{profile.DisplayName}' on PID {d.Key.ProcessId} via {source} ({d.Reason}): {first?.Status.ToString() ?? "Skipped"}.");
+                }
+                else
+                {
+                    var result = _sessionRestore.RestoreForProcess(d.ProcessName, _processService, _cpuSetMap, new[] { d.Key });
+                    _optimizationService.SuspendLiveInstances(d.ProcessName, TimeSpan.FromMinutes(5), "smart rule session restore");
+                    ClearAppliedProfileCache(d.ProcessName);
+                    _ruleEngine.MarkApplied(rule.Id, d.Key, DateTime.UtcNow);
+                    AddLog($"Rule '{rule.Name}' restored session for PID {d.Key.ProcessId} via {source} ({d.Reason}): {result.Message}");
+                }
+            }
+            catch (Exception ex)
+            {
+                ThrottledRuleLog(rule, $"Rule '{rule.Name}' failed: {ex.Message}", minutes: 1);
+            }
+
+            RefreshRuleStatus();
         }
 
         private int ApplyProfileToRunningProcesses(ProcessProfile profile, bool force)
@@ -1379,6 +1796,452 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             }
         }
 
+        private void CopySelectedPid()
+        {
+            int? pid = SelectedInstanceRow?.ProcessId ?? SelectedProcessDetails?.RepresentativePid;
+            if (pid == null || pid == 0)
+            {
+                AddLog("Copy PID: no process selected.");
+                return;
+            }
+
+            try
+            {
+                System.Windows.Clipboard.SetText(pid.Value.ToString());
+                AddLog($"Copied PID {pid.Value} to clipboard.");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Copy PID failed: {ex.Message}");
+            }
+        }
+
+        private void CopySelectedExePath()
+        {
+            string? path = SelectedInstanceRow?.ExecutablePath ?? SelectedProcessDetails?.ExecutablePath;
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                AddLog("Copy EXE path: unavailable for the selected process (OS refused the read).");
+                return;
+            }
+
+            try
+            {
+                System.Windows.Clipboard.SetText(path);
+                AddLog($"Copied EXE path to clipboard: {path}");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Copy EXE path failed: {ex.Message}");
+            }
+        }
+
+        private void OpenSelectedFileLocation()
+        {
+            string? path = SelectedInstanceRow?.ExecutablePath ?? SelectedProcessDetails?.ExecutablePath;
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                AddLog("Open file location: unavailable for the selected process (OS refused the read).");
+                return;
+            }
+
+            // Observation only: reveals the local folder, never mutates the process.
+            try
+            {
+                string target = File.Exists(path) ? $"/select,\"{path}\"" : $"\"{Path.GetDirectoryName(path)}\"";
+                Process.Start(new ProcessStartInfo("explorer.exe", target) { UseShellExecute = true });
+                AddLog($"Opened file location: {path}");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Open file location failed: {ex.Message}");
+            }
+        }
+
+        private void RefreshSelectedDetails()
+        {
+            // Observation only: re-reads live details for the current selection.
+            string? name = SelectedInstanceRow?.Name ?? SelectedProcess?.Name;
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                AddLog("Details: no process selected.");
+                return;
+            }
+
+            SelectedProcessDetails = BuildProcessDetails(name);
+            AddLog($"Details refreshed for '{name}' (see panel below).");
+        }
+
+        private void PreviewSelectedChanges()
+        {
+            // Read-only by design: Compare never mutates, it only reads current state.
+            try
+            {
+                ProcessProfile? profile = null;
+                int pid = 0;
+                if (SelectedInstanceRow != null)
+                {
+                    pid = SelectedInstanceRow.ProcessId;
+                    profile = _profiles.FirstOrDefault(p => p.IsEnabled
+                        && ProfileService.MatchesIdentity(p, SelectedInstanceRow.Name, SelectedInstanceRow.ExecutablePath));
+                }
+                else if (SelectedProcess != null)
+                {
+                    pid = SelectedProcess.Id;
+                    profile = _profiles.FirstOrDefault(p => p.IsEnabled && p.ProcessName.Equals(SelectedProcess.Name, StringComparison.OrdinalIgnoreCase));
+                }
+
+                if (profile == null)
+                {
+                    AddLog("Preview: no enabled profile matches the selection. Create one first.");
+                    return;
+                }
+
+                var preview = ProfilePreviewService.Compare(profile, pid, _cpuSetMap, _processService, AppSettings.AllowRealtimePriority);
+                AddLog($"Preview '{profile.DisplayName}' vs PID {pid}: {preview.Summary}");
+                foreach (var row in preview.Rows)
+                    AddLog($"  {row.Action}: requested {row.Requested}, current {row.Current} — {(row.Matches ? "already matches" : "differs")}. {row.Detail}");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Preview failed: {ex.Message}");
+            }
+        }
+
+        private void CreateProfileFromSelectedInstance()
+        {
+            var row = SelectedInstanceRow;
+            if (row == null)
+            {
+                AddLog("Create profile: select a single instance (Instances view) first.");
+                return;
+            }
+
+            try
+            {
+                var draft = ProfilePreviewService.CaptureFromLive(row.ProcessId, _cpuSetMap, _processService);
+                if (draft == null)
+                {
+                    AddLog($"Create profile failed: the OS refused to read PID {row.ProcessId}.");
+                    return;
+                }
+
+                draft.ExecutablePath = row.ExecutablePath ?? draft.ExecutablePath;
+                draft.IsEnabled = false;
+                draft.Notes = $"Draft from PID {row.ProcessId} ({row.Name}). Review before enabling.";
+                _profiles = ProfileService.ReplacePathBoundOrAdd(_profiles, draft);
+                _profileService.SaveProfiles(_profiles);
+                _profiles = _profileService.LoadProfiles();
+                RefreshSavedProfilesView();
+                RefreshProfileConflicts();
+                AddLog($"Created disabled profile draft from PID {row.ProcessId} ('{row.Name}').");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Create profile failed: {ex.Message}");
+            }
+        }
+
+        private void ApplyToSelectedInstance()
+        {
+            // P0: an explicit instance selection applies to that PID only — never widens.
+            var row = SelectedInstanceRow;
+            if (row == null) return;
+            if (IsSafeMode)
+            {
+                AddLog("Safe mode: apply blocked, OS mutations disabled (--safe-mode).");
+                return;
+            }
+
+            try
+            {
+                var profile = _profiles.FirstOrDefault(p => p.IsEnabled
+                    && ProfileService.MatchesIdentity(p, row.Name, row.ExecutablePath));
+                if (profile == null)
+                {
+                    AddLog($"Apply: no enabled profile matches PID {row.ProcessId} ('{row.Name}').");
+                    return;
+                }
+
+                var batch = _optimizationService.ApplyProfileToInstances(
+                    profile, row.Name, new[] { row.Key }, AppSettings.AllowRealtimePriority, force: true);
+                var first = batch.Results.FirstOrDefault();
+                row.LastStatus = first?.Status.ToString() ?? "Skipped";
+                AddLog($"Applied '{profile.DisplayName}' to PID {row.ProcessId} only: {row.LastStatus} ({batch.Successful}/{batch.Total} applied).");
+                RefreshWatcherStatus();
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Apply to instance failed: {ex.Message}");
+            }
+        }
+
+        private void CreateNewProfile()
+        {
+            var draft = new ProcessProfile
+            {
+                ProcessName = SelectedProcess?.Name ?? SelectedInstanceRow?.Name ?? string.Empty,
+                ExecutablePath = SelectedInstanceRow?.ExecutablePath,
+                AffinityMask = 0xFF,
+                Priority = "Normal",
+                OptimizationMode = OptimizationMode.Affinity,
+                ApplyPriority = true,
+                ApplyCoreOptimization = true,
+                IsEnabled = false,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            if (!ShowProfileEditor(draft, isNew: true)) return;
+
+            _profiles = ProfileService.ReplacePathBoundOrAdd(_profiles, draft);
+            _profileService.SaveProfiles(_profiles);
+            _profiles = _profileService.LoadProfiles();
+            RefreshSavedProfilesView();
+            RefreshProfileConflicts();
+            AddLog(IsPolishLanguage
+                ? $"Utworzono profil '{draft.ProcessName}' (wyłączony — włącz go świadomie)."
+                : $"Created profile '{draft.ProcessName}' (disabled — enable it deliberately).");
+        }
+
+        private void EditSelectedProfile()
+        {
+            var selected = SelectedSavedProfile;
+            if (selected == null)
+            {
+                AddLog(IsPolishLanguage ? "Edycja: najpierw wybierz profil." : "Edit: select a profile first.");
+                return;
+            }
+
+            // Edit a clone: cancel leaves the saved profile untouched.
+            var draft = new ProcessProfile
+            {
+                Id = selected.Id,
+                SchemaVersion = selected.SchemaVersion,
+                ProcessName = selected.ProcessName,
+                DisplayName = selected.DisplayName,
+                ExecutablePath = selected.ExecutablePath,
+                AffinityMask = selected.AffinityMask,
+                Priority = selected.Priority,
+                OptimizationMode = selected.OptimizationMode,
+                ApplyPriority = selected.ApplyPriority,
+                ApplyCoreOptimization = selected.ApplyCoreOptimization,
+                EcoQos = selected.EcoQos,
+                IsEnabled = selected.IsEnabled,
+                Notes = selected.Notes,
+                CreatedAt = selected.CreatedAt,
+                UpdatedAt = selected.UpdatedAt
+            };
+
+            if (!ShowProfileEditor(draft, isNew: false)) return;
+
+            // P0: write back by stable Id, never by name.
+            var existing = ProfileService.FindById(_profiles, draft.Id);
+            if (existing == null)
+            {
+                AddLog(IsPolishLanguage ? "Edycja: profil już nie istnieje." : "Edit: profile no longer exists.");
+                return;
+            }
+
+            existing.ExecutablePath = draft.ExecutablePath;
+            existing.AffinityMask = draft.AffinityMask;
+            existing.Priority = draft.Priority;
+            existing.DisplayPriority = TranslatePriority(NormalizePriority(draft.Priority));
+            existing.OptimizationMode = draft.OptimizationMode;
+            existing.ApplyPriority = draft.ApplyPriority;
+            existing.ApplyCoreOptimization = draft.ApplyCoreOptimization;
+            existing.EcoQos = draft.EcoQos;
+            existing.IsEnabled = draft.IsEnabled;
+            existing.Notes = draft.Notes;
+            existing.UpdatedAt = DateTime.UtcNow;
+
+            _profileService.SaveProfiles(_profiles);
+            _profiles = _profileService.LoadProfiles();
+            RefreshSavedProfilesView();
+            RefreshProfileConflicts();
+            ClearAppliedProfileCache(existing.ProcessName);
+            AddLog(IsPolishLanguage
+                ? $"Zaktualizowano profil '{existing.ProcessName}'."
+                : $"Updated profile '{existing.ProcessName}'.");
+        }
+
+        private void ToggleSelectedProfileEnabled()
+        {
+            var selected = SelectedSavedProfile;
+            if (selected == null) return;
+            var existing = ProfileService.FindById(_profiles, selected.Id);
+            if (existing == null) return;
+            existing.IsEnabled = !existing.IsEnabled;
+            existing.UpdatedAt = DateTime.UtcNow;
+            _profileService.SaveProfiles(_profiles);
+            _profiles = _profileService.LoadProfiles();
+            RefreshSavedProfilesView();
+            RefreshProfileConflicts();
+            if (!existing.IsEnabled) ClearAppliedProfileCache(existing.ProcessName);
+            AddLog(IsPolishLanguage
+                ? $"Profil '{existing.ProcessName}': {(existing.IsEnabled ? "włączony" : "wyłączony")}."
+                : $"Profile '{existing.ProcessName}': {(existing.IsEnabled ? "enabled" : "disabled")}.");
+        }
+
+        private bool ShowProfileEditor(ProcessProfile draft, bool isNew)
+        {
+            try
+            {
+                var owner = WpfApplication.Current.MainWindow as Views.MainWindow;
+                var window = new Views.ProfileEditorWindow(
+                    draft, isNew, AppSettings.AllowRealtimePriority, IsPolishLanguage, _profiles);
+                if (owner != null) window.Owner = owner;
+                return window.ShowDialog() == true;
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Profile editor failed: {ex.Message}");
+                return false;
+            }
+        }
+
+        private void CreateNewRule()
+        {
+            var draft = new SmartRule
+            {
+                ProcessName = SelectedProcess?.Name ?? SelectedInstanceRow?.Name ?? string.Empty,
+                ExecutablePath = SelectedInstanceRow?.ExecutablePath,
+                Trigger = RuleTrigger.OnLaunch,
+                Action = RuleAction.ApplyProfile,
+                DelaySeconds = 0,
+                CooldownSeconds = 30,
+                Priority = 100,
+                IsEnabled = false,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            if (!ShowRuleEditor(draft, isNew: true)) return;
+
+            _rules.Add(draft);
+            SaveRules();
+            AddLog(IsPolishLanguage
+                ? $"Utworzono regułę '{draft.Name}' (wyłączona — włącz ją świadomie)."
+                : $"Created rule '{draft.Name}' (disabled — enable it deliberately).");
+        }
+
+        private void EditSelectedRule()
+        {
+            var selected = SelectedRule;
+            if (selected == null)
+            {
+                AddLog(IsPolishLanguage ? "Edycja: najpierw wybierz regułę." : "Edit: select a rule first.");
+                return;
+            }
+
+            var draft = new SmartRule
+            {
+                Id = selected.Id,
+                Name = selected.Name,
+                ProcessName = selected.ProcessName,
+                ExecutablePath = selected.ExecutablePath,
+                Trigger = selected.Trigger,
+                Action = selected.Action,
+                ProfileId = selected.ProfileId,
+                DelaySeconds = selected.DelaySeconds,
+                CooldownSeconds = selected.CooldownSeconds,
+                Priority = selected.Priority,
+                IsEnabled = selected.IsEnabled,
+                Notes = selected.Notes,
+                CreatedAt = selected.CreatedAt,
+                UpdatedAt = selected.UpdatedAt
+            };
+
+            if (!ShowRuleEditor(draft, isNew: false)) return;
+
+            var existing = SmartRuleService.FindById(_rules, draft.Id);
+            if (existing == null)
+            {
+                AddLog(IsPolishLanguage ? "Edycja: reguła już nie istnieje." : "Edit: rule no longer exists.");
+                return;
+            }
+
+            existing.Name = draft.Name;
+            existing.ProcessName = draft.ProcessName;
+            existing.ExecutablePath = draft.ExecutablePath;
+            existing.Trigger = draft.Trigger;
+            existing.Action = draft.Action;
+            existing.ProfileId = draft.ProfileId;
+            existing.DelaySeconds = draft.DelaySeconds;
+            existing.CooldownSeconds = draft.CooldownSeconds;
+            existing.Priority = draft.Priority;
+            existing.IsEnabled = draft.IsEnabled;
+            existing.Notes = draft.Notes;
+            existing.UpdatedAt = DateTime.UtcNow;
+            SaveRules();
+            AddLog(IsPolishLanguage ? $"Zaktualizowano regułę '{existing.Name}'." : $"Updated rule '{existing.Name}'.");
+        }
+
+        private void DeleteSelectedRule()
+        {
+            var selected = SelectedRule;
+            if (selected == null) return;
+            _rules = SmartRuleService.RemoveById(_rules, selected.Id);
+            _ruleEngine.ClearOverride(selected.Id);
+            SelectedRule = null;
+            SaveRules();
+            AddLog(IsPolishLanguage ? $"Usunięto regułę '{selected.Name}'." : $"Deleted rule '{selected.Name}'.");
+        }
+
+        private void ToggleSelectedRuleEnabled()
+        {
+            var selected = SelectedRule;
+            if (selected == null) return;
+            var existing = SmartRuleService.FindById(_rules, selected.Id);
+            if (existing == null) return;
+            existing.IsEnabled = !existing.IsEnabled;
+            existing.UpdatedAt = DateTime.UtcNow;
+            SaveRules();
+            AddLog(IsPolishLanguage
+                ? $"Reguła '{existing.Name}': {(existing.IsEnabled ? "włączona" : "wyłączona")}."
+                : $"Rule '{existing.Name}': {(existing.IsEnabled ? "enabled" : "disabled")}.");
+        }
+
+        private void ClearSelectedRuleOverride()
+        {
+            var selected = SelectedRule;
+            if (selected == null) return;
+            _ruleEngine.ClearOverride(selected.Id);
+            AddLog(IsPolishLanguage
+                ? $"Wyczyszczono obejście reguły '{selected.Name}'."
+                : $"Cleared override for rule '{selected.Name}'.");
+        }
+
+        private void SaveRules()
+        {
+            _ruleService.SaveRules(_rules);
+            _rules = _ruleService.LoadRules();
+            _rulesSnapshot = _rules.ToList();
+            WpfApplication.Current.Dispatcher.Invoke(() =>
+            {
+                Rules.Clear();
+                foreach (var rule in _rules.OrderBy(r => r.Priority).ThenBy(r => r.ProcessName, StringComparer.OrdinalIgnoreCase))
+                    Rules.Add(rule);
+            });
+            RefreshRuleStatus();
+        }
+
+        private bool ShowRuleEditor(SmartRule draft, bool isNew)
+        {
+            try
+            {
+                var owner = WpfApplication.Current.MainWindow as Views.MainWindow;
+                var window = new Views.RuleEditorWindow(draft, isNew, _profiles, IsPolishLanguage);
+                if (owner != null) window.Owner = owner;
+                return window.ShowDialog() == true;
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Rule editor failed: {ex.Message}");
+                return false;
+            }
+        }
+
         private void CaptureLiveSettings()
         {
             if (SelectedProcess == null) return;
@@ -1419,6 +2282,16 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             {
                 AddLog($"Capture failed: {ex.Message}");
             }
+        }
+
+        private void ReloadRules()
+        {
+            _rules = _ruleService.LoadRules();
+            _rulesSnapshot = _rules.ToList();
+            Rules.Clear();
+            foreach (var rule in _rules.OrderBy(r => r.Priority).ThenBy(r => r.ProcessName, StringComparer.OrdinalIgnoreCase))
+                Rules.Add(rule);
+            RefreshRuleStatus();
         }
 
         private void RefreshProfileConflicts()
@@ -1462,10 +2335,14 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             }
         }
 
-        private bool MatchesProcessFilter(string name)
+        private bool MatchesProcessFilter(string name, string? executablePath = null, bool isOptimized = false)
         {
+            if (_processOnlyOptimized && !isOptimized) return false;
+            if (_processOnlyWithProfile && !isOptimized) return false;
             if (string.IsNullOrWhiteSpace(_processFilterText)) return true;
-            return name.Contains(_processFilterText.Trim(), StringComparison.OrdinalIgnoreCase);
+            string filter = _processFilterText.Trim();
+            return name.Contains(filter, StringComparison.OrdinalIgnoreCase)
+                || (executablePath?.Contains(filter, StringComparison.OrdinalIgnoreCase) == true);
         }
 
         private bool MatchesProfileFilter(ProcessProfile profile)
@@ -1483,9 +2360,34 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             {
                 for (int i = Processes.Count - 1; i >= 0; i--)
                 {
-                    if (!MatchesProcessFilter(Processes[i].Name)) Processes.RemoveAt(i);
+                    var item = Processes[i];
+                    if (!MatchesProcessFilter(item.Name, item.ExecutablePath, item.IsOptimized)) Processes.RemoveAt(i);
                 }
+
+                RebuildInstanceRows();
             });
+        }
+
+        /// <summary>
+        /// Rebuilds the flat instance list from the last UI scan (local op, no rescan).
+        /// Honors the same filter text/flags as the grouped view.
+        /// </summary>
+        private void RebuildInstanceRows()
+        {
+            var scan = _lastUiScan;
+            if (scan == null) return;
+
+            var rows = ProcessRowBuilder.BuildInstanceRows(
+                scan.InstanceDetails,
+                _profiles,
+                translatePriority: raw => TranslatePriority(NormalizePriority(raw)));
+
+            InstanceRows.Clear();
+            foreach (var row in rows.Where(r =>
+                MatchesProcessFilter(r.Name, r.ExecutablePath, !string.IsNullOrEmpty(r.ProfileName))))
+            {
+                InstanceRows.Add(row);
+            }
         }
 
         private ProcessDetails BuildProcessDetails(string processName)
@@ -1699,6 +2601,8 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             RefreshDisplayedPriorities();
             RefreshProfileConflicts();
             RefreshWatcherStatus();
+            RefreshRuleStatus();
+            UpdateProfileWhy();
             OnPropertyChanged(nameof(CpuVendorText));
             OnPropertyChanged(nameof(CurrentPrivilegesText));
             _ = RefreshStartupStatusAsync();
@@ -1752,6 +2656,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             }
 
             RefreshProfileConflicts();
+            UpdateProfileWhy();
         }
 
         private string TranslatePriority(string? rawEnum)

@@ -14,10 +14,18 @@ namespace ProcessCoreOptimizer.WPF.Models
         private string _priority = "Normal";
         private string _modeTag = string.Empty;
         private int _instanceCount = 1;
+        private double _cpuUsageValue;
+        private long _memoryBytes;
 
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string DisplayName => string.IsNullOrEmpty(ModeTag) ? Name : $"{Name} [{ModeTag}]";
+
+        /// <summary>EXE path when all instances agree; null on disagreement/refusal. Display + filter.</summary>
+        public string? ExecutablePath { get; set; }
+
+        /// <summary>Semantic priority rank for column sorting (see <see cref="Services.PriorityService.Rank"/>).</summary>
+        public int PriorityRank { get; set; } = 2;
 
         public int InstanceCount
         {
@@ -43,10 +51,24 @@ namespace ProcessCoreOptimizer.WPF.Models
             set => SetProperty(ref _cpuUsage, value);
         }
 
+        /// <summary>Raw CPU percent for correct numeric sorting (display twin: <see cref="CpuUsage"/>).</summary>
+        public double CpuUsageValue
+        {
+            get => _cpuUsageValue;
+            set => SetProperty(ref _cpuUsageValue, value);
+        }
+
         public string RamUsageMB
         {
             get => _ramUsageMB;
             set => SetProperty(ref _ramUsageMB, value);
+        }
+
+        /// <summary>Raw total bytes for correct numeric sorting (display twin: <see cref="RamUsageMB"/>).</summary>
+        public long MemoryBytes
+        {
+            get => _memoryBytes;
+            set => SetProperty(ref _memoryBytes, value);
         }
 
         public string Priority

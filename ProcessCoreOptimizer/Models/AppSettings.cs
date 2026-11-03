@@ -49,6 +49,12 @@ namespace ProcessCoreOptimizer.WPF.Models
         public bool EnableStorageSensors { get; set; } = false;
         public bool CheckForUpdates { get; set; } = true;
 
+        /// <summary>
+        /// Global pause for all automatic optimization (profile watcher auto-apply
+        /// and smart rules). Observation continues; mutations stop.
+        /// </summary>
+        public bool AutomationPaused { get; set; } = false;
+
         [JsonIgnore]
         public DesiredStartupConfiguration DesiredStartup =>
             new(StartWithWindows, StartupWindowMode, StartupRunElevated);

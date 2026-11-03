@@ -27,7 +27,7 @@ namespace ProcessCoreOptimizer.WPF.Services
 
         public Task<ProcessScanResult> ScanUserProcessesAsync()
         {
-            return Task.Run(ScanUserProcesses);
+            return Task.Run(() => ScanUserProcesses(includeInstanceDetails: true));
         }
 
         public Task<ProcessScanResult> ScanProfileProcessesAsync(IEnumerable<ProcessProfile> profiles)
@@ -35,7 +35,95 @@ namespace ProcessCoreOptimizer.WPF.Services
             return Task.Run(() => ScanProfileProcesses(profiles));
         }
 
-        private ProcessScanResult ScanUserProcesses()
+        /// <summary>
+        /// On-demand per-instance drill-down for one process group. Reuses the same
+        /// CPU-delta cache as the group scan (no extra timers). Best-effort per
+        /// instance: unreadable values stay null (Unknown), never invented.
+        /// Call only on explicit user action (group expand / Instance mode).
+        /// </summary>
+        public Task<IReadOnlyList<ProcessInstanceData>> ScanGroupInstancesAsync(string processName)
+        {
+            return Task.Run<IReadOnlyList<ProcessInstanceData>>(() => ScanGroupInstances(processName));
+        }
+
+        private IReadOnlyList<ProcessInstanceData> ScanGroupInstances(string processName)
+        {
+            string normalized = ProfileService.NormalizeProcessName(processName);
+            if (string.IsNullOrWhiteSpace(normalized)) return Array.Empty<ProcessInstanceData>();
+
+            Process[] processes = Array.Empty<Process>();
+            try
+            {
+                processes = Process.GetProcessesByName(normalized);
+                double elapsedSeconds = Math.Max((DateTime.UtcNow - _lastSampleUtc).TotalSeconds, 0.1);
+
+                var rows = new List<ProcessInstanceData>(processes.Length);
+                var active = new HashSet<ProcessInstanceKey>();
+                foreach (var process in processes)
+                {
+                    try
+                    {
+                        if (process.HasExited) continue;
+                        var key = CreateInstanceKey(process);
+                        active.Add(key);
+
+                        double? cpu = null;
+                        try
+                        {
+                            TimeSpan currentCpu = process.TotalProcessorTime;
+                            lock (_cpuTimesLock)
+                            {
+                                if (_lastCpuTimes.TryGetValue(key, out TimeSpan lastCpu))
+                                {
+                                    double usageMs = Math.Max((currentCpu - lastCpu).TotalMilliseconds, 0);
+                                    cpu = (usageMs / (elapsedSeconds * 1000 * Math.Max(Environment.ProcessorCount, 1))) * 100;
+                                }
+
+                                _lastCpuTimes[key] = currentCpu;
+                            }
+                        }
+                        catch { cpu = null; }
+
+                        long? memory = null;
+                        try { memory = process.WorkingSet64; } catch { memory = null; }
+
+                        ProcessPriorityClass? priority = null;
+                        try { priority = process.PriorityClass; } catch { priority = null; }
+
+                        rows.Add(new ProcessInstanceData
+                        {
+                            Key = key,
+                            ProcessName = process.ProcessName,
+                            ExecutablePath = ProcessIdentityValidator.TryGetProcessPath(process),
+                            CpuUsagePercent = cpu,
+                            WorkingSetBytes = memory,
+                            Priority = priority
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Debug($"Instance drill-down skipped a '{normalized}' PID: {ex.Message}");
+                    }
+                }
+
+                CleanupCpuCache(active);
+                return rows.OrderBy(r => r.Key.ProcessId).ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug($"Instance drill-down failed for '{normalized}': {ex.Message}");
+                return Array.Empty<ProcessInstanceData>();
+            }
+            finally
+            {
+                foreach (var process in processes)
+                {
+                    process.Dispose();
+                }
+            }
+        }
+
+        private ProcessScanResult ScanUserProcesses(bool includeInstanceDetails)
         {
             Process[] processes = Array.Empty<Process>();
             try
@@ -48,7 +136,7 @@ namespace ProcessCoreOptimizer.WPF.Services
                     .Where(p => _processService.IsUserProcess(p))
                     .ToList();
 
-                var result = BuildGroupedSnapshot(userProcesses, elapsedSeconds, includeResources: true);
+                var result = BuildGroupedSnapshot(userProcesses, elapsedSeconds, includeResources: true, includeInstanceDetails);
                 CleanupCpuCache(result.ActiveInstances);
                 return result;
             }
@@ -98,10 +186,11 @@ namespace ProcessCoreOptimizer.WPF.Services
             }
         }
 
-        private ProcessScanResult BuildGroupedSnapshot(IEnumerable<Process> processes, double elapsedSeconds, bool includeResources)
+        private ProcessScanResult BuildGroupedSnapshot(IEnumerable<Process> processes, double elapsedSeconds, bool includeResources, bool includeInstanceDetails = false)
         {
             var activeInstances = new HashSet<ProcessInstanceKey>();
             var snapshots = new List<ProcessGroupSnapshot>();
+            var instanceDetails = new List<ProcessInstanceData>();
 
             var groups = processes
                 .GroupBy(p => p.ProcessName, StringComparer.OrdinalIgnoreCase)
@@ -132,17 +221,36 @@ namespace ProcessCoreOptimizer.WPF.Services
                         {
                             totalMemory += process.WorkingSet64;
                             TimeSpan currentCpu = process.TotalProcessorTime;
+                            double? instanceCpu = null;
                             lock (_cpuTimesLock)
                             {
                                 if (_lastCpuTimes.TryGetValue(key, out TimeSpan lastCpu))
                                 {
                                     double usageMs = Math.Max((currentCpu - lastCpu).TotalMilliseconds, 0);
-                                    totalCpu += (usageMs / (elapsedSeconds * 1000 * Math.Max(Environment.ProcessorCount, 1))) * 100;
+                                    double pct = (usageMs / (elapsedSeconds * 1000 * Math.Max(Environment.ProcessorCount, 1))) * 100;
+                                    totalCpu += pct;
+                                    instanceCpu = pct;
                                 }
 
                                 _lastCpuTimes[key] = currentCpu;
                             }
+
                             priority = process.PriorityClass;
+
+                            if (includeInstanceDetails)
+                            {
+                                ProcessPriorityClass? rowPrio = null;
+                                try { rowPrio = process.PriorityClass; } catch { rowPrio = null; }
+                                instanceDetails.Add(new ProcessInstanceData
+                                {
+                                    Key = key,
+                                    ProcessName = process.ProcessName,
+                                    ExecutablePath = observedPaths.Count > 0 ? observedPaths[observedPaths.Count - 1] : null,
+                                    CpuUsagePercent = instanceCpu,
+                                    WorkingSetBytes = process.WorkingSet64,
+                                    Priority = rowPrio
+                                });
+                            }
                         }
                     }
                     catch (Exception ex)
@@ -169,7 +277,8 @@ namespace ProcessCoreOptimizer.WPF.Services
             return new ProcessScanResult
             {
                 Groups = snapshots,
-                ActiveInstances = activeInstances
+                ActiveInstances = activeInstances,
+                InstanceDetails = instanceDetails
             };
         }
 

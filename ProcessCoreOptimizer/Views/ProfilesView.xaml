@@ -30,16 +30,24 @@
                 </StackPanel>
             </Border>
 
-            <DataGrid Grid.Row="3" ItemsSource="{Binding SavedProfiles}" SelectedItem="{Binding SelectedSavedProfile}" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single" CanUserAddRows="False">
+            <DataGrid Grid.Row="3" ItemsSource="{Binding SavedProfiles}" SelectedItem="{Binding SelectedSavedProfile}" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single" CanUserAddRows="False" CanUserSortColumns="True">
+                <DataGrid.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="{DynamicResource StrEditProfile}" Command="{Binding EditProfileCommand}"/>
+                        <MenuItem Header="{DynamicResource StrCtxToggleEnabled}" Command="{Binding ToggleProfileEnabledCommand}"/>
+                        <Separator/>
+                        <MenuItem Header="{DynamicResource StrDeleteProfile}" Command="{Binding DeleteProfileCommand}"/>
+                    </ContextMenu>
+                </DataGrid.ContextMenu>
                 <DataGrid.Columns>
-                    <DataGridTextColumn Binding="{Binding ProcessName}" Width="*" >
+                    <DataGridTextColumn Binding="{Binding ProcessName}" SortMemberPath="ProcessName" Width="*" >
                         <DataGridTextColumn.HeaderTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{DynamicResource StrColName}" />
                             </DataTemplate>
                         </DataGridTextColumn.HeaderTemplate>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Binding="{Binding DisplayPriority}" Width="100">
+                    <DataGridTextColumn Binding="{Binding DisplayPriority}" SortMemberPath="Priority" Width="100">
                         <DataGridTextColumn.HeaderTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{DynamicResource StrColPriority}" />
@@ -70,7 +78,7 @@
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
 
-                    <DataGridTemplateColumn Width="160">
+                    <DataGridTemplateColumn Width="160" SortMemberPath="OptimizationMode">
                         <DataGridTemplateColumn.HeaderTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{DynamicResource StrColMode}" />
@@ -102,6 +110,8 @@
             </DataGrid>
 
             <UniformGrid Grid.Row="4" Columns="2" Margin="0,12,0,0">
+                <Button Content="{DynamicResource StrNewProfile}" Command="{Binding NewProfileCommand}" Style="{StaticResource SmallFilterButton}" Margin="0,0,4,4"/>
+                <Button Content="{DynamicResource StrEditProfile}" Command="{Binding EditProfileCommand}" Style="{StaticResource SmallFilterButton}" Margin="4,0,0,4"/>
                 <Button Content="{DynamicResource StrDuplicateProfile}" Command="{Binding DuplicateProfileCommand}" Style="{StaticResource SmallFilterButton}" Margin="0,0,4,4"/>
                 <Button Content="{DynamicResource StrExportProfiles}" Command="{Binding ExportProfilesCommand}" Style="{StaticResource SmallFilterButton}" Margin="4,0,0,4"/>
                 <Button Content="{DynamicResource StrImportProfiles}" Command="{Binding ImportProfilesCommand}" Style="{StaticResource SmallFilterButton}" Margin="0,0,4,4"/>

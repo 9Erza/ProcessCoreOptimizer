@@ -46,6 +46,13 @@ namespace ProcessCoreOptimizer.WPF.Services
         public event EventHandler<OptimizationBatchResult>? BatchCompleted;
 
         /// <summary>
+        /// Fired after every pass with the scan that drove it, so automation rules
+        /// can evaluate against the same snapshot (no extra process enumeration).
+        /// Handlers run on the pass thread; they must be thread-safe.
+        /// </summary>
+        public event EventHandler<ProcessScanResult>? ScanCompleted;
+
+        /// <summary>
         /// Runs one background pass. Never overlaps, never throws, never mutates
         /// after disposal. Returns null when the run was skipped (busy/disposed).
         /// </summary>
@@ -92,6 +99,11 @@ namespace ProcessCoreOptimizer.WPF.Services
                 try { BatchCompleted?.Invoke(this, batch); } catch (Exception ex)
                 {
                     _logger.Debug($"Watcher BatchCompleted handler failed: {ex.Message}");
+                }
+
+                try { ScanCompleted?.Invoke(this, scan); } catch (Exception ex)
+                {
+                    _logger.Debug($"Watcher ScanCompleted handler failed: {ex.Message}");
                 }
 
                 return batch;
