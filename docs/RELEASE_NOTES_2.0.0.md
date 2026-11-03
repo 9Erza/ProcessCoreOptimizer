@@ -43,24 +43,26 @@ About navigation, full PL/EN).
 ## Verification
 
 - Release build: 0 warnings, 0 errors.
-- Tests: 234 MSTest cases — 231 passing, 3 environment-gated real-startup
+- Tests: 240 MSTest cases — 237 passing, 3 environment-gated real-startup
   integration tests skipped without `PCO_REAL_STARTUP_TESTS=1`
   (fake backend, read-only checks, negative P0 identity tests, CPU Sets
   restore/suspension matrix, startup planner/coordinator/backend,
   reset safety, onboarding, helper protocol, updater gates (incl.
   no-downgrade-prompt and unparsable-tag guards), localization
-  parity, XAML Run-binding-mode guard, and real Windows API tests on
-  isolated self-owned `%TEMP%` probe copies). Manually enabled once locally:
-  all 3 real startup tests green, zero registry/task leftovers. No user,
-  service or agent process is ever touched.
+  parity, XAML Run-binding-mode guard, Developer Hub footer guards, and real
+  Windows API tests on isolated self-owned `%TEMP%` probe copies).
+  Manually enabled once locally: all 3 real startup tests green,
+  zero registry/task leftovers. No user, service or agent process is ever touched.
 - Startup architecture: plan → execute → verify with create-before-delete
   ordering; UAC cancel and failed-create paths proven by tests.
-- GUI: 19/19 UI Automation checks on Windows 11 (1920×1080, 100% DPI):
+- GUI: 21/21 UI Automation checks on Windows 11 (1920×1080, 100% DPI):
   all seven views incl. Smart Rules via real clicks, instance-view toggle,
   maximize/minimize/restore, tray-aware close, startup status text, scrolled
   startup section, PL toggle with screenshots, safe-mode log line, about links
   with automation names, first-run wizard pages + Finish + settings stamp,
-  isolated portable first-run smoke test.
+  isolated portable first-run smoke test, Developer Hub collapsed/expanded
+  EN+PL with per-row checks, Space-toggle keyboard path, in-app About
+  navigation, 1000×700 minimum-size overflow check.
   Harness: `tools/Run-GuiVerification.ps1` (backs up and restores `%APPDATA%`,
   launches with `--safe-mode`).
 - GUI defects found live and fixed: theme scope crash at startup (now
@@ -81,14 +83,14 @@ About navigation, full PL/EN).
 - CI: restore → Release build → tests → `git diff --check`, green.
 - Local artifacts: self-contained single-file `ProcessCoreOptimizer.exe` 2.0.0
   and `installer/Output/ProcessCoreOptimizer_Setup_2.0.0.exe` (final branch
-  build: 53,960,738 bytes, SHA-256
-  `8E75813272EA3F8F55FA61EEEA91E131FA06027E29D83D673C70B9C391FB9B90`,
+  build: 54,052,174 bytes, SHA-256
+  `D5AFFF5D34680EEEF51ED1EAAF823B273A98A8710C7E211AA4030502A0024CD8`,
   PE 2.0.0; reproducible via `tools/Build-Installer.ps1`) — see
   `docs/INSTALLER.md` and `tools/Validate-Release.ps1` (8/8 static checks green).
 - Interactive screenshots: real 2.0 UI (7 views + instances toggle + wizard
-  pages + portable first-run smoke test); no mockups. README gallery:
-  `ProcessCoreOptimizer/Screenshots/` (6 shots); full run: gitignored
-  `.evidence/gui/` (20 captures).
+  pages + portable first-run smoke test + collapsible Developer Hub EN/PL);
+  no mockups. README gallery: `ProcessCoreOptimizer/Screenshots/` (6 shots);
+  full run: gitignored `.evidence/gui/` (26 captures).
 - Install/upgrade/uninstall on a VM: NOT RUN (no isolated VM; dev-machine
   install deliberately avoided). Multi-group hardware: NOT RUN (8-LP machine);
   synthetic mapping discipline tested instead.

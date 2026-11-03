@@ -43,25 +43,29 @@ do About w aplikacji, pełne PL/EN).
 ## Weryfikacja
 
 - Release build: 0 ostrzeżeń, 0 błędów.
-- Testy: 234 przypadki MSTest — 231 zielonych, 3 integracyjne testy prawdziwego
+- Testy: 240 przypadków MSTest — 237 zielonych, 3 integracyjne testy prawdziwego
   startupu pominięte bez `PCO_REAL_STARTUP_TESTS=1`
   (fałszywy backend, read-only, negatywne testy tożsamości P0, macierz restore/
   suspension CPU Sets, planner/koordynator/backend startupu, bezpieczeństwo
   resetu, onboarding, protokół helpera, bramki aktualizatora (w tym strażniki
   no-downgrade-prompt i nieparsowalnego tagu), parzystość lokalizacji,
-  strażnik trybu wiązań XAML Run oraz prawdziwe Windows API na izolowanych
-  własnych kopiach testowych w `%TEMP%`). Ręcznie włączone lokalnie: 3 prawdziwe
-  testy startupu zielone, zero pozostałości w rejestrze/harmonogramie. Żaden
-  proces użytkownika, usługi ani agenta nie jest dotykany.
+  strażnik trybu wiązań XAML Run, strażniki stopki Developer Hub oraz prawdziwe
+  Windows API na izolowanych własnych kopiach testowych w `%TEMP%`). Ręcznie
+  włączone lokalnie: 3 prawdziwe testy startupu zielone, zero pozostałości
+  w rejestrze/harmonogramie. Żaden proces użytkownika, usługi ani agenta nie
+  jest dotykany.
 - Architektura startup: plan → wykonaj → zweryfikuj z kolejnością
   create-before-delete; ścieżki anulowania UAC i nieudanego tworzenia
   udowodnione testami.
-- GUI: 19/19 kontroli UI Automation na Windows 11 (1920×1080, 100% DPI):
+- GUI: 21/21 kontroli UI Automation na Windows 11 (1920×1080, 100% DPI):
   siedem widoków (w tym Smart Rules) prawdziwymi kliknięciami, przełącznik
   widoku instancji, maximize/minimize/restore, close świadomy tray, tekst
   statusu startupu, przewinięta sekcja startup, przełącznik PL ze screenshotami,
   linia safe-mode, linki about z nazwami automatyzacji, strony kreatora + Finish
-  + stempel ustawień, izolowany smoke-test portable przy pierwszym starcie.
+  + stempel ustawień, izolowany smoke-test portable przy pierwszym starcie,
+  Developer Hub zwinięty/rozwinięty EN+PL z kontrolą wierszy, przełączanie
+  spacją (klawiatura), nawigacja do About w aplikacji, kontrola przepełnienia
+  przy minimalnym rozmiarze 1000×700.
   Harness: `tools/Run-GuiVerification.ps1` (backup i restore `%APPDATA%`,
   start z `--safe-mode`).
 - Defekty GUI wykryte na żywo i naprawione: crash zakresu theme przy starcie
@@ -82,14 +86,14 @@ do About w aplikacji, pełne PL/EN).
 - CI: restore → Release build → testy → `git diff --check`, zielone.
 - Artefakty lokalne: samowystarczalny jednoplikowy `ProcessCoreOptimizer.exe` 2.0.0
   oraz `installer/Output/ProcessCoreOptimizer_Setup_2.0.0.exe` (finalny build
-  gałęzi: 53 960 738 bajtów, SHA-256
-  `8E75813272EA3F8F55FA61EEEA91E131FA06027E29D83D673C70B9C391FB9B90`,
+  gałęzi: 54 052 174 bajtów, SHA-256
+  `D5AFFF5D34680EEEF51ED1EAAF823B273A98A8710C7E211AA4030502A0024CD8`,
   PE 2.0.0; odtwarzalny przez `tools/Build-Installer.ps1`) — patrz
   `docs/INSTALLER.md` i `tools/Validate-Release.ps1` (8/8 kontroli zielonych).
 - Interaktywne screenshoty: prawdziwe UI 2.0 (7 widoków + przełącznik instancji
-  + strony kreatora + smoke-test portable); bez mockupów. Galeria README:
-  `ProcessCoreOptimizer/Screenshots/` (6 ujęć); pełny przebieg: ignorowany
-  `.evidence/gui/` (20 ujęć).
+  + strony kreatora + smoke-test portable + zwijany Developer Hub EN/PL);
+  bez mockupów. Galeria README: `ProcessCoreOptimizer/Screenshots/` (6 ujęć);
+  pełny przebieg: ignorowany `.evidence/gui/` (26 ujęć).
 - Instalacja/upgrade/uninstall na VM: NIE WYKONANO (brak izolowanej VM; instalacja
   na maszynie deweloperskiej celowo uniknięta). Sprzęt multi-group: NIE WYKONANO
   (maszyna 8-LP); przetestowano syntetyczną dyscyplinę mapowania.
