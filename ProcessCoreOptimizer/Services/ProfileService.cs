@@ -188,6 +188,69 @@ namespace ProcessCoreOptimizer.WPF.Services
             return SanitizeProfiles(current.Concat(imported)).ToList();
         }
 
+        /// <summary>
+        /// Finds a single profile by its stable <see cref="ProcessProfile.Id"/>.
+        /// P0: Update/Delete must target the Id, never resolve by ProcessName
+        /// (several path-bound profiles may share one process name).
+        /// </summary>
+        public static ProcessProfile? FindById(IEnumerable<ProcessProfile> profiles, string? id)
+        {
+            if (string.IsNullOrWhiteSpace(id)) return null;
+            return profiles.FirstOrDefault(p => p != null && string.Equals(p.Id, id, StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>
+        /// Removes exactly the profile with the given <see cref="ProcessProfile.Id"/>.
+        /// Siblings that share the process name are preserved.
+        /// </summary>
+        public static List<ProcessProfile> RemoveById(IEnumerable<ProcessProfile> profiles, string? id)
+        {
+            if (string.IsNullOrWhiteSpace(id)) return profiles.ToList();
+            return profiles.Where(p => p == null || !string.Equals(p.Id, id, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+
+        /// <summary>
+        /// Replaces the slot with the same (name + normalized path), or appends
+        /// when no such slot exists. Pure; path-bound siblings are never merged.
+        /// </summary>
+        public static List<ProcessProfile> ReplacePathBoundOrAdd(IEnumerable<ProcessProfile> current, ProcessProfile incoming)
+        {
+            string name = NormalizeProcessName(incoming.ProcessName);
+            string? path = NormalizeExecutablePath(incoming.ExecutablePath);
+            var result = current
+                .Where(p => p != null)
+                .Where(p => !string.Equals(NormalizeProcessName(p.ProcessName), name, StringComparison.OrdinalIgnoreCase)
+                    || !string.Equals(NormalizeExecutablePath(p.ExecutablePath), path, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            result.Add(incoming);
+            return result;
+        }
+
+        /// <summary>
+        /// Replaces the name-only profile for <paramref name="incoming"/> process name,
+        /// preserving any path-bound siblings. Used when saving from a process row,
+        /// where no executable path is known: only the name-only slot is replaced.
+        /// </summary>
+        public static List<ProcessProfile> ReplaceNameOnlyProfile(IEnumerable<ProcessProfile> current, ProcessProfile incoming)
+        {
+            string name = NormalizeProcessName(incoming.ProcessName);
+            bool incomingHasPath = !string.IsNullOrWhiteSpace(NormalizeExecutablePath(incoming.ExecutablePath));
+            return current
+                .Where(p => p != null)
+                .Where(p =>
+                {
+                    if (!string.Equals(NormalizeProcessName(p.ProcessName), name, StringComparison.OrdinalIgnoreCase))
+                        return true;
+                    if (incomingHasPath)
+                        return !string.Equals(NormalizeExecutablePath(p.ExecutablePath), NormalizeExecutablePath(incoming.ExecutablePath), StringComparison.OrdinalIgnoreCase);
+                    // Incoming is name-only: evict only the previous name-only slot,
+                    // never path-bound siblings.
+                    return !string.IsNullOrWhiteSpace(NormalizeExecutablePath(p.ExecutablePath));
+                })
+                .Concat(new[] { incoming })
+                .ToList();
+        }
+
         public static IEnumerable<ProcessProfile> SanitizeProfiles(IEnumerable<ProcessProfile> profiles)
         {
             return profiles

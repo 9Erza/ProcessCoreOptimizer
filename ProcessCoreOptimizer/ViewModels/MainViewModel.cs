@@ -1029,7 +1029,6 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             if (rawPriority == "RealTime" && !ConfirmRealTimePriority()) return;
 
             var mode = NormalizeOptimizationMode(SelectedOptimizationMode);
-            _profiles.RemoveAll(x => x.ProcessName.Equals(SelectedProcess.Name, StringComparison.OrdinalIgnoreCase));
 
             var newProfile = new ProcessProfile
             {
@@ -1044,7 +1043,8 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 UpdatedAt = DateTime.UtcNow
             };
 
-            _profiles.Add(newProfile);
+            // P0: replace only the name-only slot; path-bound siblings survive.
+            _profiles = ProfileService.ReplaceNameOnlyProfile(_profiles, newProfile);
             _profileService.SaveProfiles(_profiles);
             _profiles = _profileService.LoadProfiles();
             RefreshSavedProfilesView();
@@ -1087,7 +1087,9 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             RefreshSavedProfilesView();
             ClearAppliedProfileCache(processName);
 
-            var profileToApply = _profiles.FirstOrDefault(p => p.ProcessName.Equals(processName, StringComparison.OrdinalIgnoreCase));
+            // P0: re-resolve by stable Id — several path-bound profiles may share one name.
+            var profileToApply = ProfileService.FindById(_profiles, SelectedSavedProfile.Id)
+                ?? _profiles.FirstOrDefault(p => p.ProcessName.Equals(processName, StringComparison.OrdinalIgnoreCase));
             int affected = profileToApply != null ? ApplyProfileToRunningProcesses(profileToApply, force: true) : 0;
 
             var activeProcess = Processes.FirstOrDefault(p => p.Name.Equals(processName, StringComparison.OrdinalIgnoreCase));
@@ -1106,8 +1108,11 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             if (SelectedSavedProfile == null) return;
 
             string name = SelectedSavedProfile.ProcessName;
-            SavedProfiles.Remove(SelectedSavedProfile);
-            _profiles = SavedProfiles.ToList();
+            string deletedId = SelectedSavedProfile.Id;
+            // P0: delete exactly this profile by stable Id from the source list
+            // (never rebuild from the filtered SavedProfiles view — that would
+            // drop profiles hidden by the active filter). Siblings survive.
+            _profiles = ProfileService.RemoveById(_profiles, deletedId);
             _profileService.SaveProfiles(_profiles);
             _profiles = _profileService.LoadProfiles();
             RefreshSavedProfilesView();
