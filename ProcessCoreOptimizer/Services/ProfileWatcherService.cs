@@ -21,6 +21,7 @@ namespace ProcessCoreOptimizer.WPF.Services
         private readonly AppliedOperationHistory _history;
         private readonly Func<IReadOnlyList<ProcessProfile>> _profilesProvider;
         private readonly Func<bool> _allowRealtimeProvider;
+        private readonly Func<IReadOnlyList<string>>? _extraProcessNamesProvider;
         private readonly ILogger _logger;
         private readonly SemaphoreSlim _gate = new(1, 1);
         private readonly CancellationTokenSource _cts = new();
@@ -31,13 +32,15 @@ namespace ProcessCoreOptimizer.WPF.Services
             OptimizationService optimization,
             AppliedOperationHistory history,
             Func<IReadOnlyList<ProcessProfile>> profilesProvider,
-            Func<bool> allowRealtimeProvider)
+            Func<bool> allowRealtimeProvider,
+            Func<IReadOnlyList<string>>? extraProcessNamesProvider = null)
         {
             _scanner = scanner;
             _optimization = optimization;
             _history = history;
             _profilesProvider = profilesProvider;
             _allowRealtimeProvider = allowRealtimeProvider;
+            _extraProcessNamesProvider = extraProcessNamesProvider;
             _logger = LoggerService.Instance;
         }
 
@@ -69,9 +72,12 @@ namespace ProcessCoreOptimizer.WPF.Services
                 // Consistent snapshot: profile edits mid-run apply on the next pass.
                 List<ProcessProfile> profiles = _profilesProvider()?.ToList() ?? new List<ProcessProfile>();
                 bool allowRealtime = _allowRealtimeProvider();
+                List<string> extraNames;
+                try { extraNames = _extraProcessNamesProvider?.Invoke()?.ToList() ?? new List<string>(); }
+                catch { extraNames = new List<string>(); }
 
                 ProcessScanResult scan = await _scanner
-                    .ScanProfileProcessesAsync(profiles)
+                    .ScanProfileProcessesAsync(profiles, extraNames)
                     .ConfigureAwait(false);
 
                 if (_disposed || _cts.IsCancellationRequested) return null;

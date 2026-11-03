@@ -32,7 +32,19 @@ namespace ProcessCoreOptimizer.WPF.Services
 
         public Task<ProcessScanResult> ScanProfileProcessesAsync(IEnumerable<ProcessProfile> profiles)
         {
-            return Task.Run(() => ScanProfileProcesses(profiles));
+            return Task.Run(() => ScanProfileProcesses(profiles, extraProcessNames: null));
+        }
+
+        /// <summary>
+        /// Watcher scan over profile targets plus extra names (e.g. enabled
+        /// Smart Rule targets without a watcher profile). One pass, same cheap
+        /// resource-free path — never a full user scan.
+        /// </summary>
+        public Task<ProcessScanResult> ScanProfileProcessesAsync(
+            IEnumerable<ProcessProfile> profiles,
+            IEnumerable<string>? extraProcessNames)
+        {
+            return Task.Run(() => ScanProfileProcesses(profiles, extraProcessNames));
         }
 
         /// <summary>
@@ -149,12 +161,15 @@ namespace ProcessCoreOptimizer.WPF.Services
             }
         }
 
-        private ProcessScanResult ScanProfileProcesses(IEnumerable<ProcessProfile> profiles)
+        private ProcessScanResult ScanProfileProcesses(IEnumerable<ProcessProfile> profiles, IEnumerable<string>? extraProcessNames)
         {
             var processNames = profiles
                 .Where(p => p.IsEnabled && !string.IsNullOrWhiteSpace(p.ProcessName))
                 .Select(p => ProfileService.NormalizeProcessName(p.ProcessName))
                 .Where(n => !string.IsNullOrWhiteSpace(n))
+                .Concat((extraProcessNames ?? Enumerable.Empty<string>())
+                    .Select(ProfileService.NormalizeProcessName)
+                    .Where(n => !string.IsNullOrWhiteSpace(n)))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
 

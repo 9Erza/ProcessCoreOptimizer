@@ -338,9 +338,11 @@ namespace ProcessCoreOptimizer.WPF.Services
                 };
             }
 
-            if (profile.ApplyCoreOptimization || profile.ApplyPriority)
+            if (profile.ApplyCoreOptimization || profile.ApplyPriority || profile.EcoQos.HasValue)
             {
                 // Baseline before the first real mutation; no-ops when one exists.
+                // EcoQoS-only profiles capture too: without a verified baseline a
+                // later restore must leave EcoQoS untouched (Unknown != Disabled).
                 try
                 {
                     _restoreService?.TryCaptureBaseline(
@@ -506,6 +508,15 @@ namespace ProcessCoreOptimizer.WPF.Services
                     process.Dispose();
                 }
             }
+        }
+
+        /// <summary>
+        /// Drops the cached FullyApplied signature for one instance only, so the
+        /// next tick re-evaluates just that PID (P1-1 scoped invalidation).
+        /// </summary>
+        public void ClearProfileCacheForKey(ProcessInstanceKey key)
+        {
+            lock (_cacheLock) _appliedProfileSignatures.Remove(key);
         }
 
         public void ClearAllCache()

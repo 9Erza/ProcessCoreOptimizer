@@ -856,7 +856,13 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 _optimizationService,
                 _operationHistory,
                 () => _profiles.ToList(),
-                () => AppSettings.AllowRealtimePriority);
+                () => AppSettings.AllowRealtimePriority,
+                () => _rulesSnapshot
+                    .Where(r => r.IsEnabled && !string.IsNullOrWhiteSpace(r.ProcessName))
+                    .Select(r => ProfileService.NormalizeProcessName(r.ProcessName))
+                    .Where(n => !string.IsNullOrWhiteSpace(n))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList());
             _realtimeCacheFlag = _appSettings.AllowRealtimePriority;
             _lastStartupSignature = StartupSignature(_appSettings);
             _startupCoordinator = new StartupApplyCoordinator(new StartupConfigurationExecutor(_startupService));
@@ -880,7 +886,9 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             ReloadRules();
             _profileWatcher.ScanCompleted += (s, scan) =>
             {
-                try { EvaluateAndApplyRules(scan.Groups, "background rule engine"); }
+                // Watcher scans are TARGETED subsets: absence proves nothing,
+                // so the engine retains presence state (P0-3).
+                try { EvaluateAndApplyRules(scan.Groups, "background rule engine", Services.RuleScanKind.Targeted); }
                 catch (Exception ex) { LoggerService.Instance.Debug($"Background rule hook failed: {ex.Message}"); }
             };
             RefreshRecentOperations();
@@ -1587,7 +1595,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             AddLog(message);
         }
 
-        private void EvaluateAndApplyRules(IReadOnlyList<ProcessGroupSnapshot> groups, string source)
+        private void EvaluateAndApplyRules(IReadOnlyList<ProcessGroupSnapshot> groups, string source, Services.RuleScanKind scanKind = Services.RuleScanKind.Full)
         {
             try
             {
@@ -1601,7 +1609,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                     try { fg = ForegroundService.GetForegroundPid(); } catch { fg = null; }
                 }
 
-                var decisions = _ruleEngine.Evaluate(groups, fg, DateTime.UtcNow, snapshot, automationPaused: false);
+                var decisions = _ruleEngine.Evaluate(groups, fg, DateTime.UtcNow, snapshot, automationPaused: false, scanKind);
                 foreach (var d in decisions.Where(x => x.Ready))
                     ApplyRuleDecision(d, source);
                 RefreshRuleStatus();
@@ -1616,6 +1624,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         {
             var rule = SmartRuleService.FindById(_rulesSnapshot, d.RuleId);
             if (rule == null || !rule.IsEnabled) return;
+            DateTime now = DateTime.UtcNow;
             try
             {
                 if (rule.Action == RuleAction.ApplyProfile)
@@ -1623,6 +1632,8 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                     var profile = ProfileService.FindById(_profiles, rule.ProfileId);
                     if (profile == null || !profile.IsEnabled)
                     {
+                        // Misconfiguration, not a transient failure: do not hot-loop.
+                        _ruleEngine.ReportAttempt(rule.Id, d.Key, now, Services.RuleAttemptOutcome.FailedPermanent);
                         ThrottledRuleLog(rule, IsPolishLanguage
                             ? $"Reguła '{rule.Name}': brak włączonego profilu — pominięto ({d.Reason})."
                             : $"Rule '{rule.Name}': no enabled profile — skipped ({d.Reason}).");
@@ -1632,20 +1643,65 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                     var batch = _optimizationService.ApplyProfileToInstances(
                         profile, d.ProcessName, new[] { d.Key }, AppSettings.AllowRealtimePriority, force: true);
                     var first = batch.Results.FirstOrDefault();
-                    _ruleEngine.MarkApplied(rule.Id, d.Key, DateTime.UtcNow);
-                    AddLog($"Rule '{rule.Name}' → '{profile.DisplayName}' on PID {d.Key.ProcessId} via {source} ({d.Reason}): {first?.Status.ToString() ?? "Skipped"}.");
+                    if (first == null)
+                    {
+                        _ruleEngine.ReportAttempt(rule.Id, d.Key, now, Services.RuleAttemptOutcome.FailedRetryable);
+                        ThrottledRuleLog(rule, $"Rule '{rule.Name}': no result for PID {d.Key.ProcessId}; will retry.", minutes: 1);
+                        return;
+                    }
+
+                    switch (first.Status)
+                    {
+                        case OperationStatus.FullyApplied:
+                            _ruleEngine.MarkApplied(rule.Id, d.Key, now);
+                            AddLog($"Rule '{rule.Name}' applied '{profile.DisplayName}' to PID {d.Key.ProcessId} via {source} ({d.Reason}).");
+                            break;
+                        case OperationStatus.PartiallyApplied:
+                            // Half done; the remainder rides the watcher (partial results
+                            // are never cached). Cooldown starts so the rule does not
+                            // re-apply the successful half.
+                            _ruleEngine.MarkApplied(rule.Id, d.Key, now);
+                            AddLog($"Rule '{rule.Name}' partially applied '{profile.DisplayName}' to PID {d.Key.ProcessId} via {source} ({d.Reason}): {first.Message}. Remainder via watcher.");
+                            break;
+                        case OperationStatus.Failed:
+                            _ruleEngine.ReportAttempt(rule.Id, d.Key, now,
+                                first.Status.IsRetryable() ? Services.RuleAttemptOutcome.FailedRetryable : Services.RuleAttemptOutcome.FailedPermanent);
+                            AddLog($"Rule '{rule.Name}' failed on PID {d.Key.ProcessId} via {source} ({d.Reason}): {first.Message}.");
+                            break;
+                        default:
+                            // Skips (identity mismatch, no permission, unsupported, suspended...):
+                            // never present as applied; never hot-looped.
+                            _ruleEngine.ReportAttempt(rule.Id, d.Key, now, Services.RuleAttemptOutcome.FailedPermanent);
+                            AddLog($"Rule '{rule.Name}' skipped PID {d.Key.ProcessId} via {source} ({d.Reason}): {first.Status} — {first.Message}.");
+                            break;
+                    }
                 }
                 else
                 {
                     var result = _sessionRestore.RestoreForProcess(d.ProcessName, _processService, _cpuSetMap, new[] { d.Key });
-                    _optimizationService.SuspendLiveInstances(d.ProcessName, TimeSpan.FromMinutes(5), "smart rule session restore");
-                    ClearAppliedProfileCache(d.ProcessName);
-                    _ruleEngine.MarkApplied(rule.Id, d.Key, DateTime.UtcNow);
-                    AddLog($"Rule '{rule.Name}' restored session for PID {d.Key.ProcessId} via {source} ({d.Reason}): {result.Message}");
+                    if (result.Restored > 0 || result.PartiallyRestored > 0)
+                    {
+                        _ruleEngine.MarkApplied(rule.Id, d.Key, now);
+                        // P1-1: suspend only this instance, not its same-name siblings.
+                        _optimizationService.SuspendInstance(d.Key, TimeSpan.FromMinutes(5), "smart rule session restore");
+                        _optimizationService.ClearProfileCacheForKey(d.Key);
+                        AddLog($"Rule '{rule.Name}' restored session for PID {d.Key.ProcessId} via {source} ({d.Reason}): {result.Message}");
+                    }
+                    else if (result.Failed > 0)
+                    {
+                        _ruleEngine.ReportAttempt(rule.Id, d.Key, now, Services.RuleAttemptOutcome.FailedRetryable);
+                        AddLog($"Rule '{rule.Name}' restore failed for PID {d.Key.ProcessId} via {source} ({d.Reason}): {result.Message}");
+                    }
+                    else
+                    {
+                        _ruleEngine.ReportAttempt(rule.Id, d.Key, now, Services.RuleAttemptOutcome.FailedPermanent);
+                        AddLog($"Rule '{rule.Name}' restore skipped for PID {d.Key.ProcessId} via {source} ({d.Reason}): {result.Message}");
+                    }
                 }
             }
             catch (Exception ex)
             {
+                _ruleEngine.ReportAttempt(rule.Id, d.Key, now, Services.RuleAttemptOutcome.FailedRetryable);
                 ThrottledRuleLog(rule, $"Rule '{rule.Name}' failed: {ex.Message}", minutes: 1);
             }
 
