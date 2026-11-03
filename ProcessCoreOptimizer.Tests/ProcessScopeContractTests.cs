@@ -67,9 +67,9 @@ public sealed class ProcessScopeContractTests
     public void ModeSwitchAndExit_InvalidateSelection()
     {
         string vm = MainViewModel();
-        // Grouped <-> Instances drops the old selection so no stale target survives.
+        // Grouped <-> Instances and tab switches drop the old selection: no stale target survives.
         Assert.IsTrue(vm.Contains("ProcessViewMode") && vm.Contains("SelectedProcess = null") && vm.Contains("SelectedInstanceRow = null"),
-            "Mode switch must clear both selections.");
+            "Mode switch and tab switch must clear both process selections.");
     }
 
     [TestMethod]
@@ -102,6 +102,14 @@ public sealed class ProcessScopeContractTests
         string rules = Read("ProcessCoreOptimizer", "Views", "SmartRulesView.xaml");
         Assert.IsTrue(rules.Contains("StrNoRulesTitle"), "Rules empty state is required.");
         Assert.IsTrue(rules.Contains("HasSelectedRule"), "Rule actions must gate on selection.");
+    }
+
+    [TestMethod]
+    public void CpuTab_ShowsRealModel_NotButtonLabel()
+    {
+        string cpu = Read("ProcessCoreOptimizer", "Views", "CpuView.xaml");
+        Assert.IsTrue(cpu.Contains("CpuModelText"),
+            "Processor overview must show the real CPU model, not the SMT toggle label.");
     }
 
     [TestMethod]

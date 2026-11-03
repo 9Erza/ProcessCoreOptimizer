@@ -145,7 +145,7 @@ try {
         @{ Name = @("CPU & Topology", "CPU i topologia"); Shot = "02-cpu-topology.png" },
         @{ Name = @("Saved Profiles", "Zapisane Profile"); Shot = "03-profiles.png" },
         @{ Name = @("Smart Rules", "Inteligentne reguÅ‚y"); Shot = "17-rules.png" },
-        @{ Name = @("Hardware Monitor", "Monitor Sprzï¿½tu"); Shot = "04-hardware.png" },
+        @{ Name = @("Hardware Monitor", "Monitor Sprzêtu"); Shot = "04-hardware.png" },
         @{ Name = @("Diagnostics", "Diagnostyka"); Shot = "05-diagnostics.png" },
         @{ Name = @("Settings", "Ustawienia"); Shot = "06-settings.png" }
     )
@@ -313,13 +313,21 @@ try {
     }
 
     Check "settings categories navigate without side effects" {
+        function Select-SettingsCategory($scope, $name) {
+            $it = $scope.FindFirst([System.Windows.Automation.TreeScope]::Descendants,
+                (New-Object System.Windows.Automation.PropertyCondition(
+                    [System.Windows.Automation.AutomationElement]::NameProperty, $name)))
+            if (!$it) { throw "Settings category $name not found." }
+            $it.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select()
+            Start-Sleep -Milliseconds 800
+        }
         $window = Get-Window "Process Core Optimizer" 10
         if (!$window) { throw "Main window lost before settings check." }
         foreach ($candidate in @("Settings", "Ustawienia")) {
             try { Click-Button $window $candidate; break } catch { }
         }
         Start-Sleep -Milliseconds 800
-        Click-Button $window "Updates"
+        Select-SettingsCategory $window "Updates"
         Start-Sleep -Milliseconds 700
         $chk = $null
         try {
@@ -329,7 +337,7 @@ try {
         } catch { }
         if (!$chk) { throw "Updates category did not show the manual check." }
         Save-Shot "31-settings-updates.png" $window
-        Click-Button $window "About"
+        Select-SettingsCategory $window "About"
         Start-Sleep -Milliseconds 700
         $about = $null
         try {
@@ -421,6 +429,20 @@ try {
         # Re-fetch: the language toggle re-renders resources and stale elements return nothing.
         $window = Get-Window "Process Core Optimizer" 10
         if (!$window) { throw "Main window lost." }
+        # Category navigation: startup status lives in the Startup category now.
+        foreach ($scat in @("Startup & Privileges", "Uruchamianie i uprawnienia")) {
+            try {
+                $sitem = $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants,
+                    (New-Object System.Windows.Automation.PropertyCondition(
+                        [System.Windows.Automation.AutomationElement]::NameProperty, $scat)))
+                if ($sitem -ne $null) {
+                    $sitem.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select()
+                    Start-Sleep -Milliseconds 800
+                    $window = Get-Window "Process Core Optimizer" 10
+                    break
+                }
+            } catch { }
+        }
         # Status text is rendered in Settings; find any realized status line
         # ("Startup: ..." / "Autostart: ..."). Planner log lines only appear on apply.
         $texts = $window.FindAll([System.Windows.Automation.TreeScope]::Descendants,
@@ -449,6 +471,21 @@ try {
     }
 
     Check "about links present with automation names" {
+        # About links live in the About category now; navigate first (Settings tab assumed).
+        foreach ($acat in @("About", "O programie")) {
+            try {
+                $aitem = $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants,
+                    (New-Object System.Windows.Automation.PropertyCondition(
+                        [System.Windows.Automation.AutomationElement]::NameProperty, $acat)))
+                if ($aitem -ne $null) {
+                    $aitem.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select()
+                    Start-Sleep -Milliseconds 800
+                    $window = Get-Window "Process Core Optimizer" 10
+                    if (!$window) { throw "Main window lost before about check." }
+                    break
+                }
+            } catch { }
+        }
         # Focus the settings scroll area first (a plain click), otherwise keys go elsewhere.
         $r = $window.Current.BoundingRectangle
         [PcoMouse]::Click([int]($r.X + 600), [int]($r.Y + 400))
@@ -567,7 +604,7 @@ try {
         if (!$hub) { throw "Hub header lost after language switch." }
         Toggle-Hub $hub
         $plRows = @("Repozytorium projektu ${emdash} Process Core Optimizer", "GitHub autora ${emdash} 9Erza",
-            "Strona autora ${emdash} DobryPC.pl", "Postaw kawï¿½ ${emdash} Wesprzyj rozwï¿½j", "O programie")
+            "Strona autora ${emdash} DobryPC.pl", "Postaw kawê ${emdash} Wesprzyj rozwój", "O programie")
         foreach ($n in $plRows) {
             if (!(Find-Button $window $n)) { throw "Hub row '$n' not found while expanded (PL)." }
         }

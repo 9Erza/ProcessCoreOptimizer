@@ -728,6 +728,11 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
 
         public string CpuVendor => _cachedCpuVendor ??= _hardwareService.GetCpuVendor();
 
+        private string? _cachedCpuModel;
+
+        /// <summary>CPU model for the informational overview (cached; Unknown when unreadable).</summary>
+        public string CpuModelText => _cachedCpuModel ??= _hardwareService.GetCpuModel();
+
         public string CpuVendorText
         {
             get
@@ -1084,6 +1089,16 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             }
             Services.StartupProfiler.Mark("VM ctor: WMI topology done");
             OnPropertyChanged(nameof(HasECores));
+            // Warm the CPU model name off the UI thread (WMI); UI updates when ready.
+            _ = System.Threading.Tasks.Task.Run(() =>
+            {
+                try
+                {
+                    var _ = CpuModelText;
+                    WpfApplication.Current?.Dispatcher.Invoke(() => OnPropertyChanged(nameof(CpuModelText)));
+                }
+                catch { }
+            });
             OnPropertyChanged(nameof(LogicalProcessorCount));
             OnPropertyChanged(nameof(PhysicalCoreCount));
             OnPropertyChanged(nameof(SmtThreadCount));
@@ -1500,6 +1515,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             OnPropertyChanged(nameof(IsRightPanelVisible));
 
             SelectedProcess = null;
+            SelectedInstanceRow = null;
             SelectedSavedProfile = null;
             SelectedRule = null;
 

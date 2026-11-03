@@ -15,7 +15,7 @@
                 <TextBlock Text="{DynamicResource StrProcessorOverview}" Style="{StaticResource PcoSectionHeader}"/>
                 <Border Background="{StaticResource PcoBg3Brush}" CornerRadius="6" Padding="12" Margin="0,0,0,12" BorderThickness="1" BorderBrush="{StaticResource PcoBorderSoftBrush}">
                     <StackPanel>
-                        <TextBlock Text="{Binding CpuVendorText, Mode=OneWay}" Foreground="{StaticResource PcoTextBrightBrush}" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,4"/>
+                        <TextBlock Text="{Binding CpuModelText, Mode=OneWay}" Foreground="{StaticResource PcoTextBrightBrush}" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,4" TextWrapping="Wrap"/>
                         <TextBlock Foreground="{StaticResource PcoMutedBrush}" FontSize="12" Margin="0,0,0,2">
                             <Run Text="{Binding LogicalProcessorCount, Mode=OneWay}"/><Run Text=" LP · "/><Run Text="{Binding PhysicalCoreCount, Mode=OneWay}"/><Run Text=" cores"/>
                         </TextBlock>

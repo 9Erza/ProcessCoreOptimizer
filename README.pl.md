@@ -46,7 +46,7 @@
 - **Niezawodność:** przywracanie ustawień sprzed optymalizacji, aktualizator
   powiadamiający tylko o opublikowanych wydaniach z assetem instalatora,
   rejestracja autostartu tylko przy zmianie ustawień startu, centralne wersjonowanie `version.txt`.
-- **Testy:** 255 zaliczonych + 3 warunkowe testy integracyjne, zielone CI (build + testy + `git diff --check`).
+- **Testy:** 264 zaliczonych + 3 warunkowe testy integracyjne, zielone CI (build + testy + `git diff --check`).
 
 Zobacz [CHANGELOG.md](CHANGELOG.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 i [docs/RELEASE_NOTES_2.0.0.pl.md](docs/RELEASE_NOTES_2.0.0.pl.md).
@@ -251,7 +251,7 @@ dotnet publish ProcessCoreOptimizer/ProcessCoreOptimizer.csproj -c Release -p:Pu
 - Solution: `ProcessCoreOptimizer.slnx` (główny). `ProcessCoreOptimizer/ProcessCoreOptimizer.sln` to legacy.
 - Źródło wersji: `version.txt`, propagowane przez `Directory.Build.props` do MSBuild, metadanych PE, UI i aktualizatora.
 - Target: `net10.0-windows`, `win-x64`, WPF + WinForms (ikona tray).
-- Testy: MSTest, 255 zaliczonych + 3 warunkowe integracyjne (fałszywy backend + read-only + prawdziwe Windows API na izolowanych własnych procesach testowych), bez dotykania procesów użytkownika/systemu.
+- Testy: MSTest, 264 zaliczonych + 3 warunkowe integracyjne (fałszywy backend + read-only + prawdziwe Windows API na izolowanych własnych procesach testowych), bez dotykania procesów użytkownika/systemu.
 - CI: `.github/workflows/ci.yml` — restore, Release build, testy, `git diff --check`.
 - GUI: zweryfikowane na Windows 11 przez UI Automation (7 zakładek, widok instancji, mini konsola, developer hub, dialog aktualizacji, maximize/minimize/restore, tray-intercept close) — patrz `tools/Run-GuiVerification.ps1`, dowody w `.evidence/` (gitignored).
 - Instalator: `installer/ProcessCoreOptimizer.iss` (nowa tożsamość, patrz [docs/INSTALLER.md](docs/INSTALLER.md)); build przez `tools/Build-Installer.ps1`. Bez zgody opiekuna nie publikujemy wydania.

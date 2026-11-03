@@ -166,6 +166,26 @@ namespace ProcessCoreOptimizer.WPF.Services
             }
         }
 
+        /// <summary>CPU model name for the informational overview (WMI, cached, honest Unknown).</summary>
+        public string GetCpuModel()
+        {
+            try
+            {
+                using var searcher = new ManagementObjectSearcher("Select Name from Win32_Processor");
+                foreach (var item in searcher.Get())
+                {
+                    var name = item["Name"]?.ToString()?.Trim();
+                    if (!string.IsNullOrEmpty(name)) return name;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug($"Failed to get CPU model via WMI: {ex.Message}");
+            }
+
+            return "Unknown";
+        }
+
         public string GetCpuVendor()
         {
             try
