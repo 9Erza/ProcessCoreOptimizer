@@ -219,6 +219,8 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <TextBlock Grid.Row="0" Text="{DynamicResource StrProcessDetails}" FontWeight="Bold" FontSize="14" Foreground="{StaticResource PcoAccentBrush}" Margin="0,0,0,6"/>
                     <TextBlock Grid.Row="1" Foreground="{StaticResource PcoTextBrush}" FontSize="12" TextWrapping="Wrap">
@@ -234,6 +236,47 @@
                     <TextBlock Grid.Row="5" Foreground="{StaticResource PcoMutedBrush}" FontSize="12" TextWrapping="Wrap">
                         <Run Text="Last: "/><Run Text="{Binding LastStatus, TargetNullValue=—}"/><Run Text=" "/><Run Text="{Binding LastMessage}"/>
                     </TextBlock>
+                    <Grid Grid.Row="6" Margin="0,8,0,0">
+                        <Grid.Style>
+                            <Style TargetType="Grid">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding DataContext.HasInsights, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Grid.Style>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Foreground="{StaticResource PcoTextBrush}" FontSize="12">
+                            <Run Text="{DynamicResource StrCpuHistory}"/><Run Text=": "/><Run Text="{Binding DataContext.InsightsSummary, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                        </TextBlock>
+                        <Polyline Grid.Row="1" Points="{Binding DataContext.CpuHistoryPoints, RelativeSource={RelativeSource AncestorType=UserControl}}" Stroke="{StaticResource PcoAccentBrush}" StrokeThickness="1.5" Stretch="Fill" Height="30" Margin="0,4,0,0"/>
+                    </Grid>
+                    <Grid Grid.Row="7" Margin="0,4,0,0">
+                        <Grid.Style>
+                            <Style TargetType="Grid">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding DataContext.HasInsights, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Grid.Style>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Foreground="{StaticResource PcoTextBrush}" FontSize="12" Text="{DynamicResource StrMemHistory}"/>
+                        <Grid Grid.Row="1" Margin="0,4,0,0">
+                            <Polyline Points="{Binding DataContext.MemWsHistoryPoints, RelativeSource={RelativeSource AncestorType=UserControl}}" Stroke="{StaticResource PcoGreenBrush}" StrokeThickness="1.5" Stretch="Fill" Height="30"/>
+                            <Polyline Points="{Binding DataContext.MemPrivateHistoryPoints, RelativeSource={RelativeSource AncestorType=UserControl}}" Stroke="{StaticResource PcoMutedBrush}" StrokeThickness="1" StrokeDashArray="3,2" Stretch="Fill" Height="30"/>
+                        </Grid>
+                    </Grid>
                 </Grid>
             </Border>
         </Grid>

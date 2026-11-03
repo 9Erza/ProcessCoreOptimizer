@@ -11,6 +11,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Media;
 using WpfApplication = System.Windows.Application;
 using WpfMessageBox = System.Windows.MessageBox;
 using System.Windows.Input;
@@ -78,6 +79,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         private List<SmartRule> _rules = new();
         private List<SmartRule> _rulesSnapshot = new();
         private readonly SmartRuleEngine _ruleEngine = new();
+        private readonly ProcessInsightsSampler _insightsSampler = new();
         private readonly Dictionary<string, DateTime> _lastRuleLogUtc = new(StringComparer.OrdinalIgnoreCase);
         private string? _topologyLimitation;
 
@@ -96,6 +98,41 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         public ObservableCollection<ProcessInstanceRow> InstanceRows { get; } = new();
         public ObservableCollection<SmartRule> Rules { get; } = new();
         public ObservableCollection<RuleDecision> RecentRuleDecisions { get; } = new();
+        private PointCollection _cpuHistoryPoints = new();
+        private PointCollection _memWsHistoryPoints = new();
+        private PointCollection _memPrivateHistoryPoints = new();
+        private string _insightsSummary = string.Empty;
+        private bool _hasInsights;
+
+        public PointCollection CpuHistoryPoints
+        {
+            get => _cpuHistoryPoints;
+            private set => SetProperty(ref _cpuHistoryPoints, value);
+        }
+
+        public PointCollection MemWsHistoryPoints
+        {
+            get => _memWsHistoryPoints;
+            private set => SetProperty(ref _memWsHistoryPoints, value);
+        }
+
+        public PointCollection MemPrivateHistoryPoints
+        {
+            get => _memPrivateHistoryPoints;
+            private set => SetProperty(ref _memPrivateHistoryPoints, value);
+        }
+
+        public string InsightsSummary
+        {
+            get => _insightsSummary;
+            private set => SetProperty(ref _insightsSummary, value);
+        }
+
+        public bool HasInsights
+        {
+            get => _hasInsights;
+            private set => SetProperty(ref _hasInsights, value);
+        }
         private SmartRule? _selectedRule;
 
         public SmartRule? SelectedRule
@@ -356,7 +393,13 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         public ProcessInstanceRow? SelectedInstanceRow
         {
             get => _selectedInstanceRow;
-            set => SetProperty(ref _selectedInstanceRow, value);
+            set
+            {
+                if (!SetProperty(ref _selectedInstanceRow, value)) return;
+                _insightsSampler.Reset();
+                if (value != null)
+                    SelectedProcessDetails = BuildProcessDetails(value.Name);
+            }
         }
 
         public string ProfileFilterText
@@ -381,6 +424,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             set
             {
                 if (!SetProperty(ref _selectedProcess, value) || value == null) return;
+                _insightsSampler.Reset();
                 SelectedProcessDetails = BuildProcessDetails(value.Name);
 
                 var savedProfile = _profiles.FirstOrDefault(p => p.ProcessName.Equals(value.Name, StringComparison.OrdinalIgnoreCase));
@@ -936,6 +980,8 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 UpdateProcessRows(scan.Groups);
                 _lastUiScan = scan;
                 if (IsInstanceView) RebuildInstanceRows();
+                if (IsProcessListUiActive())
+                    UpdateInsights(SelectedInstanceRow?.ProcessId ?? SelectedProcessDetails?.RepresentativePid);
             }
             catch (Exception ex)
             {
@@ -1397,6 +1443,58 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 foreach (var d in recent.TakeLast(15).Reverse())
                     RecentRuleDecisions.Add(d);
             });
+        }
+
+        /// <summary>
+        /// Samples the selected PID on the existing refresh tick (no extra timer).
+        /// Charts carry the last known value forward for continuity; the summary
+        /// text always states the true readability of the latest point.
+        /// </summary>
+        private void UpdateInsights(int? pid)
+        {
+            if (pid == null || pid == 0)
+            {
+                HasInsights = false;
+                return;
+            }
+
+            var reading = _insightsSampler.Sample(pid.Value);
+            var history = _insightsSampler.History.TakeLast(60).ToList();
+
+            double lastCpu = 0;
+            var cpu = new List<double>(history.Count);
+            foreach (var h in history)
+            {
+                if (h.CpuPercent.HasValue) lastCpu = h.CpuPercent.Value;
+                cpu.Add(lastCpu);
+            }
+
+            long lastWs = 0, lastPriv = 0;
+            var ws = new List<double>(history.Count);
+            var priv = new List<double>(history.Count);
+            foreach (var h in history)
+            {
+                if (h.WorkingSetBytes.HasValue) lastWs = h.WorkingSetBytes.Value;
+                if (h.PrivateBytes.HasValue) lastPriv = h.PrivateBytes.Value;
+                ws.Add(lastWs / 1024.0 / 1024.0);
+                priv.Add(lastPriv / 1024.0 / 1024.0);
+            }
+
+            double cpuMax = Math.Max(cpu.DefaultIfEmpty(0).Max(), 1);
+            double memMax = Math.Max(new[] { ws.DefaultIfEmpty(0).Max(), priv.DefaultIfEmpty(0).Max() }.Max(), 1);
+
+            CpuHistoryPoints = Converters.HistoryToPointsConverter.ConvertToPoints(cpu, cpuMax);
+            MemWsHistoryPoints = Converters.HistoryToPointsConverter.ConvertToPoints(ws, memMax);
+            MemPrivateHistoryPoints = Converters.HistoryToPointsConverter.ConvertToPoints(priv, memMax);
+
+            string cpuText = reading.CpuPercent.HasValue
+                ? $"{reading.CpuPercent.Value:F1}%"
+                : (IsPolishLanguage ? "niedostępne" : "unavailable");
+            string memText = reading.Readable && reading.WorkingSetBytes.HasValue
+                ? $"WS {reading.WorkingSetBytes.Value / 1024 / 1024} MB · {(IsPolishLanguage ? "pryw." : "priv.")} {(reading.PrivateBytes ?? 0) / 1024 / 1024} MB"
+                : (IsPolishLanguage ? "niedostępne" : "unavailable");
+            InsightsSummary = $"CPU {cpuText} · {memText}";
+            HasInsights = history.Count > 0;
         }
 
         private void ThrottledRuleLog(SmartRule rule, string message, int minutes = 5)
