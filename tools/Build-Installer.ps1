@@ -12,8 +12,16 @@ $version = (Get-Content (Join-Path $root "version.txt") -Raw).Trim()
 $env:PCO_VERSION = $version
 
 Write-Host "Publishing $version ..."
+$publishDir = Join-Path $root "ProcessCoreOptimizer/bin/Release/net10.0-windows/publish/win-x64"
+# Clean publish: incremental publish may skip re-copying files that vanished
+# from the output (AV quarantine, cleanups). Stale partial output once produced
+# an installer missing the native WPF DLLs, so always start fresh and verify.
+if (Test-Path $publishDir) { Remove-Item $publishDir -Recurse -Force }
 & dotnet publish (Join-Path $root "ProcessCoreOptimizer/ProcessCoreOptimizer.csproj") -c Release -p:PublishProfile=FolderProfile --nologo -v minimal
 if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed." }
+foreach ($need in @("ProcessCoreOptimizer.exe", "wpfgfx_cor3.dll", "PresentationNative_cor3.dll", "D3DCompiler_47_cor3.dll")) {
+    if (!(Test-Path (Join-Path $publishDir $need))) { throw "Publish output incomplete: $need missing." }
+}
 
 $isccCandidates = @(
     "$env:LOCALAPPDATA/Programs/Inno Setup 6/ISCC.exe",
