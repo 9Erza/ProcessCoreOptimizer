@@ -47,7 +47,7 @@ edycja profili/reguł po wyborze z pustymi stanami oraz Ustawienia w 8 kategoria
 ## Weryfikacja
 
 - Release build: 0 ostrzeżeń, 0 błędów.
-- Testy: 258 przypadków MSTest — 255 zielonych, 3 integracyjne testy prawdziwego
+- Testy: 268 przypadków MSTest — 265 zielonych, 3 integracyjne testy prawdziwego
   startupu pominięte bez `PCO_REAL_STARTUP_TESTS=1`
   (fałszywy backend, read-only, negatywne testy tożsamości P0, macierz restore/
   suspension CPU Sets, planner/koordynator/backend startupu, bezpieczeństwo
@@ -62,7 +62,7 @@ edycja profili/reguł po wyborze z pustymi stanami oraz Ustawienia w 8 kategoria
 - Architektura startup: plan → wykonaj → zweryfikuj z kolejnością
   create-before-delete; ścieżki anulowania UAC i nieudanego tworzenia
   udowodnione testami.
-- GUI: 21/21 kontroli UI Automation na Windows 11 (1920×1080, 100% DPI):
+- GUI: 24/24 kontroli UI Automation na Windows 11 (1920×1080, 100% DPI):
   siedem widoków (w tym Smart Rules) prawdziwymi kliknięciami, przełącznik
   widoku instancji, mini konsola aktywności, smukły scrollbar, zwarty pusty
   stan sprzętu, maximize/minimize/restore, close świadomy tray, tekst statusu

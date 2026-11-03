@@ -105,7 +105,7 @@ codziennego użytku.
   ograniczone cache, throttled logowanie.
 - Linki zewnętrzne (repozytorium, autor, strona, wsparcie) na allowliście, otwierane
   tylko po kliknięciu, bez trackingu i bez żądań sieciowych samej aplikacji.
-- 240 testów automatycznych (237 zielonych + 3 warunkowe), suita GUI 21/21,
+- 268 testów automatycznych (265 zielonych + 3 warunkowe), suita GUI 24/24,
   walidacja instalatora 8/8.
 
 ### Wydajność

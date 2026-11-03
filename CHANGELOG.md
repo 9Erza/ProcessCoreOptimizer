@@ -97,8 +97,8 @@ refined for daily use.
   caches, throttled logging.
 - External links (repository, author, website, support) are allowlisted, open only on
   user click, with no tracking and no network requests by the app itself.
-- 240 automated tests (237 passing + 3 environment-gated), UI Automation GUI suite
-  21/21, installer validation 8/8.
+- 268 automated tests (265 passing + 3 environment-gated), UI Automation GUI suite
+  24/24, installer validation 8/8.
 
 ### Performance
 

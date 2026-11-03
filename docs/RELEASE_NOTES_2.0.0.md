@@ -47,7 +47,7 @@ selection profiles/rules with empty states, and 8-category Settings.
 ## Verification
 
 - Release build: 0 warnings, 0 errors.
-- Tests: 258 MSTest cases — 255 passing, 3 environment-gated real-startup
+- Tests: 268 MSTest cases — 265 passing, 3 environment-gated real-startup
   integration tests skipped without `PCO_REAL_STARTUP_TESTS=1`
   (fake backend, read-only checks, negative P0 identity tests, CPU Sets
   restore/suspension matrix, startup planner/coordinator/backend,
@@ -61,7 +61,7 @@ selection profiles/rules with empty states, and 8-category Settings.
   service or agent process is ever touched.
 - Startup architecture: plan → execute → verify with create-before-delete
   ordering; UAC cancel and failed-create paths proven by tests.
-- GUI: 21/21 UI Automation checks on Windows 11 (1920×1080, 100% DPI):
+- GUI: 24/24 UI Automation checks on Windows 11 (1920×1080, 100% DPI):
   all seven views incl. Smart Rules via real clicks, instance-view toggle,
   mini activity console, slim scrollbar, compact hardware empty-state,
   maximize/minimize/restore, tray-aware close, startup status text, scrolled
