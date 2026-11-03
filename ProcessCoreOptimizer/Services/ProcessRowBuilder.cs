@@ -48,6 +48,8 @@ namespace ProcessCoreOptimizer.WPF.Services
                 };
                 row.CpuUsage = FormatCpu(d.CpuUsagePercent);
                 row.RamUsageMB = FormatRam(d.WorkingSetBytes);
+                if (d.Priority.HasValue)
+                    row.PriorityRank = PriorityService.Rank(d.Priority.Value.ToString());
                 if (translatePriority != null && d.Priority.HasValue)
                     row.Priority = translatePriority(d.Priority.Value.ToString());
 

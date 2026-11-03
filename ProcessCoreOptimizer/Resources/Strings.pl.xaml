@@ -131,5 +131,22 @@
     <system:String x:Key="StrRepoTooltip">Repozytorium projektu — Process Core Optimizer</system:String>
     <system:String x:Key="StrSupportTooltip">Postaw kawę — Wesprzyj rozwój</system:String>
     <system:String x:Key="StrLinkOpenFailed">Nie udało się otworzyć strony w przeglądarce.</system:String>
+    <system:String x:Key="StrViewGrouped">Grupy</system:String>
+    <system:String x:Key="StrViewInstances">Instancje</system:String>
+    <system:String x:Key="StrOnlyOptimized">Tylko zoptymalizowane</system:String>
+    <system:String x:Key="StrOnlyWithProfile">Z profilem</system:String>
+    <system:String x:Key="StrColPid">PID</system:String>
+    <system:String x:Key="StrColPath">ŚCIEŻKA</system:String>
+    <system:String x:Key="StrColProfile">PROFIL</system:String>
+    <system:String x:Key="StrColStatus">STATUS</system:String>
+    <system:String x:Key="StrCtxDetails">Szczegóły</system:String>
+    <system:String x:Key="StrCtxCreateProfile">Utwórz profil</system:String>
+    <system:String x:Key="StrCtxCapture">Przechwyć ustawienia</system:String>
+    <system:String x:Key="StrCtxPreview">Podgląd zmian</system:String>
+    <system:String x:Key="StrCtxApply">Zastosuj profil</system:String>
+    <system:String x:Key="StrCtxRestore">Przywróć ustawienia</system:String>
+    <system:String x:Key="StrCtxCopyPid">Kopiuj PID</system:String>
+    <system:String x:Key="StrCtxCopyPath">Kopiuj ścieżkę EXE</system:String>
+    <system:String x:Key="StrCtxOpenLocation">Otwórz lokalizację pliku</system:String>
 
 </ResourceDictionary>

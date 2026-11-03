@@ -131,5 +131,22 @@
     <system:String x:Key="StrRepoTooltip">Project Repository — Process Core Optimizer</system:String>
     <system:String x:Key="StrSupportTooltip">Buy Me a Coffee — Support Development</system:String>
     <system:String x:Key="StrLinkOpenFailed">Could not open the link in your browser.</system:String>
+    <system:String x:Key="StrViewGrouped">Grouped</system:String>
+    <system:String x:Key="StrViewInstances">Instances</system:String>
+    <system:String x:Key="StrOnlyOptimized">Only optimized</system:String>
+    <system:String x:Key="StrOnlyWithProfile">With profile</system:String>
+    <system:String x:Key="StrColPid">PID</system:String>
+    <system:String x:Key="StrColPath">PATH</system:String>
+    <system:String x:Key="StrColProfile">PROFILE</system:String>
+    <system:String x:Key="StrColStatus">STATUS</system:String>
+    <system:String x:Key="StrCtxDetails">View Details</system:String>
+    <system:String x:Key="StrCtxCreateProfile">Create Profile</system:String>
+    <system:String x:Key="StrCtxCapture">Capture Current Settings</system:String>
+    <system:String x:Key="StrCtxPreview">Preview Changes</system:String>
+    <system:String x:Key="StrCtxApply">Apply Profile</system:String>
+    <system:String x:Key="StrCtxRestore">Restore Session Settings</system:String>
+    <system:String x:Key="StrCtxCopyPid">Copy PID</system:String>
+    <system:String x:Key="StrCtxCopyPath">Copy EXE Path</system:String>
+    <system:String x:Key="StrCtxOpenLocation">Open File Location</system:String>
 
 </ResourceDictionary>

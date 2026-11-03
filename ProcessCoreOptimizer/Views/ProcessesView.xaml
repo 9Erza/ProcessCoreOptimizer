@@ -10,9 +10,38 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <TextBlock Grid.Row="0" Text="{DynamicResource StrProcessList}" Style="{StaticResource PcoTitle}"/>
-            <TextBox Grid.Row="1" Text="{Binding ProcessFilterText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource PcoFilterBox}" ToolTip="{DynamicResource StrProcessFilter}"/>
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,6">
+                <TextBox Text="{Binding ProcessFilterText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource PcoFilterBox}" ToolTip="{DynamicResource StrProcessFilter}" Width="220"/>
+                <CheckBox Content="{DynamicResource StrViewInstances}" IsChecked="{Binding ShowInstances, Mode=TwoWay}" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="{StaticResource PcoTextBrush}" ToolTip="{DynamicResource StrViewInstances}"/>
+                <CheckBox Content="{DynamicResource StrOnlyOptimized}" IsChecked="{Binding ProcessOnlyOptimized, Mode=TwoWay}" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="{StaticResource PcoTextBrush}"/>
+                <CheckBox Content="{DynamicResource StrOnlyWithProfile}" IsChecked="{Binding ProcessOnlyWithProfile, Mode=TwoWay}" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="{StaticResource PcoTextBrush}"/>
+            </StackPanel>
 
             <DataGrid Grid.Row="2" ItemsSource="{Binding Processes}" SelectedItem="{Binding SelectedProcess}" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single" CanUserAddRows="False" CanUserSortColumns="True">
+                <DataGrid.Style>
+                    <Style TargetType="DataGrid" BasedOn="{StaticResource {x:Type DataGrid}}">
+                        <Setter Property="Visibility" Value="Visible"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsInstanceView}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.Style>
+                <DataGrid.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="{DynamicResource StrCtxDetails}" Command="{Binding RefreshDetailsCommand}"/>
+                        <MenuItem Header="{DynamicResource StrCtxCreateProfile}" Command="{Binding SaveProfileCommand}"/>
+                        <MenuItem Header="{DynamicResource StrCtxCapture}" Command="{Binding CaptureLiveSettingsCommand}"/>
+                        <MenuItem Header="{DynamicResource StrCtxPreview}" Command="{Binding PreviewChangesCommand}"/>
+                        <MenuItem Header="{DynamicResource StrCtxApply}" Command="{Binding ApplySettingsCommand}"/>
+                        <MenuItem Header="{DynamicResource StrCtxRestore}" Command="{Binding RestoreSettingsCommand}"/>
+                        <Separator/>
+                        <MenuItem Header="{DynamicResource StrCtxCopyPid}" Command="{Binding CopyPidCommand}"/>
+                        <MenuItem Header="{DynamicResource StrCtxCopyPath}" Command="{Binding CopyExePathCommand}"/>
+                        <MenuItem Header="{DynamicResource StrCtxOpenLocation}" Command="{Binding OpenFileLocationCommand}"/>
+                    </ContextMenu>
+                </DataGrid.ContextMenu>
                 <DataGrid.RowStyle>
                     <Style TargetType="DataGridRow">
                         <Setter Property="Background" Value="Transparent"/>
@@ -95,6 +124,82 @@
                 </DataGrid.Columns>
             </DataGrid>
 
+            <DataGrid Grid.Row="2" ItemsSource="{Binding InstanceRows}" SelectedItem="{Binding SelectedInstanceRow}" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single" CanUserAddRows="False" CanUserSortColumns="True">
+                <DataGrid.Style>
+                    <Style TargetType="DataGrid" BasedOn="{StaticResource {x:Type DataGrid}}">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsInstanceView}" Value="True">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.Style>
+                <DataGrid.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="{DynamicResource StrCtxDetails}" Command="{Binding RefreshDetailsCommand}"/>
+                        <MenuItem Header="{DynamicResource StrCtxCreateProfile}" Command="{Binding CreateProfileFromInstanceCommand}"/>
+                        <MenuItem Header="{DynamicResource StrCtxPreview}" Command="{Binding PreviewChangesCommand}"/>
+                        <MenuItem Header="{DynamicResource StrCtxApply}" Command="{Binding ApplyToInstanceCommand}"/>
+                        <Separator/>
+                        <MenuItem Header="{DynamicResource StrCtxCopyPid}" Command="{Binding CopyPidCommand}"/>
+                        <MenuItem Header="{DynamicResource StrCtxCopyPath}" Command="{Binding CopyExePathCommand}"/>
+                        <MenuItem Header="{DynamicResource StrCtxOpenLocation}" Command="{Binding OpenFileLocationCommand}"/>
+                    </ContextMenu>
+                </DataGrid.ContextMenu>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Binding="{Binding ProcessId}" SortMemberPath="ProcessId" Width="70">
+                        <DataGridTextColumn.HeaderTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{DynamicResource StrColPid}" />
+                            </DataTemplate>
+                        </DataGridTextColumn.HeaderTemplate>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Binding="{Binding Name}" SortMemberPath="Name" Width="*" MinWidth="110">
+                        <DataGridTextColumn.HeaderTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{DynamicResource StrColName}" />
+                            </DataTemplate>
+                        </DataGridTextColumn.HeaderTemplate>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Binding="{Binding CpuUsage}" SortMemberPath="CpuUsagePercent" Width="70">
+                        <DataGridTextColumn.HeaderTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{DynamicResource StrColCpu}" />
+                            </DataTemplate>
+                        </DataGridTextColumn.HeaderTemplate>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Binding="{Binding RamUsageMB}" SortMemberPath="MemoryBytes" Width="72">
+                        <DataGridTextColumn.HeaderTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{DynamicResource StrColRam}" />
+                            </DataTemplate>
+                        </DataGridTextColumn.HeaderTemplate>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Binding="{Binding Priority}" SortMemberPath="PriorityRank" Width="110">
+                        <DataGridTextColumn.HeaderTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{DynamicResource StrColPriority}" />
+                            </DataTemplate>
+                        </DataGridTextColumn.HeaderTemplate>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Binding="{Binding ProfileName}" SortMemberPath="ProfileName" Width="130">
+                        <DataGridTextColumn.HeaderTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{DynamicResource StrColProfile}" />
+                            </DataTemplate>
+                        </DataGridTextColumn.HeaderTemplate>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Binding="{Binding LastStatus}" SortMemberPath="LastStatus" Width="90">
+                        <DataGridTextColumn.HeaderTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{DynamicResource StrColStatus}" />
+                            </DataTemplate>
+                        </DataGridTextColumn.HeaderTemplate>
+                    </DataGridTextColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+
             <Border Grid.Row="3" Background="{StaticResource PcoBg3Brush}" CornerRadius="6" Padding="12" Margin="0,12,0,0" BorderThickness="1" BorderBrush="{StaticResource PcoBorderBrush}">
                 <Grid DataContext="{Binding SelectedProcessDetails}">
                     <Grid.Style>
@@ -112,6 +217,8 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <TextBlock Grid.Row="0" Text="{DynamicResource StrProcessDetails}" FontWeight="Bold" FontSize="14" Foreground="{StaticResource PcoAccentBrush}" Margin="0,0,0,6"/>
                     <TextBlock Grid.Row="1" Foreground="{StaticResource PcoTextBrush}" FontSize="12" TextWrapping="Wrap">
@@ -120,6 +227,12 @@
                     <TextBlock Grid.Row="2" Foreground="{StaticResource PcoMutedBrush}" FontSize="12" TextWrapping="Wrap" Text="{Binding ExecutablePath}"/>
                     <TextBlock Grid.Row="3" Foreground="{StaticResource PcoTextBrush}" FontSize="12">
                         <Run Text="Affinity: "/><Run Text="{Binding AffinityMask}"/><Run Text=" ("/><Run Text="{Binding AffinitySource}"/><Run Text=")   |   Priority: "/><Run Text="{Binding Priority}"/>
+                    </TextBlock>
+                    <TextBlock Grid.Row="4" Foreground="{StaticResource PcoTextBrush}" FontSize="12" TextWrapping="Wrap">
+                        <Run Text="Profile: "/><Run Text="{Binding AssignedProfileName, TargetNullValue=—}"/>
+                    </TextBlock>
+                    <TextBlock Grid.Row="5" Foreground="{StaticResource PcoMutedBrush}" FontSize="12" TextWrapping="Wrap">
+                        <Run Text="Last: "/><Run Text="{Binding LastStatus, TargetNullValue=—}"/><Run Text=" "/><Run Text="{Binding LastMessage}"/>
                     </TextBlock>
                 </Grid>
             </Border>

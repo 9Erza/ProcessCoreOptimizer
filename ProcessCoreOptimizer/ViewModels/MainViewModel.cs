@@ -138,6 +138,13 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         public ICommand ImportProfilesCommand { get; }
         public ICommand CaptureLiveSettingsCommand { get; }
         public ICommand RestoreSettingsCommand { get; }
+        public ICommand CopyPidCommand { get; }
+        public ICommand CopyExePathCommand { get; }
+        public ICommand OpenFileLocationCommand { get; }
+        public ICommand PreviewChangesCommand { get; }
+        public ICommand RefreshDetailsCommand { get; }
+        public ICommand CreateProfileFromInstanceCommand { get; }
+        public ICommand ApplyToInstanceCommand { get; }
 
         public string AppVersion { get; } = FormatDisplayVersion(Assembly.GetExecutingAssembly()
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
@@ -287,6 +294,13 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         }
 
         public bool IsInstanceView => _processViewMode == ProcessViewMode.Instances;
+
+        /// <summary>Two-way toggle for the Grouped/Instances switch (XAML CheckBox/RadioButton).</summary>
+        public bool ShowInstances
+        {
+            get => IsInstanceView;
+            set => ProcessViewMode = value ? ProcessViewMode.Instances : ProcessViewMode.Grouped;
+        }
 
         public ProcessInstanceRow? SelectedInstanceRow
         {
@@ -766,6 +780,13 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             ImportProfilesCommand = new RelayCommand(_ => ImportProfilesFromFile());
             CaptureLiveSettingsCommand = new RelayCommand(_ => CaptureLiveSettings());
             RestoreSettingsCommand = new RelayCommand(_ => RestoreSessionSettings());
+            CopyPidCommand = new RelayCommand(_ => CopySelectedPid());
+            CopyExePathCommand = new RelayCommand(_ => CopySelectedExePath());
+            OpenFileLocationCommand = new RelayCommand(_ => OpenSelectedFileLocation());
+            PreviewChangesCommand = new RelayCommand(_ => PreviewSelectedChanges());
+            RefreshDetailsCommand = new RelayCommand(_ => RefreshSelectedDetails());
+            CreateProfileFromInstanceCommand = new RelayCommand(_ => CreateProfileFromSelectedInstance());
+            ApplyToInstanceCommand = new RelayCommand(_ => ApplyToSelectedInstance());
 
             ApplyLanguage(_appSettings.Language);
             _refreshTimer.Start();
@@ -1436,6 +1457,186 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             catch (Exception ex)
             {
                 AddLog($"Profile import failed: {ex.Message}");
+            }
+        }
+
+        private void CopySelectedPid()
+        {
+            int? pid = SelectedInstanceRow?.ProcessId ?? SelectedProcessDetails?.RepresentativePid;
+            if (pid == null || pid == 0)
+            {
+                AddLog("Copy PID: no process selected.");
+                return;
+            }
+
+            try
+            {
+                System.Windows.Clipboard.SetText(pid.Value.ToString());
+                AddLog($"Copied PID {pid.Value} to clipboard.");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Copy PID failed: {ex.Message}");
+            }
+        }
+
+        private void CopySelectedExePath()
+        {
+            string? path = SelectedInstanceRow?.ExecutablePath ?? SelectedProcessDetails?.ExecutablePath;
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                AddLog("Copy EXE path: unavailable for the selected process (OS refused the read).");
+                return;
+            }
+
+            try
+            {
+                System.Windows.Clipboard.SetText(path);
+                AddLog($"Copied EXE path to clipboard: {path}");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Copy EXE path failed: {ex.Message}");
+            }
+        }
+
+        private void OpenSelectedFileLocation()
+        {
+            string? path = SelectedInstanceRow?.ExecutablePath ?? SelectedProcessDetails?.ExecutablePath;
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                AddLog("Open file location: unavailable for the selected process (OS refused the read).");
+                return;
+            }
+
+            // Observation only: reveals the local folder, never mutates the process.
+            try
+            {
+                string target = File.Exists(path) ? $"/select,\"{path}\"" : $"\"{Path.GetDirectoryName(path)}\"";
+                Process.Start(new ProcessStartInfo("explorer.exe", target) { UseShellExecute = true });
+                AddLog($"Opened file location: {path}");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Open file location failed: {ex.Message}");
+            }
+        }
+
+        private void RefreshSelectedDetails()
+        {
+            // Observation only: re-reads live details for the current selection.
+            string? name = SelectedInstanceRow?.Name ?? SelectedProcess?.Name;
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                AddLog("Details: no process selected.");
+                return;
+            }
+
+            SelectedProcessDetails = BuildProcessDetails(name);
+            AddLog($"Details refreshed for '{name}' (see panel below).");
+        }
+
+        private void PreviewSelectedChanges()
+        {
+            // Read-only by design: Compare never mutates, it only reads current state.
+            try
+            {
+                ProcessProfile? profile = null;
+                int pid = 0;
+                if (SelectedInstanceRow != null)
+                {
+                    pid = SelectedInstanceRow.ProcessId;
+                    profile = _profiles.FirstOrDefault(p => p.IsEnabled
+                        && ProfileService.MatchesIdentity(p, SelectedInstanceRow.Name, SelectedInstanceRow.ExecutablePath));
+                }
+                else if (SelectedProcess != null)
+                {
+                    pid = SelectedProcess.Id;
+                    profile = _profiles.FirstOrDefault(p => p.IsEnabled && p.ProcessName.Equals(SelectedProcess.Name, StringComparison.OrdinalIgnoreCase));
+                }
+
+                if (profile == null)
+                {
+                    AddLog("Preview: no enabled profile matches the selection. Create one first.");
+                    return;
+                }
+
+                var preview = ProfilePreviewService.Compare(profile, pid, _cpuSetMap, _processService, AppSettings.AllowRealtimePriority);
+                AddLog($"Preview '{profile.DisplayName}' vs PID {pid}: {preview.Summary}");
+                foreach (var row in preview.Rows)
+                    AddLog($"  {row.Action}: requested {row.Requested}, current {row.Current} — {(row.Matches ? "already matches" : "differs")}. {row.Detail}");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Preview failed: {ex.Message}");
+            }
+        }
+
+        private void CreateProfileFromSelectedInstance()
+        {
+            var row = SelectedInstanceRow;
+            if (row == null)
+            {
+                AddLog("Create profile: select a single instance (Instances view) first.");
+                return;
+            }
+
+            try
+            {
+                var draft = ProfilePreviewService.CaptureFromLive(row.ProcessId, _cpuSetMap, _processService);
+                if (draft == null)
+                {
+                    AddLog($"Create profile failed: the OS refused to read PID {row.ProcessId}.");
+                    return;
+                }
+
+                draft.ExecutablePath = row.ExecutablePath ?? draft.ExecutablePath;
+                draft.IsEnabled = false;
+                draft.Notes = $"Draft from PID {row.ProcessId} ({row.Name}). Review before enabling.";
+                _profiles = ProfileService.ReplacePathBoundOrAdd(_profiles, draft);
+                _profileService.SaveProfiles(_profiles);
+                _profiles = _profileService.LoadProfiles();
+                RefreshSavedProfilesView();
+                RefreshProfileConflicts();
+                AddLog($"Created disabled profile draft from PID {row.ProcessId} ('{row.Name}').");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Create profile failed: {ex.Message}");
+            }
+        }
+
+        private void ApplyToSelectedInstance()
+        {
+            // P0: an explicit instance selection applies to that PID only — never widens.
+            var row = SelectedInstanceRow;
+            if (row == null) return;
+            if (IsSafeMode)
+            {
+                AddLog("Safe mode: apply blocked, OS mutations disabled (--safe-mode).");
+                return;
+            }
+
+            try
+            {
+                var profile = _profiles.FirstOrDefault(p => p.IsEnabled
+                    && ProfileService.MatchesIdentity(p, row.Name, row.ExecutablePath));
+                if (profile == null)
+                {
+                    AddLog($"Apply: no enabled profile matches PID {row.ProcessId} ('{row.Name}').");
+                    return;
+                }
+
+                var batch = _optimizationService.ApplyProfileToInstances(
+                    profile, row.Name, new[] { row.Key }, AppSettings.AllowRealtimePriority, force: true);
+                var first = batch.Results.FirstOrDefault();
+                row.LastStatus = first?.Status.ToString() ?? "Skipped";
+                AddLog($"Applied '{profile.DisplayName}' to PID {row.ProcessId} only: {row.LastStatus} ({batch.Successful}/{batch.Total} applied).");
+                RefreshWatcherStatus();
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Apply to instance failed: {ex.Message}");
             }
         }
 

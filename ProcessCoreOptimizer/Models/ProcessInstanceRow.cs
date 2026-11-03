@@ -52,6 +52,9 @@ namespace ProcessCoreOptimizer.WPF.Models
             set => SetProperty(ref _priority, value);
         }
 
+        /// <summary>Semantic priority rank for column sorting (see <see cref="Services.PriorityService.Rank"/>).</summary>
+        public int PriorityRank { get; set; } = 2;
+
         public string AffinitySummary
         {
             get => _affinitySummary;
