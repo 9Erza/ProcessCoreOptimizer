@@ -32,6 +32,13 @@ namespace ProcessCoreOptimizer.WPF.Models
         /// <summary>System/protected process; OS not touched.</summary>
         SkippedProtected,
 
+        /// <summary>
+        /// Windows component location in an automatic channel (watcher / rules /
+        /// auto engine); OS not touched even when identity is valid. Manual,
+        /// explicit user actions may still proceed with a visible warning.
+        /// </summary>
+        SkippedSystemLocation,
+
         /// <summary>OS refused (access denied / elevation needed); retry only after elevation.</summary>
         SkippedNoPermission,
 
@@ -63,6 +70,7 @@ namespace ProcessCoreOptimizer.WPF.Models
             OperationStatus.SkippedAlreadyApplied => "SKIPPED_ALREADY_APPLIED",
             OperationStatus.SkippedIdentityMismatch => "SKIPPED_IDENTITY_MISMATCH",
             OperationStatus.SkippedProtected => "SKIPPED_PROTECTED",
+            OperationStatus.SkippedSystemLocation => "SKIPPED_SYSTEM_LOCATION",
             OperationStatus.SkippedNoPermission => "SKIPPED_NO_PERMISSION",
             OperationStatus.Unsupported => "UNSUPPORTED",
             OperationStatus.Cancelled => "CANCELLED",

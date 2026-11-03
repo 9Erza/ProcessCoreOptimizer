@@ -46,6 +46,26 @@ namespace ProcessCoreOptimizer.WPF.Views
             set => SetValue(IsTileReadOnlyProperty, value);
         }
 
+        public static readonly DependencyProperty IsLoadAvailableProperty =
+            DependencyProperty.Register(nameof(IsLoadAvailable), typeof(bool), typeof(CoreTile),
+                new PropertyMetadata(true));
+
+        public bool IsLoadAvailable
+        {
+            get => (bool)GetValue(IsLoadAvailableProperty);
+            set => SetValue(IsLoadAvailableProperty, value);
+        }
+
+        public static readonly DependencyProperty UtilityTextProperty =
+            DependencyProperty.Register(nameof(UtilityText), typeof(string), typeof(CoreTile),
+                new PropertyMetadata("—"));
+
+        public string UtilityText
+        {
+            get => (string)GetValue(UtilityTextProperty);
+            set => SetValue(UtilityTextProperty, value);
+        }
+
         public static readonly DependencyProperty LoadUsageProperty =
             DependencyProperty.Register(nameof(LoadUsage), typeof(double), typeof(CoreTile),
                 new PropertyMetadata(0.0));

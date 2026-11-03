@@ -12,6 +12,7 @@
     <system:String x:Key="StrSelectedProcess">Wybrany proces</system:String>
     <system:String x:Key="StrInitialLoading">Ładowanie procesów…</system:String>
     <system:String x:Key="StrClosePanel">Zamknij panel</system:String>
+    <system:String x:Key="StrSystemTargetWarning">Składnik Windows — zmiana ustawień CPU może zdestabilizować system. Reguły automatyczne nigdy go nie tykają; ręczny Apply pozostaje dostępny.</system:String>
     <system:String x:Key="StrNoProfilesTitle">Brak zapisanych profili</system:String>
     <system:String x:Key="StrNoProfilesBody">Utwórz profil, aby automatycznie stosować ustawienia CPU i priorytetu przy starcie aplikacji.</system:String>
     <system:String x:Key="StrSelectProfileHint">Wybierz profil, aby zobaczyć szczegóły i go edytować.</system:String>
@@ -22,6 +23,8 @@
     <system:String x:Key="StrTopologyLegend">[P] wątek główny · [T] wątek SMT · [E] rdzeń efficiency · [?] nieznany</system:String>
     <system:String x:Key="StrAffinityExplained">Affinity to twarde ograniczenie: proces może działać tylko na wybranych procesorach logicznych.</system:String>
     <system:String x:Key="StrCpuSetsExplained">CPU Sets to preferencja: Windows preferuje wybrane procesory, ale może szeregować gdzie indziej. Żaden FPS nie jest gwarantowany.</system:String>
+    <system:String x:Key="StrCpuUtility">Użycie CPU (z boostem)</system:String>
+    <system:String x:Key="StrUtilityNote">Zawiera skalowanie częstotliwości; może przekraczać 100%. To nie to samo co czas zajętości.</system:String>
     <system:String x:Key="StrProcessList">Lista Procesów</system:String>
     <system:String x:Key="StrYourProfiles">Twoje Profile</system:String>
     <system:String x:Key="StrCpuCores">Rdzenie CPU</system:String>
@@ -71,6 +74,7 @@
     <system:String x:Key="StrSelectAll">Zaznacz Wszystko</system:String>
     <system:String x:Key="StrClearAll">Odznacz Wszystko</system:String>
     <system:String x:Key="StrDisableECores">Wyłącz E-Cores</system:String>
+    <system:String x:Key="StrEmptyMaskWarning">Nie wybrano rdzeni — nic się nie zmieni. Wybierz co najmniej jeden procesor logiczny.</system:String>
     <system:String x:Key="StrSetPriority">Ustaw Priorytet</system:String>
     <system:String x:Key="StrSetAffinity">Ustaw Koligację</system:String>
     <system:String x:Key="StrSaveProfile">Zapisz Profil</system:String>

@@ -103,7 +103,7 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <views:CoreTile TileLabel="{Binding DisplayName, Mode=OneWay}" LoadUsage="{Binding LoadUsage, Mode=OneWay}" IsTileReadOnly="True">
+                            <views:CoreTile TileLabel="{Binding DisplayName, Mode=OneWay}" LoadUsage="{Binding LoadUsage, Mode=OneWay}" IsTileReadOnly="True" IsLoadAvailable="{Binding LoadAvailable, Mode=OneWay}" UtilityText="{Binding UtilityText, Mode=OneWay}">
                                 <views:CoreTile.IsPreviewHighlighted>
                                     <MultiBinding Converter="{StaticResource PreviewHighlightConverter}">
                                         <Binding Path="Index"/>

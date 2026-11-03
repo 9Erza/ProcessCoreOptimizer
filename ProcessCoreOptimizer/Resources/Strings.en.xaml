@@ -12,6 +12,7 @@
     <system:String x:Key="StrSelectedProcess">Selected process</system:String>
     <system:String x:Key="StrInitialLoading">Loading processes…</system:String>
     <system:String x:Key="StrClosePanel">Close panel</system:String>
+    <system:String x:Key="StrSystemTargetWarning">Windows component — changing CPU settings may destabilize the system. Automatic rules never touch it; manual Apply remains available.</system:String>
     <system:String x:Key="StrNoProfilesTitle">No saved profiles yet</system:String>
     <system:String x:Key="StrNoProfilesBody">Create a profile to automatically apply CPU and priority settings when an application starts.</system:String>
     <system:String x:Key="StrSelectProfileHint">Select a profile to view and edit its configuration.</system:String>
@@ -22,6 +23,8 @@
     <system:String x:Key="StrTopologyLegend">[P] primary thread · [T] SMT sibling · [E] efficiency core · [?] unknown</system:String>
     <system:String x:Key="StrAffinityExplained">Affinity is a hard limit: the process may run only on the selected logical processors.</system:String>
     <system:String x:Key="StrCpuSetsExplained">CPU Sets are a preference: Windows prefers the selected processors but may schedule elsewhere. No FPS is guaranteed.</system:String>
+    <system:String x:Key="StrCpuUtility">CPU utility (incl. boost)</system:String>
+    <system:String x:Key="StrUtilityNote">Includes frequency scaling; may exceed 100%. Not the same as busy time.</system:String>
     <system:String x:Key="StrProcessList">Process List</system:String>
     <system:String x:Key="StrYourProfiles">Your Profiles</system:String>
     <system:String x:Key="StrCpuCores">CPU Cores</system:String>
@@ -71,6 +74,7 @@
     <system:String x:Key="StrSelectAll">Select All</system:String>
     <system:String x:Key="StrClearAll">Clear All</system:String>
     <system:String x:Key="StrDisableECores">Disable E-Cores</system:String>
+    <system:String x:Key="StrEmptyMaskWarning">No cores selected — nothing would change. Select at least one logical processor.</system:String>
     <system:String x:Key="StrSetPriority">Set Priority</system:String>
     <system:String x:Key="StrSetAffinity">Set Affinity</system:String>
     <system:String x:Key="StrSaveProfile">Save Profile</system:String>
