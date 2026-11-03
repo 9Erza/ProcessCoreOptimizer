@@ -145,6 +145,9 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         public ICommand RefreshDetailsCommand { get; }
         public ICommand CreateProfileFromInstanceCommand { get; }
         public ICommand ApplyToInstanceCommand { get; }
+        public ICommand NewProfileCommand { get; }
+        public ICommand EditProfileCommand { get; }
+        public ICommand ToggleProfileEnabledCommand { get; }
 
         public string AppVersion { get; } = FormatDisplayVersion(Assembly.GetExecutingAssembly()
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
@@ -787,6 +790,9 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             RefreshDetailsCommand = new RelayCommand(_ => RefreshSelectedDetails());
             CreateProfileFromInstanceCommand = new RelayCommand(_ => CreateProfileFromSelectedInstance());
             ApplyToInstanceCommand = new RelayCommand(_ => ApplyToSelectedInstance());
+            NewProfileCommand = new RelayCommand(_ => CreateNewProfile());
+            EditProfileCommand = new RelayCommand(_ => EditSelectedProfile());
+            ToggleProfileEnabledCommand = new RelayCommand(_ => ToggleSelectedProfileEnabled());
 
             ApplyLanguage(_appSettings.Language);
             _refreshTimer.Start();
@@ -1637,6 +1643,128 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             catch (Exception ex)
             {
                 AddLog($"Apply to instance failed: {ex.Message}");
+            }
+        }
+
+        private void CreateNewProfile()
+        {
+            var draft = new ProcessProfile
+            {
+                ProcessName = SelectedProcess?.Name ?? SelectedInstanceRow?.Name ?? string.Empty,
+                ExecutablePath = SelectedInstanceRow?.ExecutablePath,
+                AffinityMask = 0xFF,
+                Priority = "Normal",
+                OptimizationMode = OptimizationMode.Affinity,
+                ApplyPriority = true,
+                ApplyCoreOptimization = true,
+                IsEnabled = false,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            if (!ShowProfileEditor(draft, isNew: true)) return;
+
+            _profiles = ProfileService.ReplacePathBoundOrAdd(_profiles, draft);
+            _profileService.SaveProfiles(_profiles);
+            _profiles = _profileService.LoadProfiles();
+            RefreshSavedProfilesView();
+            RefreshProfileConflicts();
+            AddLog(IsPolishLanguage
+                ? $"Utworzono profil '{draft.ProcessName}' (wyłączony — włącz go świadomie)."
+                : $"Created profile '{draft.ProcessName}' (disabled — enable it deliberately).");
+        }
+
+        private void EditSelectedProfile()
+        {
+            var selected = SelectedSavedProfile;
+            if (selected == null)
+            {
+                AddLog(IsPolishLanguage ? "Edycja: najpierw wybierz profil." : "Edit: select a profile first.");
+                return;
+            }
+
+            // Edit a clone: cancel leaves the saved profile untouched.
+            var draft = new ProcessProfile
+            {
+                Id = selected.Id,
+                SchemaVersion = selected.SchemaVersion,
+                ProcessName = selected.ProcessName,
+                DisplayName = selected.DisplayName,
+                ExecutablePath = selected.ExecutablePath,
+                AffinityMask = selected.AffinityMask,
+                Priority = selected.Priority,
+                OptimizationMode = selected.OptimizationMode,
+                ApplyPriority = selected.ApplyPriority,
+                ApplyCoreOptimization = selected.ApplyCoreOptimization,
+                IsEnabled = selected.IsEnabled,
+                Notes = selected.Notes,
+                CreatedAt = selected.CreatedAt,
+                UpdatedAt = selected.UpdatedAt
+            };
+
+            if (!ShowProfileEditor(draft, isNew: false)) return;
+
+            // P0: write back by stable Id, never by name.
+            var existing = ProfileService.FindById(_profiles, draft.Id);
+            if (existing == null)
+            {
+                AddLog(IsPolishLanguage ? "Edycja: profil już nie istnieje." : "Edit: profile no longer exists.");
+                return;
+            }
+
+            existing.ExecutablePath = draft.ExecutablePath;
+            existing.AffinityMask = draft.AffinityMask;
+            existing.Priority = draft.Priority;
+            existing.DisplayPriority = TranslatePriority(NormalizePriority(draft.Priority));
+            existing.OptimizationMode = draft.OptimizationMode;
+            existing.ApplyPriority = draft.ApplyPriority;
+            existing.ApplyCoreOptimization = draft.ApplyCoreOptimization;
+            existing.IsEnabled = draft.IsEnabled;
+            existing.Notes = draft.Notes;
+            existing.UpdatedAt = DateTime.UtcNow;
+
+            _profileService.SaveProfiles(_profiles);
+            _profiles = _profileService.LoadProfiles();
+            RefreshSavedProfilesView();
+            RefreshProfileConflicts();
+            ClearAppliedProfileCache(existing.ProcessName);
+            AddLog(IsPolishLanguage
+                ? $"Zaktualizowano profil '{existing.ProcessName}'."
+                : $"Updated profile '{existing.ProcessName}'.");
+        }
+
+        private void ToggleSelectedProfileEnabled()
+        {
+            var selected = SelectedSavedProfile;
+            if (selected == null) return;
+            var existing = ProfileService.FindById(_profiles, selected.Id);
+            if (existing == null) return;
+            existing.IsEnabled = !existing.IsEnabled;
+            existing.UpdatedAt = DateTime.UtcNow;
+            _profileService.SaveProfiles(_profiles);
+            _profiles = _profileService.LoadProfiles();
+            RefreshSavedProfilesView();
+            RefreshProfileConflicts();
+            if (!existing.IsEnabled) ClearAppliedProfileCache(existing.ProcessName);
+            AddLog(IsPolishLanguage
+                ? $"Profil '{existing.ProcessName}': {(existing.IsEnabled ? "włączony" : "wyłączony")}."
+                : $"Profile '{existing.ProcessName}': {(existing.IsEnabled ? "enabled" : "disabled")}.");
+        }
+
+        private bool ShowProfileEditor(ProcessProfile draft, bool isNew)
+        {
+            try
+            {
+                var owner = WpfApplication.Current.MainWindow as Views.MainWindow;
+                var window = new Views.ProfileEditorWindow(
+                    draft, isNew, AppSettings.AllowRealtimePriority, IsPolishLanguage, _profiles);
+                if (owner != null) window.Owner = owner;
+                return window.ShowDialog() == true;
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Profile editor failed: {ex.Message}");
+                return false;
             }
         }
 

@@ -148,5 +148,19 @@
     <system:String x:Key="StrCtxCopyPid">Kopiuj PID</system:String>
     <system:String x:Key="StrCtxCopyPath">Kopiuj ścieżkę EXE</system:String>
     <system:String x:Key="StrCtxOpenLocation">Otwórz lokalizację pliku</system:String>
+    <system:String x:Key="StrProfileEditorTitle">Edytor profilu</system:String>
+    <system:String x:Key="StrProfileName">Nazwa procesu</system:String>
+    <system:String x:Key="StrProfilePath">Ścieżka EXE (opcjonalna, czyni profil path-bound)</system:String>
+    <system:String x:Key="StrBrowse">Przeglądaj…</system:String>
+    <system:String x:Key="StrAffinityMaskHex">Maska affinity (hex, np. FF)</system:String>
+    <system:String x:Key="StrApplyPriority">Zastosuj priorytet</system:String>
+    <system:String x:Key="StrApplyCores">Zastosuj rdzenie CPU</system:String>
+    <system:String x:Key="StrProfileEnabled">Włączony</system:String>
+    <system:String x:Key="StrNotes">Notatki</system:String>
+    <system:String x:Key="StrSave">Zapisz</system:String>
+    <system:String x:Key="StrCancel">Anuluj</system:String>
+    <system:String x:Key="StrNewProfile">Nowy</system:String>
+    <system:String x:Key="StrEditProfile">Edytuj</system:String>
+    <system:String x:Key="StrCtxToggleEnabled">Włącz / Wyłącz</system:String>
 
 </ResourceDictionary>
