@@ -718,6 +718,17 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                         _sessionRestore.Clear();
                         _optimizationService.ClearAllCache();
                         _optimizationService.CleanupStaleCache(new HashSet<ProcessInstanceKey>());
+                        // P0-1: drop rule state before the wipe so no rule can fire
+                        // against half-wiped data, whatever the wipe outcome is.
+                        WpfApplication.Current.Dispatcher.Invoke(() =>
+                        {
+                            _rules = new List<SmartRule>();
+                            _rulesSnapshot = new List<SmartRule>();
+                            Rules.Clear();
+                            RecentRuleDecisions.Clear();
+                            SelectedRule = null;
+                        });
+                        _ruleEngine.Clear();
                         return Task.CompletedTask;
                     },
                     removeStartupAsync: async () =>
@@ -742,6 +753,11 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 {
                     _profiles = new List<ProcessProfile>();
                     SavedProfiles.Clear();
+                    _rules = new List<SmartRule>();
+                    _rulesSnapshot = new List<SmartRule>();
+                    Rules.Clear();
+                    RecentRuleDecisions.Clear();
+                    SelectedRule = null;
                     Processes.Clear();
                     RecentOperations.Clear();
                     ProfileConflicts.Clear();
@@ -768,12 +784,17 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                     SetResetStatus((IsPolishLanguage
                         ? "Dane usunięte, ale autostart pozostał: "
                         : "Data erased, but startup remains: ") + result.StartupRemovalError);
+                    // App keeps running: re-sync rule memory with (possibly partial) disk.
+                    ReloadRules();
+                    RefreshRuleStatus();
                 }
                 else
                 {
                     SetResetStatus((IsPolishLanguage
                         ? "Reset niepełny: "
                         : "Incomplete reset: ") + string.Join("; ", result.Errors.Take(3)));
+                    ReloadRules();
+                    RefreshRuleStatus();
                 }
 
                 AddLog(DataResetStatusText);
@@ -1570,7 +1591,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         {
             try
             {
-                if (IsSafeMode || AppSettings.AutomationPaused) return;
+                if (IsSafeMode || AppSettings.AutomationPaused || _resetInProgress) return;
                 var snapshot = _rulesSnapshot;
                 if (snapshot.Count == 0 || !snapshot.Any(r => r.IsEnabled)) return;
 

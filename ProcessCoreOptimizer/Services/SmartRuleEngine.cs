@@ -75,6 +75,27 @@ namespace ProcessCoreOptimizer.WPF.Services
             }
         }
 
+        /// <summary>
+        /// Drops all runtime state (seen launches, pending delays, cooldowns,
+        /// overrides, recent decisions). Used by factory reset so wiped rules
+        /// leave no ghost state in memory. Thread-safe.
+        /// </summary>
+        public void Clear()
+        {
+            lock (_recent)
+            {
+                _seen.Clear();
+                _pendingLaunch.Clear();
+                _lastApplyUtc.Clear();
+                _overridesUtc.Clear();
+                _recent.Clear();
+                _foregroundKey = null;
+            }
+
+            LastEvaluateAtUtc = null;
+            LastSummary = "cleared";
+        }
+
         public IReadOnlyList<RuleDecision> Evaluate(
             IReadOnlyList<ProcessGroupSnapshot> groups,
             int? foregroundPid,

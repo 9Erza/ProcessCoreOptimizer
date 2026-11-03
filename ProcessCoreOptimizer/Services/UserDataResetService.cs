@@ -31,11 +31,22 @@ namespace ProcessCoreOptimizer.WPF.Services
         {
             "settings.json", "settings.json.bak",
             "profiles.json", "profiles.json.bak",
+            "smartrules.json", "smartrules.json.bak",
             "ProcessCoreOptimizer.log",
             "ProcessCoreOptimizer.log.1", "ProcessCoreOptimizer.log.2", "ProcessCoreOptimizer.log.3",
             "watcher-cache.json", "watcher-cache.json.bak",
             "diagnostics.json",
             "first-run.json"
+        };
+
+        /// <summary>
+        /// Data files that get a persistent no-legacy stamp after a reset.
+        /// Every persisted user-data file must be listed here, otherwise wiped
+        /// data could be silently reimported from the executable directory.
+        /// </summary>
+        private static readonly string[] StampedDataFiles =
+        {
+            "settings.json", "profiles.json", "smartrules.json"
         };
 
         private readonly string _rootDirectory;
@@ -166,7 +177,7 @@ namespace ProcessCoreOptimizer.WPF.Services
             try
             {
                 Directory.CreateDirectory(root);
-                foreach (string dataFile in new[] { "settings.json", "profiles.json" })
+                foreach (string dataFile in StampedDataFiles)
                 {
                     File.WriteAllText(
                         Path.Combine(root, AppPaths.LegacySuppressStampFileName(dataFile)),
