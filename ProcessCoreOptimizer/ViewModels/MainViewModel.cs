@@ -838,7 +838,9 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                         IsOptimized = profile != null,
                         ModeTag = tag,
                         RamUsageMB = $"{group.TotalMemoryBytes / 1024 / 1024} MB",
-                        CpuUsage = $"{Math.Round(group.CpuUsagePercent, 1)}%"
+                        CpuUsage = $"{Math.Round(group.CpuUsagePercent, 1)}%",
+                        CpuUsageValue = group.CpuUsagePercent,
+                        MemoryBytes = group.TotalMemoryBytes
                     });
                 }
             });
@@ -866,6 +868,8 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                     item.InstanceCount = snapshot.InstanceCount;
                     item.RamUsageMB = $"{snapshot.TotalMemoryBytes / 1024 / 1024} MB";
                     item.CpuUsage = $"{Math.Round(snapshot.CpuUsagePercent, 1)}%";
+                    item.CpuUsageValue = snapshot.CpuUsagePercent;
+                    item.MemoryBytes = snapshot.TotalMemoryBytes;
                     item.Priority = TranslatePriority(profile?.Priority ?? snapshot.Priority.ToString());
                     item.IsOptimized = profile != null;
                     item.ModeTag = currentTag;

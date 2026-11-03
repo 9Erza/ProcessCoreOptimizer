@@ -114,15 +114,58 @@ namespace ProcessCoreOptimizer.WPF.Services
 
         public OptimizationBatchResult ApplyProfileToRunningProcesses(ProcessProfile profile, bool allowRealtimePriority, bool force)
         {
+            return ApplyProfileToKeys(profile, processName: null, keys: null, allowRealtimePriority, force);
+        }
+
+        /// <summary>
+        /// P0 scoped apply: touches only the given instance keys. An empty key set
+        /// is a no-op (never widens to the whole group). Identity is re-verified
+        /// per key inside <see cref="ApplyProfileToPid"/>; stale keys yield
+        /// SKIPPED_IDENTITY_MISMATCH, never a PID-only mutation.
+        /// </summary>
+        public OptimizationBatchResult ApplyProfileToInstances(
+            ProcessProfile profile,
+            string processName,
+            IReadOnlyCollection<ProcessInstanceKey> keys,
+            bool allowRealtimePriority,
+            bool force)
+        {
+            var batch = new OptimizationBatchResult();
+            if (!ProcessRowBuilder.IsScopedSelectionValid(keys))
+                return batch;
+
+            string normalized = ProfileService.NormalizeProcessName(processName);
+            foreach (var key in keys)
+            {
+                var result = ApplyProfileToPid(key, normalized, profile, allowRealtimePriority, force);
+                batch.Results.Add(result);
+            }
+
+            batch.Total = batch.Results.Count;
+            batch.Successful = batch.Results.Count(r => r.Success);
+            batch.Failed = batch.Total - batch.Successful;
+            return batch;
+        }
+
+        private OptimizationBatchResult ApplyProfileToKeys(
+            ProcessProfile profile,
+            string? processName,
+            IReadOnlyCollection<ProcessInstanceKey>? keys,
+            bool allowRealtimePriority,
+            bool force)
+        {
             var batch = new OptimizationBatchResult();
             Process[] processes = Array.Empty<Process>();
 
             try
             {
-                string processName = ProfileService.NormalizeProcessName(profile.ProcessName);
-                processes = Process.GetProcessesByName(processName);
+                string name = ProfileService.NormalizeProcessName(processName ?? profile.ProcessName);
+                processes = Process.GetProcessesByName(name);
                 foreach (var process in processes)
                 {
+                    if (keys != null && !keys.Contains(ProcessScannerService.CreateInstanceKey(process)))
+                        continue;
+
                     string? livePath = ProcessIdentityValidator.TryGetProcessPath(process);
                     if (!ProfileService.MatchesIdentity(profile, process.ProcessName, livePath)) continue;
 

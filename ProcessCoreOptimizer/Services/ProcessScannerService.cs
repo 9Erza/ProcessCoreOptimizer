@@ -35,6 +35,94 @@ namespace ProcessCoreOptimizer.WPF.Services
             return Task.Run(() => ScanProfileProcesses(profiles));
         }
 
+        /// <summary>
+        /// On-demand per-instance drill-down for one process group. Reuses the same
+        /// CPU-delta cache as the group scan (no extra timers). Best-effort per
+        /// instance: unreadable values stay null (Unknown), never invented.
+        /// Call only on explicit user action (group expand / Instance mode).
+        /// </summary>
+        public Task<IReadOnlyList<ProcessInstanceData>> ScanGroupInstancesAsync(string processName)
+        {
+            return Task.Run<IReadOnlyList<ProcessInstanceData>>(() => ScanGroupInstances(processName));
+        }
+
+        private IReadOnlyList<ProcessInstanceData> ScanGroupInstances(string processName)
+        {
+            string normalized = ProfileService.NormalizeProcessName(processName);
+            if (string.IsNullOrWhiteSpace(normalized)) return Array.Empty<ProcessInstanceData>();
+
+            Process[] processes = Array.Empty<Process>();
+            try
+            {
+                processes = Process.GetProcessesByName(normalized);
+                double elapsedSeconds = Math.Max((DateTime.UtcNow - _lastSampleUtc).TotalSeconds, 0.1);
+
+                var rows = new List<ProcessInstanceData>(processes.Length);
+                var active = new HashSet<ProcessInstanceKey>();
+                foreach (var process in processes)
+                {
+                    try
+                    {
+                        if (process.HasExited) continue;
+                        var key = CreateInstanceKey(process);
+                        active.Add(key);
+
+                        double? cpu = null;
+                        try
+                        {
+                            TimeSpan currentCpu = process.TotalProcessorTime;
+                            lock (_cpuTimesLock)
+                            {
+                                if (_lastCpuTimes.TryGetValue(key, out TimeSpan lastCpu))
+                                {
+                                    double usageMs = Math.Max((currentCpu - lastCpu).TotalMilliseconds, 0);
+                                    cpu = (usageMs / (elapsedSeconds * 1000 * Math.Max(Environment.ProcessorCount, 1))) * 100;
+                                }
+
+                                _lastCpuTimes[key] = currentCpu;
+                            }
+                        }
+                        catch { cpu = null; }
+
+                        long? memory = null;
+                        try { memory = process.WorkingSet64; } catch { memory = null; }
+
+                        ProcessPriorityClass? priority = null;
+                        try { priority = process.PriorityClass; } catch { priority = null; }
+
+                        rows.Add(new ProcessInstanceData
+                        {
+                            Key = key,
+                            ProcessName = process.ProcessName,
+                            ExecutablePath = ProcessIdentityValidator.TryGetProcessPath(process),
+                            CpuUsagePercent = cpu,
+                            WorkingSetBytes = memory,
+                            Priority = priority
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Debug($"Instance drill-down skipped a '{normalized}' PID: {ex.Message}");
+                    }
+                }
+
+                CleanupCpuCache(active);
+                return rows.OrderBy(r => r.Key.ProcessId).ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug($"Instance drill-down failed for '{normalized}': {ex.Message}");
+                return Array.Empty<ProcessInstanceData>();
+            }
+            finally
+            {
+                foreach (var process in processes)
+                {
+                    process.Dispose();
+                }
+            }
+        }
+
         private ProcessScanResult ScanUserProcesses()
         {
             Process[] processes = Array.Empty<Process>();
