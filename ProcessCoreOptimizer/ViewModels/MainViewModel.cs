@@ -19,6 +19,24 @@ using System.Windows.Threading;
 
 namespace ProcessCoreOptimizer.WPF.ViewModels
 {
+    /// <summary>Sidebar mini-console status dot. Error = startup conflict needs repair.</summary>
+    public enum ActivityLevel
+    {
+        Active,
+        Attention,
+        Error
+    }
+
+    /// <summary>Manual/automatic update check outcome shown in Settings.</summary>
+    public enum UpdateStatusKind
+    {
+        None,
+        Checking,
+        UpToDate,
+        Failed,
+        NoInstaller,
+        Available
+    }
     /// <summary>
     /// Main view model coordinating UI state, process telemetry, profiles and settings.
     /// </summary>
@@ -36,6 +54,10 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         private readonly SessionRestoreService _sessionRestore = new();
         private readonly LocalizationService _localizationService = new();
         private readonly UpdateService _updateService = new();
+        private readonly UpdateCheckSession _updateSession;
+        private readonly System.Threading.CancellationTokenSource _updateCts = new();
+        private bool _updateDialogShown;
+        private string? _pendingUpdateVersion;
 
         private readonly DispatcherTimer _hwTimer;
         private readonly DispatcherTimer _refreshTimer;
@@ -171,6 +193,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 AppSettings.AutomationPaused = value;
                 _settingsService.SaveSettings(AppSettings);
                 OnPropertyChanged(nameof(AutomationPaused));
+                OnPropertyChanged(nameof(ActivityStatus));
                 RefreshRuleStatus();
                 AddLog(value
                     ? (IsPolishLanguage ? "Automatyczna optymalizacja wstrzymana (pauza). Obserwacja trwa." : "Automatic optimization paused. Observation continues.")
@@ -190,6 +213,19 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             OptimizationMode.Affinity,
             OptimizationMode.CpuSets
         };
+
+        /// <summary>Sidebar mini-console status, derived from real app state (never animated).</summary>
+        public ActivityLevel ActivityStatus =>
+            _hasStartupConflict ? ActivityLevel.Error
+            : (IsSafeMode || AppSettings.AutomationPaused) ? ActivityLevel.Attention
+            : ActivityLevel.Active;
+
+        /// <summary>Most recent log line for the mini console (full history stays in Diagnostics).</summary>
+        public string ActivitySummary => ActionLogs.Count == 0
+            ? (IsPolishLanguage ? "Brak aktywności." : "No activity yet.")
+            : ActionLogs[ActionLogs.Count - 1];
+
+        private bool _hasStartupConflict;
 
         public List<string> Languages { get; } = new() { "English", "Polski" };
 
@@ -214,6 +250,26 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         public ICommand OpenWizardCommand { get; }
         public ICommand RestoreDefaultsCommand { get; }
         public ICommand FactoryResetCommand { get; }
+        public ICommand CheckForUpdatesNowCommand { get; }
+
+        private string? _updateStatusVersion;
+        private UpdateStatusKind _updateStatus;
+        public string? UpdateStatusText => _updateStatus switch
+        {
+            UpdateStatusKind.Checking => IsPolishLanguage ? "Sprawdzanie aktualizacji…" : "Checking for updates…",
+            UpdateStatusKind.UpToDate => IsPolishLanguage ? "Program aktualny." : "App is up to date.",
+            UpdateStatusKind.Failed => IsPolishLanguage ? "Nie udało się sprawdzić aktualizacji. Sprawdź połączenie i spróbuj ponownie." : "Could not check for updates. Check your connection and try again.",
+            UpdateStatusKind.NoInstaller => IsPolishLanguage ? "Nowa wersja nie ma jeszcze opublikowanego instalatora." : "The new version has no published installer yet.",
+            UpdateStatusKind.Available => string.Format(IsPolishLanguage ? "Dostępna aktualizacja: v{0}" : "Update available: v{0}", _updateStatusVersion ?? string.Empty),
+            _ => null
+        };
+
+        private void SetUpdateStatus(UpdateStatusKind kind, string? version = null)
+        {
+            _updateStatus = kind;
+            _updateStatusVersion = version;
+            OnPropertyChanged(nameof(UpdateStatusText));
+        }
         public ICommand OpenAuthorCommand { get; }
         public ICommand OpenRepositoryCommand { get; }
         public ICommand OpenWebsiteCommand { get; }
@@ -911,6 +967,8 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             };
             RefreshRecentOperations();
             LogProfileWatcherStartupSummary();
+            // Mini console: event-driven summary refresh, no timer.
+            ActionLogs.CollectionChanged += (s, e) => OnPropertyChanged(nameof(ActivitySummary));
 
             _hwTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(AppSettings.HardwareRefreshSeconds) };
             _hwTimer.Tick += (s, e) => UpdateHardwareMetrics();
@@ -933,6 +991,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             OpenWizardCommand = new RelayCommand(_ => OpenFirstRunWizard());
             RestoreDefaultsCommand = new RelayCommand(_ => { _ = RestoreDefaultSettingsAsync(); });
             FactoryResetCommand = new RelayCommand(_ => { _ = RunFactoryResetAsync(); });
+            CheckForUpdatesNowCommand = new RelayCommand(_ => { _ = CheckForUpdatesNowAsync(); });
             OpenAuthorCommand = new RelayCommand(_ => OpenExternalLink(PcoExternalLink.Author));
             OpenRepositoryCommand = new RelayCommand(_ => OpenExternalLink(PcoExternalLink.Repository));
             OpenWebsiteCommand = new RelayCommand(_ => OpenExternalLink(PcoExternalLink.Website));
@@ -961,6 +1020,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             ClearRuleOverrideCommand = new RelayCommand(_ => ClearSelectedRuleOverride());
             ExportDiagnosticsCommand = new RelayCommand(_ => ExportDiagnosticsPackage());
 
+            _updateSession = new UpdateCheckSession(AppVersion);
             ApplyLanguage(_appSettings.Language);
             _refreshTimer.Start();
             AddLog($"System initialized. App Version v{AppVersion}");
@@ -2679,40 +2739,107 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         {
             try
             {
-                await Task.Delay(2000);
-                var update = await _updateService.CheckForUpdatesAsync(AppVersion);
-                if (update.IsUpdateAvailable)
+                await Task.Delay(2000, _updateCts.Token).ConfigureAwait(false);
+                if (NeedsFirstRunWizard) return;
+                var update = await _updateSession.TryRunAutomaticCheckAsync(
+                    AppSettings.CheckForUpdates && !ProcessCoreOptimizer.WPF.App.StartupOptions.DisableUpdateCheck,
+                    _updateCts.Token).ConfigureAwait(false);
+                if (update == null) return;
+                if (UpdateCheckSession.ShouldPresentUpdateDialog(update))
                 {
                     AddLog($"Update available: v{update.LatestVersion}");
-
-                    WpfApplication.Current.Dispatcher.Invoke(() =>
-                    {
-                        var result = WpfMessageBox.Show(
-                            $"A new version (v{update.LatestVersion}) is available. Open download page?",
-                            "Update Available",
-                            MessageBoxButton.YesNo,
-                            MessageBoxImage.Information);
-
-                        if (result == MessageBoxResult.Yes)
-                        {
-                            UpdateService.OpenReleasePage(update.ReleaseUrl);
-                        }
-                    });
+                    PresentOrDeferUpdate(update.LatestVersion, update.ReleaseUrl);
                 }
                 else if (string.IsNullOrWhiteSpace(update.Error))
                 {
                     AddLog("App is up to date.");
                 }
+                // Automatic errors stay silent; the manual check reports them.
             }
+            catch (OperationCanceledException) { }
             catch (Exception ex)
             {
                 LoggerService.Instance.Debug($"Update check failed: {ex.Message}");
             }
         }
 
+        private void PresentOrDeferUpdate(string latestVersion, string releaseUrl)
+        {
+            var window = WpfApplication.Current?.MainWindow;
+            bool visible = window?.IsVisible == true;
+            bool minimized = window?.WindowState == WindowState.Minimized;
+            if (UpdateCheckSession.ShouldDeferUpdateDialog(visible, minimized, NeedsFirstRunWizard, _updateDialogShown))
+            {
+                _pendingUpdateVersion = latestVersion;
+                SetUpdateStatus(UpdateStatusKind.Available, latestVersion);
+                return;
+            }
+            ShowUpdateDialog(latestVersion, releaseUrl);
+        }
+
+        /// <summary>Called when the main window is foregrounded: presents a deferred update once.</summary>
+        public void TryPresentPendingUpdate()
+        {
+            if (string.IsNullOrWhiteSpace(_pendingUpdateVersion) || _updateDialogShown) return;
+            var window = WpfApplication.Current?.MainWindow;
+            bool visible = window?.IsVisible == true;
+            bool minimized = window?.WindowState == WindowState.Minimized;
+            if (UpdateCheckSession.ShouldDeferUpdateDialog(visible, minimized, NeedsFirstRunWizard, false)) return;
+            string version = _pendingUpdateVersion;
+            _pendingUpdateVersion = null;
+            ShowUpdateDialog(version, $"https://github.com/9Erza/ProcessCoreOptimizer/releases/tag/v{version.TrimStart('v', 'V')}");
+        }
+
+        private void ShowUpdateDialog(string latestVersion, string releaseUrl)
+        {
+            _updateDialogShown = true;
+            _pendingUpdateVersion = null;
+            SetUpdateStatus(UpdateStatusKind.Available, latestVersion);
+            WpfApplication.Current.Dispatcher.Invoke(() =>
+            {
+                Views.UpdateAvailableDialog.Present(
+                    WpfApplication.Current.MainWindow as Views.MainWindow,
+                    latestVersion, AppVersion, releaseUrl, IsPolishLanguage);
+            });
+        }
+
+        private async Task CheckForUpdatesNowAsync()
+        {
+            SetUpdateStatus(UpdateStatusKind.Checking);
+            try
+            {
+                var update = await _updateService.CheckForUpdatesAsync(AppVersion, _updateCts.Token).ConfigureAwait(false);
+                if (!string.IsNullOrWhiteSpace(update.Error))
+                {
+                    SetUpdateStatus(UpdateStatusKind.Failed);
+                    return;
+                }
+                if (update.IsUpdateAvailable)
+                {
+                    AddLog($"Update available: v{update.LatestVersion}");
+                    ShowUpdateDialog(update.LatestVersion, update.ReleaseUrl);
+                    return;
+                }
+                if (update.Note != null)
+                {
+                    SetUpdateStatus(UpdateStatusKind.NoInstaller, update.LatestVersion);
+                    return;
+                }
+                SetUpdateStatus(UpdateStatusKind.UpToDate);
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception ex)
+            {
+                LoggerService.Instance.Debug($"Manual update check failed: {ex.Message}");
+                SetUpdateStatus(UpdateStatusKind.Failed);
+            }
+        }
         private void ApplyLanguage(string langCode)
         {
             _localizationService.ApplyLanguage(langCode);
+            OnPropertyChanged(nameof(ActivitySummary));
+            OnPropertyChanged(nameof(ActivityStatus));
+            OnPropertyChanged(nameof(UpdateStatusText));
             RefreshAvailablePriorities();
             RefreshDisplayedPriorities();
             RefreshProfileConflicts();
@@ -2876,9 +3003,13 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             {
                 StartupStatusText = StartupStateText(StartupState.Broken);
                 StartupDetailText = error ?? string.Empty;
+                _hasStartupConflict = true;
+                OnPropertyChanged(nameof(ActivityStatus));
                 return;
             }
 
+            _hasStartupConflict = evaluation.State == StartupState.Conflict;
+            OnPropertyChanged(nameof(ActivityStatus));
             StartupStatusText = StartupStateText(evaluation.State);
             var parts = evaluation.Reasons.Select(StartupReasonText).Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
             if (!string.IsNullOrWhiteSpace(error)) parts.Add(error);
@@ -2981,6 +3112,8 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         {
             if (_disposed) return;
             _disposed = true;
+            try { _updateCts.Cancel(); } catch { }
+            try { _updateCts.Dispose(); } catch { }
 
             _refreshTimer.Stop();
             try { _profileWatcher.Dispose(); } catch { }

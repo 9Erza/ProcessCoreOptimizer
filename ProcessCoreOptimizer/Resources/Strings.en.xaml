@@ -7,6 +7,7 @@
     <system:String x:Key="StrHardwareMonitor">Hardware Monitor</system:String>
     <system:String x:Key="StrSettings">Settings</system:String>
     <system:String x:Key="StrConsoleLog">CONSOLE LOG</system:String>
+    <system:String x:Key="StrActivity">Activity</system:String>
     <system:String x:Key="StrProcessList">Process List</system:String>
     <system:String x:Key="StrYourProfiles">Your Profiles</system:String>
     <system:String x:Key="StrCpuCores">CPU Cores</system:String>
@@ -73,6 +74,7 @@
     <system:String x:Key="StrAllowRealtime">Show RealTime priority (advanced)</system:String>
     <system:String x:Key="StrRealtimeWarn">Can make the system unresponsive. Use only if you know what you are doing.</system:String>
     <system:String x:Key="StrCheckUpdates">Check for updates on startup</system:String>
+    <system:String x:Key="StrCheckUpdatesNow">Check for updates</system:String>
     <system:String x:Key="StrEnableStorageSensors">Enable storage sensors (advanced)</system:String>
     <system:String x:Key="StrStorageSensorsWarn">Disabled by default to avoid unnecessary disk polling.</system:String>
     <system:String x:Key="StrLogEnabled">Enable file logging</system:String>
@@ -98,6 +100,8 @@
     <system:String x:Key="StrCoreTemps">Core Temperatures:</system:String>
     <system:String x:Key="StrHardwareMonitorSwitch">Hardware monitor</system:String>
     <system:String x:Key="StrHardwareMonitorOffInfo">Hardware monitor is disabled. Enable it only when you want live temperatures and usage metrics.</system:String>
+    <system:String x:Key="StrHwEmptyTitle">No live data</system:String>
+    <system:String x:Key="StrHwEmptyBody">Enable monitoring above to see temperatures, clocks, VRAM and power draw. Sensors stay off until you opt in.</system:String>
     <system:String x:Key="StrBackgroundWatcherStatus">Background profile watcher: active</system:String>
 
     <system:String x:Key="StrNavCpuTopology">CPU &amp; Topology</system:String>

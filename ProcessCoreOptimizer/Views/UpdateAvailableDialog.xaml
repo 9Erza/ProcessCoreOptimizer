@@ -1,0 +1,50 @@
+<Window x:Class="ProcessCoreOptimizer.WPF.Views.UpdateAvailableDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Process Core Optimizer" Width="440" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        ShowInTaskbar="False" WindowStyle="None" AllowsTransparency="True"
+        Background="Transparent" UseLayoutRounding="True">
+    <Border Background="{StaticResource PcoBg1Brush}" BorderBrush="{StaticResource PcoBorderBrush}" BorderThickness="1" CornerRadius="8" Margin="8" MouseLeftButtonDown="DialogRoot_MouseLeftButtonDown">
+        <Border.BitmapEffect>
+            <DropShadowBitmapEffect ShadowDepth="2" Direction="270" Opacity="0.45" Softness="0.35"/>
+        </Border.BitmapEffect>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" Margin="20,18,20,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Width="44" Height="44" CornerRadius="10" Background="{StaticResource PcoBg3Brush}" Margin="0,0,14,0" BorderBrush="{StaticResource PcoBorderSoftBrush}" BorderThickness="1" ClipToBounds="True" VerticalAlignment="Top">
+                    <Image Source="/Images/processcoreoptimizer.ico" Width="36" Height="36" HorizontalAlignment="Center" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"/>
+                </Border>
+                <StackPanel Grid.Column="1" Margin="0,2,0,0">
+                    <TextBlock x:Name="DialogTitleText" FontWeight="Bold" FontSize="16" Foreground="{StaticResource PcoTextBrightBrush}"/>
+                    <TextBlock x:Name="DialogHeadingText" Foreground="{StaticResource PcoMutedBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                </StackPanel>
+            </Grid>
+
+            <Border Grid.Row="1" Background="{StaticResource PcoBg3Brush}" BorderBrush="{StaticResource PcoBorderSoftBrush}" BorderThickness="1" CornerRadius="6" Padding="14,10" Margin="20,14,20,0">
+                <StackPanel>
+                    <TextBlock x:Name="LatestVersionText" FontSize="20" FontWeight="Bold" Foreground="{StaticResource PcoAccentBrush}"/>
+                    <TextBlock x:Name="CurrentVersionText" Foreground="{StaticResource PcoMutedBrush}" FontSize="12" Margin="0,4,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <Grid Grid.Row="2" Margin="20,16,20,18">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Button x:Name="OpenReleaseButton" Grid.Column="0" Style="{StaticResource StandardButton}" Background="{StaticResource PcoAccentBrush}" Margin="0,0,6,0" IsDefault="True" Click="OpenReleaseButton_Click"/>
+                <Button x:Name="LaterButton" Grid.Column="1" Style="{StaticResource SmallFilterButton}" Margin="6,0,0,0" IsCancel="True" Click="LaterButton_Click"/>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

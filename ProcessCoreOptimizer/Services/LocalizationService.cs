@@ -25,6 +25,7 @@ namespace ProcessCoreOptimizer.WPF.Services
                 res["StrHardwareMonitor"] = isPl ? "Monitor Sprzętu" : "Hardware Monitor";
                 res["StrSettings"] = isPl ? "Ustawienia" : "Settings";
                 res["StrConsoleLog"] = isPl ? "LOGI KONSOLI" : "CONSOLE LOG";
+                res["StrActivity"] = isPl ? "Aktywność" : "Activity";
                 res["StrProcessList"] = isPl ? "Lista Procesów" : "Process List";
                 res["StrYourProfiles"] = isPl ? "Twoje Profile" : "Your Profiles";
                 res["StrCpuUsage"] = isPl ? "UŻYCIE CPU" : "CPU USAGE";
@@ -80,10 +81,13 @@ namespace ProcessCoreOptimizer.WPF.Services
                 res["StrLogEnabled"] = isPl ? "Włącz logowanie do pliku" : "Enable file logging";
                 res["StrHardwareMonitorSwitch"] = isPl ? "Monitor sprzętu" : "Hardware monitor";
                 res["StrHardwareMonitorOffInfo"] = isPl ? "Monitor sprzętu jest wyłączony. Włącz go tylko wtedy, gdy chcesz podgląd temperatur i użycia podzespołów." : "Hardware monitor is disabled. Enable it only when you want live temperatures and usage metrics.";
+                res["StrHwEmptyTitle"] = isPl ? "Brak danych na żywo" : "No live data";
+                res["StrHwEmptyBody"] = isPl ? "Włącz monitoring powyżej, aby zobaczyć temperatury, taktowania, VRAM i pobór mocy. Czujniki pozostają wyłączone do czasu Twojej decyzji." : "Enable monitoring above to see temperatures, clocks, VRAM and power draw. Sensors stay off until you opt in.";
                 res["StrBackgroundWatcherStatus"] = isPl ? "Watcher profili w tle: aktywny" : "Background profile watcher: active";
                 res["StrEnableStorageSensors"] = isPl ? "Włącz czujniki dysków (zaawansowane)" : "Enable storage sensors (advanced)";
                 res["StrStorageSensorsWarn"] = isPl ? "Domyślnie wyłączone, aby monitor sprzętu nie odpytywał niepotrzebnie dysków." : "Disabled by default to avoid unnecessary disk polling.";
                 res["StrCheckUpdates"] = isPl ? "Sprawdzaj aktualizacje przy starcie" : "Check for updates on startup";
+                res["StrCheckUpdatesNow"] = isPl ? "Sprawdź aktualizacje" : "Check for updates";
                 res["StrSetGroupGeneral"] = isPl ? "Ogólne" : "General";
                 res["StrCpuCores"] = isPl ? "Rdzenie CPU" : "CPU Cores";
                 res["StrSelectAll"] = isPl ? "Zaznacz Wszystko" : "Select All";

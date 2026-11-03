@@ -7,6 +7,7 @@
     <system:String x:Key="StrHardwareMonitor">Monitor Sprzętu</system:String>
     <system:String x:Key="StrSettings">Ustawienia</system:String>
     <system:String x:Key="StrConsoleLog">LOGI KONSOLI</system:String>
+    <system:String x:Key="StrActivity">Aktywność</system:String>
     <system:String x:Key="StrProcessList">Lista Procesów</system:String>
     <system:String x:Key="StrYourProfiles">Twoje Profile</system:String>
     <system:String x:Key="StrCpuCores">Rdzenie CPU</system:String>
@@ -73,6 +74,7 @@
     <system:String x:Key="StrAllowRealtime">Pokaż priorytet RealTime (zaawansowane)</system:String>
     <system:String x:Key="StrRealtimeWarn">Może spowodować przycięcia systemu. Używaj tylko świadomie.</system:String>
     <system:String x:Key="StrCheckUpdates">Sprawdzaj aktualizacje przy starcie</system:String>
+    <system:String x:Key="StrCheckUpdatesNow">Sprawdź aktualizacje</system:String>
     <system:String x:Key="StrEnableStorageSensors">Włącz czujniki dysków (zaawansowane)</system:String>
     <system:String x:Key="StrStorageSensorsWarn">Domyślnie wyłączone, aby monitor sprzętu nie odpytywał niepotrzebnie dysków.</system:String>
     <system:String x:Key="StrLogEnabled">Włącz logowanie do pliku</system:String>
@@ -99,6 +101,8 @@
     <system:String x:Key="StrHardwareMonitorSwitch">Monitor sprzętu</system:String>
     <system:String x:Key="StrHardwareMonitorOffInfo">Monitor sprzętu jest wyłączony. Włącz go tylko wtedy, gdy chcesz podgląd temperatur i użycia podzespołów.</system:String>
     <system:String x:Key="StrBackgroundWatcherStatus">Watcher profili w tle: aktywny</system:String>
+    <system:String x:Key="StrHwEmptyTitle">Brak danych na żywo</system:String>
+    <system:String x:Key="StrHwEmptyBody">Włącz monitoring powyżej, aby zobaczyć temperatury, taktowania, VRAM i pobór mocy. Czujniki pozostają wyłączone do czasu Twojej decyzji.</system:String>
 
     <system:String x:Key="StrNavCpuTopology">CPU i topologia</system:String>
     <system:String x:Key="StrDiagnostics">Diagnostyka</system:String>

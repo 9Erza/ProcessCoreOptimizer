@@ -34,19 +34,18 @@ namespace ProcessCoreOptimizer.WPF.Views
             {
                 try { SettingsViewControl?.ScrollToAbout(); } catch { }
             };
+            // Deferred update: present once when the user opens/foregrounds PCO.
+            this.Activated += (s, e) =>
+            {
+                try { _viewModel.TryPresentPendingUpdate(); } catch { }
+            };
 
             // Initialize System Tray Icon
             _notifyIcon = new System.Windows.Forms.NotifyIcon();
             InitializeSystemTray();
 
-            // Auto-scroll logic for the console log ListBox
-            ((System.Collections.Specialized.INotifyCollectionChanged)LogConsole.Items).CollectionChanged += (s, e) =>
-            {
-                if (e.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Add && e.NewItems != null)
-                {
-                    LogConsole.ScrollIntoView(e.NewItems[0]);
-                }
-            };
+            // Full log history lives in the Diagnostics tab (DiagLogConsole);
+            // the sidebar mini console shows only the latest message.
 
             this.Loaded += MainWindow_Loaded;
             this.ContentRendered += MainWindow_ContentRendered;

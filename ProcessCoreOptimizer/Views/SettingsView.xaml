@@ -103,11 +103,13 @@
 
                     <!-- Updates -->
                     <TextBlock Text="{DynamicResource StrSetGroupUpdates}" Style="{StaticResource PcoSectionHeader}"/>
-                    <CheckBox Content="{DynamicResource StrCheckUpdates}" IsChecked="{Binding AppSettings.CheckForUpdates}" Command="{Binding ToggleSettingCommand}" Margin="0,0,0,20">
+                    <CheckBox Content="{DynamicResource StrCheckUpdates}" IsChecked="{Binding AppSettings.CheckForUpdates}" Command="{Binding ToggleSettingCommand}" Margin="0,0,0,10">
                         <CheckBox.LayoutTransform>
                             <ScaleTransform ScaleX="1.2" ScaleY="1.2"/>
                         </CheckBox.LayoutTransform>
                     </CheckBox>
+                    <Button Content="{DynamicResource StrCheckUpdatesNow}" Command="{Binding CheckForUpdatesNowCommand}" Style="{StaticResource SmallFilterButton}" Width="260" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                    <TextBlock Text="{Binding UpdateStatusText, Mode=OneWay}" Style="{StaticResource PcoMutedText}" Margin="0,0,0,20" TextWrapping="Wrap"/>
 
                     <!-- Data & reset (S4) -->
                     <TextBlock Text="{DynamicResource StrSetGroupData}" Style="{StaticResource PcoSectionHeader}"/>
