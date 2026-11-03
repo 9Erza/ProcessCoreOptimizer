@@ -27,6 +27,12 @@ publish/
 installer/Output/
 installer/*.exe
 
+# Release staging binaries (reproducible via tools/Build-Installer.ps1 and
+# tools/Build-Portable.ps1). Only checksums + manifest are tracked.
+release-staging/*
+!release-staging/SHA256SUMS.txt
+!release-staging/release-manifest.json
+
 # OS files
 .DS_Store
 Thumbs.db

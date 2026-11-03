@@ -46,7 +46,7 @@
 - **Niezawodność:** przywracanie ustawień sprzed optymalizacji, aktualizator
   powiadamiający tylko o opublikowanych wydaniach z assetem instalatora,
   rejestracja autostartu tylko przy zmianie ustawień startu, centralne wersjonowanie `version.txt`.
-- **Testy:** 196 passing + 3 warunkowe testy integracyjne, zielone CI (build + testy + `git diff --check`).
+- **Testy:** 231 zaliczonych + 3 warunkowe testy integracyjne, zielone CI (build + testy + `git diff --check`).
 
 Zobacz [CHANGELOG.md](CHANGELOG.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 i [docs/RELEASE_NOTES_2.0.0.pl.md](docs/RELEASE_NOTES_2.0.0.pl.md).
