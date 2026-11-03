@@ -94,11 +94,15 @@ Check "Setup.exe present, versioned, hashed" {
     "SHA256=$hash SIZE=$size"
 }
 
-# 7. Expected payload files exist
+# 7. Expected payload files exist (EXE + WPF native deps; the app crashes
+# on window creation without wpfgfx_cor3.dll / PresentationNative_cor3.dll)
 Check "payload contains EXE (+optional PDB)" {
     $dir = Join-Path $root "ProcessCoreOptimizer/bin/Release/net10.0-windows/publish/win-x64"
     if (!(Test-Path (Join-Path $dir "ProcessCoreOptimizer.exe"))) { throw "EXE missing" }
-    "exe present"
+    foreach ($dll in @("wpfgfx_cor3.dll", "PresentationNative_cor3.dll", "D3DCompiler_47_cor3.dll")) {
+        if (!(Test-Path (Join-Path $dir $dll))) { throw "payload incomplete: $dll missing (re-run publish)" }
+    }
+    "exe + native WPF deps present"
 }
 
 Write-Host ""
