@@ -59,6 +59,7 @@ public static class PcoWin32 {
     public delegate bool EnumWindowsProc(IntPtr h, IntPtr l);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetWindowText(IntPtr h, StringBuilder s, int n);
     [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr h);
+    [DllImport("user32.dll")] public static extern bool MoveWindow(IntPtr h, int x, int y, int w, int hh, bool repaint);
 }
 '@ -ErrorAction SilentlyContinue
 
@@ -144,7 +145,7 @@ try {
         @{ Name = @("CPU & Topology", "CPU i topologia"); Shot = "02-cpu-topology.png" },
         @{ Name = @("Saved Profiles", "Zapisane Profile"); Shot = "03-profiles.png" },
         @{ Name = @("Smart Rules", "Inteligentne reguÅ‚y"); Shot = "17-rules.png" },
-        @{ Name = @("Hardware Monitor", "Monitor Sprz\u0119tu"); Shot = "04-hardware.png" },
+        @{ Name = @("Hardware Monitor", "Monitor Sprzêtu"); Shot = "04-hardware.png" },
         @{ Name = @("Diagnostics", "Diagnostyka"); Shot = "05-diagnostics.png" },
         @{ Name = @("Settings", "Ustawienia"); Shot = "06-settings.png" }
     )
@@ -227,7 +228,7 @@ try {
     Check "language toggle to PL and back" {
         # The flag ToggleButton (custom template) is not exposed to UI Automation;
         # click its sidebar position with the mouse (bottom-left, under the log).
-        # Verified by reading back a localized nav label â€” the click must really flip the language.
+        # Verified by reading back a localized nav label ${emdash} the click must really flip the language.
         $window = Get-Window "Process Core Optimizer" 10
         if (!$window) { throw "Main window lost before language toggle." }
         $plOk = $false
@@ -317,12 +318,212 @@ try {
         foreach ($b in $btns) {
             try {
                 $nm = $b.Current.Name
-                if ($nm -eq "9Erza" -or $nm -eq "Process Core Optimizer" -or $nm -eq "Buy Me a Coffee") { $found[$nm] = $true }
+                if ($nm -eq "9Erza" -or $nm -eq "Process Core Optimizer" -or $nm -eq "Buy Me a Coffee" -or $nm -eq "DobryPC.pl") { $found[$nm] = $true }
             } catch { }
         }
-        foreach ($need in @("9Erza", "Process Core Optimizer", "Buy Me a Coffee")) {
+        foreach ($need in @("9Erza", "Process Core Optimizer", "Buy Me a Coffee", "DobryPC.pl")) {
             if (!$found.ContainsKey($need)) { throw "About link button '$need' not found." }
         }
+    }
+
+    Check "developer hub expand/collapse + rows + about nav (EN/PL)" {
+        $emdash = [char]0x2014
+        # Sidebar footer hub: header ToggleButton is named "PCO <version>".
+        function Find-HubHeader([System.Windows.Automation.AutomationElement]$scope) {
+            $all = $scope.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+                (New-Object System.Windows.Automation.PropertyCondition(
+                    [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+                    [System.Windows.Automation.ControlType]::Button)))
+            foreach ($b in $all) {
+                try { if ($b.Current.Name -like "PCO *") { return $b } } catch { }
+            }
+            return $null
+        }
+        function Find-Button([System.Windows.Automation.AutomationElement]$scope, [string]$name) {
+            return $scope.FindFirst([System.Windows.Automation.TreeScope]::Descendants,
+                (New-Object System.Windows.Automation.PropertyCondition(
+                    [System.Windows.Automation.AutomationElement]::NameProperty, $name)))
+        }
+        function Count-Buttons([System.Windows.Automation.AutomationElement]$scope, [string]$name) {
+            return @($scope.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+                (New-Object System.Windows.Automation.PropertyCondition(
+                    [System.Windows.Automation.AutomationElement]::NameProperty, $name))).Count)
+        }
+        function Toggle-Hub([System.Windows.Automation.AutomationElement]$header) {
+            $tp = $header.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern)
+            $tp.Toggle()
+            Start-Sleep -Milliseconds 700
+        }
+        function Flip-ToLanguage([System.Windows.Automation.AutomationElement]$scope, [string]$marker) {
+            # Flag ToggleButton has no UIA name; click its sidebar spot and
+            # verify the flip by reading back a localized label after EACH
+            # click (a blind even/odd count breaks when a probe misses the
+            # flag and lands on the expander instead).
+            foreach ($dy in @(15, 30, 45)) {
+                $r = $scope.Current.BoundingRectangle
+                [PcoMouse]::Click([int]($r.X + 45), [int]($r.Y + $r.Height - $dy))
+                Start-Sleep -Milliseconds 900
+                $scope = Get-Window "Process Core Optimizer" 10
+                if ($scope -and (Ui-HasText $scope $marker)) { return $scope }
+            }
+            return $null
+        }
+        function Ui-HasText([System.Windows.Automation.AutomationElement]$scope, [string]$text) {
+            foreach ($t in $scope.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+                (New-Object System.Windows.Automation.PropertyCondition(
+                    [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+                    [System.Windows.Automation.ControlType]::Text)))) {
+                try { if ($t.Current.Name -eq $text) { return $true } } catch { }
+            }
+            return $false
+        }
+
+        $window = Get-Window "Process Core Optimizer" 10
+        if (!$window) { throw "Main window lost before hub check." }
+        # Park on Processes so the Settings About section (same UIA names) is
+        # pruned from the tree; counts then prove no duplicate footer links.
+        foreach ($candidate in @("System Processes", "Procesy Systemowe")) {
+            try { Click-Button $window $candidate; break } catch { }
+        }
+        Start-Sleep -Milliseconds 800
+        $window = Get-Window "Process Core Optimizer" 10
+        $hub = Find-HubHeader $window
+        if (!$hub) { throw "Hub header button 'PCO *' not found." }
+
+        # A. collapsed EN.
+        Save-Shot "22-hub-collapsed-en.png" $window
+
+        # B. expanded EN: toggle open, all five rows present exactly once (no duplicates).
+        Toggle-Hub $hub
+        $enRows = @("Project Repository ${emdash} Process Core Optimizer", "Developer GitHub ${emdash} 9Erza",
+            "Author website ${emdash} DobryPC.pl", "Buy Me a Coffee ${emdash} Support Development", "About")
+        foreach ($n in $enRows) {
+            if (!(Find-Button $window $n)) { throw "Hub row '$n' not found while expanded (EN)." }
+        }
+        if ((Count-Buttons $window "Project Repository ${emdash} Process Core Optimizer") -ne 1) {
+            throw "Repo link rendered twice while expanded (quick row not hidden)."
+        }
+        Save-Shot "23-hub-expanded-en.png" $window
+
+        # Keyboard: focus header, Space toggles it shut; rows disappear.
+        $hub.SetFocus()
+        Start-Sleep -Milliseconds 300
+        $shell = New-Object -ComObject WScript.Shell
+        $shell.SendKeys(" ")
+        Start-Sleep -Milliseconds 700
+        if (Find-Button $window "Author website ${emdash} DobryPC.pl") { throw "Hub did not collapse on Space." }
+
+        # C/D. Polish: flip, collapsed + expanded shots.
+        $window = Flip-ToLanguage $window "Ustawienia"
+        if (!$window) { throw "Could not switch UI to Polish for hub check." }
+        Save-Shot "24-hub-collapsed-pl.png" $window
+        $hub = Find-HubHeader $window
+        if (!$hub) { throw "Hub header lost after language switch." }
+        Toggle-Hub $hub
+        $plRows = @("Repozytorium projektu ${emdash} Process Core Optimizer", "GitHub autora ${emdash} 9Erza",
+            "Strona autora ${emdash} DobryPC.pl", "Postaw kawê ${emdash} Wesprzyj rozwój", "O programie")
+        foreach ($n in $plRows) {
+            if (!(Find-Button $window $n)) { throw "Hub row '$n' not found while expanded (PL)." }
+        }
+        Save-Shot "25-hub-expanded-pl.png" $window
+
+        # F. About row navigates in-app to Settings/About (no browser).
+        $aboutBtn = Find-Button $window "O programie"
+        if (!$aboutBtn) { throw "About row not found." }
+        $aboutBtn.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
+        Start-Sleep -Milliseconds 1200
+        if (!(Find-Button $window "DobryPC.pl")) { throw "About section (DobryPC.pl) not visible after About nav." }
+        Save-Shot "26-hub-about.png" $window
+
+        # Back to English for the remaining checks.
+        $window = Flip-ToLanguage $window "Settings"
+        if (!$window) { throw "Could not switch UI back to English." }
+        # Collapse the hub again so the footer rests in its default state.
+        $hub = Find-HubHeader $window
+        if ($hub) {
+            try {
+                $state = $hub.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern).Current.ToggleState
+                if ($state -eq [System.Windows.Automation.ToggleState]::On) { Toggle-Hub $hub }
+            } catch { }
+        }
+        $window = Get-Window "Process Core Optimizer" 10
+        if (!$window) { throw "Main window lost after hub check." }
+    }
+
+    Check "hub at minimum window size (1000x700) without overflow" {
+        $emdash = [char]0x2014
+        $window = Get-Window "Process Core Optimizer" 10
+        if (!$window) { throw "Main window lost before min-size check." }
+        # Normalize: the hub block may have bailed out in Polish/expanded.
+        $isPl = $false
+        foreach ($t in $window.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+            (New-Object System.Windows.Automation.PropertyCondition(
+                [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+                [System.Windows.Automation.ControlType]::Text)))) {
+            try { if ($t.Current.Name -eq "Ustawienia") { $isPl = $true; break } } catch { }
+        }
+        if ($isPl) {
+            foreach ($dy in @(15, 30, 45)) {
+                $r = $window.Current.BoundingRectangle
+                [PcoMouse]::Click([int]($r.X + 45), [int]($r.Y + $r.Height - $dy))
+                Start-Sleep -Milliseconds 900
+                $window = Get-Window "Process Core Optimizer" 10
+                if (!$window) { throw "Main window lost while restoring English." }
+                $back = $false
+                foreach ($t in $window.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+                    (New-Object System.Windows.Automation.PropertyCondition(
+                        [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+                        [System.Windows.Automation.ControlType]::Text)))) {
+                    try { if ($t.Current.Name -eq "Settings") { $back = $true; break } } catch { }
+                }
+                if ($back) { break }
+            }
+        }
+        # Collapse the hub if the previous block left it expanded.
+        foreach ($b in $window.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+            (New-Object System.Windows.Automation.PropertyCondition(
+                [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+                [System.Windows.Automation.ControlType]::Button)))) {
+            try {
+                if ($b.Current.Name -like "PCO *") {
+                    $hstate = $b.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern)
+                    if ($hstate.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::On) { $hstate.Toggle(); Start-Sleep -Milliseconds 600 }
+                    break
+                }
+            } catch { }
+        }
+        $hwnd = [IntPtr]$window.Current.NativeWindowHandle
+        $r0 = $window.Current.BoundingRectangle
+        [PcoWin32]::MoveWindow($hwnd, [int]$r0.X, [int]$r0.Y, 1000, 700, $true) | Out-Null
+        Start-Sleep -Milliseconds 900
+        $window = Get-Window "Process Core Optimizer" 10
+        if (!$window) { throw "Main window lost after resize to minimum." }
+        # Open the hub and prove every row is reachable at minimum size.
+        $hubBtn = $null
+        foreach ($b in $window.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+            (New-Object System.Windows.Automation.PropertyCondition(
+                [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+                [System.Windows.Automation.ControlType]::Button)))) {
+            try { if ($b.Current.Name -like "PCO *") { $hubBtn = $b; break } } catch { }
+        }
+        if (!$hubBtn) { throw "Hub header not found at minimum size." }
+        $hubBtn.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern).Toggle()
+        Start-Sleep -Milliseconds 700
+        foreach ($n in @("Project Repository ${emdash} Process Core Optimizer", "Developer GitHub ${emdash} 9Erza",
+            "Author website ${emdash} DobryPC.pl", "Buy Me a Coffee ${emdash} Support Development", "About")) {
+            $row = $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants,
+                (New-Object System.Windows.Automation.PropertyCondition(
+                    [System.Windows.Automation.AutomationElement]::NameProperty, $n)))
+            if (!$row) { throw "Hub row '$n' unreachable at minimum size." }
+        }
+        Save-Shot "21-hub-min-expanded.png" $window
+        # Collapse and restore the default window size for later checks.
+        try { $hubBtn.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern).Toggle() } catch { }
+        Start-Sleep -Milliseconds 500
+        [PcoWin32]::MoveWindow($hwnd, [int]$r0.X, [int]$r0.Y, [int]$r0.Width, [int]$r0.Height, $true) | Out-Null
+        Start-Sleep -Milliseconds 800
+        $window = Get-Window "Process Core Optimizer" 10
+        if (!$window) { throw "Main window lost after restore from minimum size." }
     }
 
     Check "close hides to tray (process alive, window hidden)" {

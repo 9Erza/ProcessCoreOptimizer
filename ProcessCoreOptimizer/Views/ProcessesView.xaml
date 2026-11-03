@@ -11,7 +11,7 @@
             </Grid.RowDefinitions>
             <TextBlock Grid.Row="0" Text="{DynamicResource StrProcessList}" Style="{StaticResource PcoTitle}"/>
             <WrapPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,6">
-                <TextBox Text="{Binding ProcessFilterText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource PcoFilterBox}" ToolTip="{DynamicResource StrProcessFilter}" Width="160" Margin="0,0,0,4"/>
+                <TextBox Text="{Binding ProcessFilterText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource PcoFilterBox}" ToolTip="{DynamicResource StrProcessFilter}" Width="190" Margin="0,0,0,4"/>
                 <CheckBox Content="{DynamicResource StrViewInstances}" IsChecked="{Binding ShowInstances, Mode=TwoWay}" VerticalAlignment="Center" Margin="12,0,0,4" Foreground="{StaticResource PcoTextBrush}" ToolTip="{DynamicResource StrViewInstances}"/>
                 <CheckBox Content="{DynamicResource StrOnlyOptimized}" IsChecked="{Binding ProcessOnlyOptimized, Mode=TwoWay}" VerticalAlignment="Center" Margin="12,0,0,4" Foreground="{StaticResource PcoTextBrush}"/>
                 <CheckBox Content="{DynamicResource StrOnlyWithProfile}" IsChecked="{Binding ProcessOnlyWithProfile, Mode=TwoWay}" VerticalAlignment="Center" Margin="12,0,0,4" Foreground="{StaticResource PcoTextBrush}"/>
@@ -70,7 +70,7 @@
                             </DataTemplate>
                         </DataGridTextColumn.HeaderTemplate>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Binding="{Binding InstanceCount}" SortMemberPath="InstanceCount" Width="72">
+                    <DataGridTextColumn Binding="{Binding InstanceCount}" SortMemberPath="InstanceCount" Width="84">
                         <DataGridTextColumn.HeaderTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{DynamicResource StrColInstances}" />
@@ -107,14 +107,14 @@
                             </Style>
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Binding="{Binding RamUsageMB}" SortMemberPath="MemoryBytes" Width="72" >
+                    <DataGridTextColumn Binding="{Binding RamUsageMB}" SortMemberPath="MemoryBytes" Width="88" >
                         <DataGridTextColumn.HeaderTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{DynamicResource StrColRam}" />
                             </DataTemplate>
                         </DataGridTextColumn.HeaderTemplate>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Binding="{Binding CpuUsage}" SortMemberPath="CpuUsageValue" Width="70" >
+                    <DataGridTextColumn Binding="{Binding CpuUsage}" SortMemberPath="CpuUsageValue" Width="84" >
                         <DataGridTextColumn.HeaderTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{DynamicResource StrColCpu}" />
@@ -225,17 +225,17 @@
                     </Grid.RowDefinitions>
                     <TextBlock Grid.Row="0" Text="{DynamicResource StrProcessDetails}" FontWeight="Bold" FontSize="14" Foreground="{StaticResource PcoAccentBrush}" Margin="0,0,0,6"/>
                     <TextBlock Grid.Row="1" Foreground="{StaticResource PcoTextBrush}" FontSize="12" TextWrapping="Wrap">
-                        <Run Text="PID: "/><Run Text="{Binding RepresentativePid}"/><Run Text="   |   "/><Run Text="{Binding StartTimeLocalText}"/>
+                        <Run Text="PID: "/><Run Text="{Binding RepresentativePid, Mode=OneWay}"/><Run Text="   |   "/><Run Text="{Binding StartTimeLocalText, Mode=OneWay}"/>
                     </TextBlock>
                     <TextBlock Grid.Row="2" Foreground="{StaticResource PcoMutedBrush}" FontSize="12" TextWrapping="Wrap" Text="{Binding ExecutablePath}"/>
                     <TextBlock Grid.Row="3" Foreground="{StaticResource PcoTextBrush}" FontSize="12">
-                        <Run Text="Affinity: "/><Run Text="{Binding AffinityMask}"/><Run Text=" ("/><Run Text="{Binding AffinitySource}"/><Run Text=")   |   Priority: "/><Run Text="{Binding Priority}"/>
+                        <Run Text="Affinity: "/><Run Text="{Binding AffinityMask, Mode=OneWay}"/><Run Text=" ("/><Run Text="{Binding AffinitySource, Mode=OneWay}"/><Run Text=")   |   Priority: "/><Run Text="{Binding Priority, Mode=OneWay}"/>
                     </TextBlock>
                     <TextBlock Grid.Row="4" Foreground="{StaticResource PcoTextBrush}" FontSize="12" TextWrapping="Wrap">
-                        <Run Text="Profile: "/><Run Text="{Binding AssignedProfileName, TargetNullValue=—}"/>
+                        <Run Text="Profile: "/><Run Text="{Binding AssignedProfileName, TargetNullValue=—, Mode=OneWay}"/>
                     </TextBlock>
                     <TextBlock Grid.Row="5" Foreground="{StaticResource PcoMutedBrush}" FontSize="12" TextWrapping="Wrap">
-                        <Run Text="Last: "/><Run Text="{Binding LastStatus, TargetNullValue=—}"/><Run Text=" "/><Run Text="{Binding LastMessage}"/>
+                        <Run Text="Last: "/><Run Text="{Binding LastStatus, TargetNullValue=—, Mode=OneWay}"/><Run Text=" "/><Run Text="{Binding LastMessage, Mode=OneWay}"/>
                     </TextBlock>
                     <TextBlock Grid.Row="8" Foreground="{StaticResource PcoMutedBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0">
                         <Run Text="{DynamicResource StrWhyThis}"/><Run Text=" "/><Run Text="{Binding DataContext.ProfileMatchWhy, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWay}"/>

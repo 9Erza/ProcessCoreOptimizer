@@ -26,6 +26,7 @@ AppVersion={#AppVersion}
 AppVerName={#AppName} {#AppVersion}
 AppPublisher={#AppPublisher}
 AppPublisherURL={#AppURL}
+AppCopyright={#AppPublisher} (MIT)
 AppSupportURL={#AppURL}
 AppUpdatesURL={#AppURL}
 DefaultDirName={autopf}\{#AppName}
@@ -61,12 +62,15 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Source: "{#PublishDir}\ProcessCoreOptimizer.exe"; DestDir: "{app}"; Flags: ignoreversion
 ; Native WPF/host dependencies of the self-contained single-file build.
 ; REQUIRED at runtime: an install without them crashes on window creation
-; (missing wpfgfx_cor3.dll / PresentationNative_cor3.dll). Keep in sync with
-; tools/Validate-Release.ps1 payload checks.
-Source: "{#PublishDir}\*_cor3.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
-Source: "{#PublishDir}\MonoPosixHelper.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
-Source: "{#PublishDir}\libMonoPosixHelper.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
+; (missing wpfgfx_cor3.dll / PresentationNative_cor3.dll). No
+; skipifsourcedoesntexist here on purpose: a missing required file must fail
+; the compile loudly instead of shipping a broken installer. Keep in sync with
+; tools/Build-Installer.ps1 payload checks.
+Source: "{#PublishDir}\*_cor3.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#PublishDir}\MonoPosixHelper.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#PublishDir}\libMonoPosixHelper.dll"; DestDir: "{app}"; Flags: ignoreversion
 ; PDB ships for diagnosability of field crash reports; harmless next to a single-file build.
+; Optional: a missing PDB must not fail a release build.
 Source: "{#PublishDir}\ProcessCoreOptimizer.pdb"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 
 [Icons]

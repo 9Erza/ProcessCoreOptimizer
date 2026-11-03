@@ -494,5 +494,113 @@
             </Setter.Value>
         </Setter>
     </Style>
+    <!-- Developer / Project Hub footer rows (sidebar). Full-width rows with
+         a 16px glyph + label; hover/focus follow the PCO dark + blue accent. -->
+    <Style TargetType="Button" x:Key="PcoFooterRowButton">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{StaticResource PcoMutedBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="MinHeight" Value="36"/>
+        <Setter Property="Padding" Value="8,4"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Focusable" Value="True"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="6" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource PcoSelectedBrush}"/>
+                            <Setter Property="Foreground" Value="{StaticResource PcoTextBrightBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource PcoAccentBrush}"/>
+                            <Setter Property="Foreground" Value="{StaticResource PcoTextBrightBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter Property="Foreground" Value="{StaticResource PcoAccentLightBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Collapsible Developer Hub header. ToggleButton header with a title
+         and a chevron that rotates on expand; subtle border + hover, visible
+         keyboard focus. No animation: instant and stable. -->
+    <Style TargetType="Expander" x:Key="PcoFooterExpander">
+        <Setter Property="Foreground" Value="{StaticResource PcoTextBrush}"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderBrush" Value="{StaticResource PcoBorderBrush}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Expander">
+                    <StackPanel>
+                        <ToggleButton x:Name="HeaderButton"
+                                      IsChecked="{Binding IsExpanded, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                      Foreground="{TemplateBinding Foreground}"
+                                      Background="{TemplateBinding Background}"
+                                      BorderBrush="{TemplateBinding BorderBrush}"
+                                      HorizontalContentAlignment="Stretch" Cursor="Hand"
+                                      Content="{TemplateBinding Header}" ToolTip="{TemplateBinding ToolTip}"
+                                      AutomationProperties.Name="{TemplateBinding AutomationProperties.Name}">
+                            <ToggleButton.Template>
+                                <ControlTemplate TargetType="ToggleButton">
+                                    <Border x:Name="HeaderRoot" Background="{TemplateBinding Background}"
+                                            BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"
+                                            CornerRadius="6" Padding="8,7">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <ContentPresenter VerticalAlignment="Center"/>
+                                            <Path x:Name="Arrow" Grid.Column="1" Data="M 0 0 L 5 5 L 0 10"
+                                                    Stroke="{StaticResource PcoMutedBrush}" StrokeThickness="1.8"
+                                                    StrokeStartLineCap="Round" StrokeLineJoin="Round" Fill="Transparent"
+                                                    Width="7" Height="11" Stretch="Uniform" Margin="8,0,0,0"
+                                                    VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5">
+                                                <Path.RenderTransform>
+                                                    <RotateTransform Angle="0"/>
+                                                </Path.RenderTransform>
+                                            </Path>
+                                        </Grid>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="HeaderRoot" Property="Background" Value="{StaticResource PcoSelectedBrush}"/>
+                                        </Trigger>
+                                        <Trigger Property="IsKeyboardFocused" Value="True">
+                                            <Setter TargetName="HeaderRoot" Property="BorderBrush" Value="{StaticResource PcoAccentBrush}"/>
+                                        </Trigger>
+                                        <Trigger Property="IsChecked" Value="True">
+                                            <Setter TargetName="Arrow" Property="RenderTransform">
+                                                <Setter.Value>
+                                                    <RotateTransform Angle="90"/>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </ToggleButton.Template>
+                        </ToggleButton>
+                        <ContentPresenter x:Name="ExpandSite" Visibility="Collapsed" ContentSource="Content"/>
+                    </StackPanel>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsExpanded" Value="True">
+                            <Setter TargetName="ExpandSite" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
 
 </ResourceDictionary>

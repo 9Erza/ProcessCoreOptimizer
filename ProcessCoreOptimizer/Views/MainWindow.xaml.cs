@@ -30,6 +30,10 @@ namespace ProcessCoreOptimizer.WPF.Views
             InitializeComponent();
             _viewModel = new MainViewModel();
             this.DataContext = _viewModel;
+            _viewModel.AboutRequested += (s, e) =>
+            {
+                try { SettingsViewControl?.ScrollToAbout(); } catch { }
+            };
 
             // Initialize System Tray Icon
             _notifyIcon = new System.Windows.Forms.NotifyIcon();

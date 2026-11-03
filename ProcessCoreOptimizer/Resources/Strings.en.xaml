@@ -114,8 +114,8 @@
     <system:String x:Key="StrWatcherTitle">Watcher status</system:String>
     <system:String x:Key="StrCaptureLive">Capture live settings</system:String>
     <system:String x:Key="StrDuplicateProfile">Duplicate</system:String>
-    <system:String x:Key="StrExportProfiles">Export...</system:String>
-    <system:String x:Key="StrImportProfiles">Import...</system:String>
+    <system:String x:Key="StrExportProfiles">Export</system:String>
+    <system:String x:Key="StrImportProfiles">Import</system:String>
     <system:String x:Key="StrColStatus">STATUS</system:String>
     <system:String x:Key="StrUnknown">Unknown</system:String>
     <system:String x:Key="StrApplyPreset">Apply</system:String>
@@ -126,6 +126,10 @@
     <system:String x:Key="StrAuthorTooltip">Developer GitHub — 9Erza</system:String>
     <system:String x:Key="StrRepoTooltip">Project Repository — Process Core Optimizer</system:String>
     <system:String x:Key="StrSupportTooltip">Buy Me a Coffee — Support Development</system:String>
+    <system:String x:Key="StrFooterRepoLabel">Project Repository</system:String>
+    <system:String x:Key="StrFooterWebsiteTooltip">Author website — DobryPC.pl</system:String>
+    <system:String x:Key="StrFooterSupportLabel">Support the Project</system:String>
+    <system:String x:Key="StrWebsiteCaption">Website</system:String>
     <system:String x:Key="StrLinkOpenFailed">Could not open the link in your browser.</system:String>
     <system:String x:Key="StrViewGrouped">Grouped</system:String>
     <system:String x:Key="StrViewInstances">Instances</system:String>

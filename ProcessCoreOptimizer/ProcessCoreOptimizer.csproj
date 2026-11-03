@@ -13,6 +13,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Images\buymeacoffee.png" />
     <None Remove="Images\pl_flag.png" />
     <None Remove="Images\processcoreoptimizer.ico" />
     <None Remove="Images\us_flag.png" />
@@ -27,6 +28,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Resource Include="Images\buymeacoffee.png">
+      <CopyToOutputDirectory></CopyToOutputDirectory>
+    </Resource>
     <Resource Include="Images\pl_flag.png">
       <CopyToOutputDirectory></CopyToOutputDirectory>
     </Resource>

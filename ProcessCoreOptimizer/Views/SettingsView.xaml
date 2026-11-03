@@ -124,7 +124,7 @@
                     </Border>
 
                     <!-- About -->
-                    <TextBlock Text="{DynamicResource StrSetGroupAbout}" Style="{StaticResource PcoSectionHeader}"/>
+                    <TextBlock x:Name="AboutHeader" Text="{DynamicResource StrSetGroupAbout}" Style="{StaticResource PcoSectionHeader}"/>
                     <TextBlock Text="{DynamicResource StrAboutLine}" Style="{StaticResource PcoMutedText}" Margin="0,0,0,12"/>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8" VerticalAlignment="Center">
                         <Button Style="{StaticResource IconLinkButton}" Command="{Binding OpenAuthorCommand}"
@@ -160,6 +160,18 @@
                         <StackPanel VerticalAlignment="Center">
                             <TextBlock Text="{DynamicResource StrSupportDev}" Foreground="{StaticResource PcoMutedBrush}" FontSize="11"/>
                             <Button Content="Buy Me a Coffee" Command="{Binding OpenSupportCommand}" Style="{StaticResource LinkTextButton}" ToolTip="{DynamicResource StrSupportTooltip}" ap:AutomationProperties.Name="Buy Me a Coffee"/>
+                        </StackPanel>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8" VerticalAlignment="Center">
+                        <Button Style="{StaticResource IconLinkButton}" Command="{Binding OpenWebsiteCommand}"
+                                ToolTip="{DynamicResource StrFooterWebsiteTooltip}"
+                                ap:AutomationProperties.Name="{DynamicResource StrFooterWebsiteTooltip}"
+                                Margin="0,0,8,0" Focusable="True">
+                            <ContentControl Content="{StaticResource IconGlobe}" Focusable="False"/>
+                        </Button>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="{DynamicResource StrWebsiteCaption}" Foreground="{StaticResource PcoMutedBrush}" FontSize="11"/>
+                            <Button Content="DobryPC.pl" Command="{Binding OpenWebsiteCommand}" Style="{StaticResource LinkTextButton}" ToolTip="{DynamicResource StrFooterWebsiteTooltip}" ap:AutomationProperties.Name="DobryPC.pl"/>
                         </StackPanel>
                     </StackPanel>
                     <TextBlock Text="{Binding ExternalLinkErrorText}" Foreground="{StaticResource PcoRedBrush}" FontSize="12" Margin="0,0,0,8" TextWrapping="Wrap">

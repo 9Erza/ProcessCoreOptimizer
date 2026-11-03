@@ -216,7 +216,16 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         public ICommand FactoryResetCommand { get; }
         public ICommand OpenAuthorCommand { get; }
         public ICommand OpenRepositoryCommand { get; }
+        public ICommand OpenWebsiteCommand { get; }
         public ICommand OpenSupportCommand { get; }
+        public ICommand OpenAboutCommand { get; }
+
+        /// <summary>
+        /// Raised when the footer "About" row is invoked. The view switches to
+        /// Settings and scrolls to the existing About section (no new window,
+        /// no browser).
+        /// </summary>
+        public event EventHandler? AboutRequested;
 
         private string _dataResetStatusText = string.Empty;
         private string _factoryResetConfirmationText = string.Empty;
@@ -255,6 +264,9 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             int plus = v.IndexOf('+');
             return (plus >= 0 ? v.Substring(0, plus) : v).Trim();
         }
+
+        /// <summary>Compact footer title (sidebar is 230 DIP; full name lives in the tooltip + About).</summary>
+        public string FooterTitle => $"PCO {AppVersion}";
 
         public AppSettings AppSettings
         {
@@ -672,6 +684,12 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             }
         }
 
+        private void NavigateToAbout()
+        {
+            SwitchTab("Settings");
+            AboutRequested?.Invoke(this, EventArgs.Empty);
+        }
+
         private void OpenFirstRunWizard()
         {
             var window = new Views.FirstRunWindow
@@ -917,7 +935,9 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             FactoryResetCommand = new RelayCommand(_ => { _ = RunFactoryResetAsync(); });
             OpenAuthorCommand = new RelayCommand(_ => OpenExternalLink(PcoExternalLink.Author));
             OpenRepositoryCommand = new RelayCommand(_ => OpenExternalLink(PcoExternalLink.Repository));
+            OpenWebsiteCommand = new RelayCommand(_ => OpenExternalLink(PcoExternalLink.Website));
             OpenSupportCommand = new RelayCommand(_ => OpenExternalLink(PcoExternalLink.Support));
+            OpenAboutCommand = new RelayCommand(_ => NavigateToAbout());
             ApplyCorePresetCommand = new RelayCommand(preset => ApplyCorePreset(preset?.ToString()));
             DuplicateProfileCommand = new RelayCommand(_ => DuplicateSelectedProfile());
             ExportProfilesCommand = new RelayCommand(_ => ExportProfilesToFile());

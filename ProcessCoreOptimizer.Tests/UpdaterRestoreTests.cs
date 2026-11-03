@@ -81,6 +81,25 @@ public sealed class UpdaterTests
         var result = await svc.CheckForUpdatesAsync("1.3.0");
         Assert.IsFalse(result.IsUpdateAvailable);
     }
+
+    [TestMethod]
+    public async Task PublishedReleaseOlderThanCurrent_NoDowngradePrompt()
+    {
+        var svc = ServiceFor("2.1.0", HttpStatusCode.OK, ReleaseOld);
+        var result = await svc.CheckForUpdatesAsync("2.0.0");
+        Assert.IsFalse(result.IsUpdateAvailable, "An older published release must never prompt a downgrade.");
+        Assert.IsFalse(string.IsNullOrWhiteSpace(result.Note));
+    }
+
+    [TestMethod]
+    public async Task UnparsableReleaseTag_DoesNotNotify()
+    {
+        const string weird = """{"tag_name":"nightly-xyz","html_url":"https://example/r","assets":[{"name":"a.zip"}]}""";
+        var svc = ServiceFor("2.0.0", HttpStatusCode.OK, weird);
+        var result = await svc.CheckForUpdatesAsync("1.3.0");
+        Assert.IsFalse(result.IsUpdateAvailable);
+        Assert.IsFalse(string.IsNullOrWhiteSpace(result.Note));
+    }
 }
 
 [TestClass]

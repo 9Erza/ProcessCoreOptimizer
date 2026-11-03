@@ -125,8 +125,8 @@ namespace ProcessCoreOptimizer.WPF.Services
                 res["StrWatcherTitle"] = isPl ? "Status watchera" : "Watcher status";
                 res["StrCaptureLive"] = isPl ? "Przechwyć bieżące ustawienia" : "Capture live settings";
                 res["StrDuplicateProfile"] = isPl ? "Duplikuj" : "Duplicate";
-                res["StrExportProfiles"] = isPl ? "Eksportuj..." : "Export...";
-                res["StrImportProfiles"] = isPl ? "Importuj..." : "Import...";
+                res["StrExportProfiles"] = isPl ? "Eksport" : "Export";
+                res["StrImportProfiles"] = isPl ? "Import" : "Import";
                 res["StrColStatus"] = isPl ? "STATUS" : "STATUS";
                 res["StrUnknown"] = isPl ? "Nieznany" : "Unknown";
                 res["StrApplyPreset"] = isPl ? "Zastosuj" : "Apply";
@@ -137,6 +137,10 @@ namespace ProcessCoreOptimizer.WPF.Services
                 res["StrAuthorTooltip"] = isPl ? "GitHub autora — 9Erza" : "Developer GitHub — 9Erza";
                 res["StrRepoTooltip"] = isPl ? "Repozytorium projektu — Process Core Optimizer" : "Project Repository — Process Core Optimizer";
                 res["StrSupportTooltip"] = isPl ? "Postaw kawę — Wesprzyj rozwój" : "Buy Me a Coffee — Support Development";
+                res["StrFooterRepoLabel"] = isPl ? "Repozytorium projektu" : "Project Repository";
+                res["StrFooterWebsiteTooltip"] = isPl ? "Strona autora — DobryPC.pl" : "Author website — DobryPC.pl";
+                res["StrFooterSupportLabel"] = isPl ? "Wesprzyj projekt" : "Support the Project";
+                res["StrWebsiteCaption"] = isPl ? "Strona internetowa" : "Website";
                 res["StrLinkOpenFailed"] = isPl ? "Nie udało się otworzyć strony w przeglądarce." : "Could not open the link in your browser.";
                 // Process Explorer 2.0 (grouped/instance views, filters, context menu)
                 res["StrViewGrouped"] = isPl ? "Grupy" : "Grouped";

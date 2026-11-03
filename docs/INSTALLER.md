@@ -18,34 +18,64 @@
 Conclusion unchanged: the 1.3.0 installer identity is **not reproducible**.
 No identifiers were invented to fake upgrade compatibility.
 
-## 2.0.0 installer (new identity, Phase 4 branch build 2026-11-02)
+## 2.0.0 installer (new identity)
 
 - Script: `installer/ProcessCoreOptimizer.iss` (in repo, versioned).
 - AppId (new, deliberate): `{6AA13087-A3D7-4501-9AAD-52D4CAC7668F}`
   (not the FrameHub ID, not a guess at the 1.3.0 ID).
-- Built with Inno Setup 6.7.3 (`tools/Build-Installer.ps1`: publish + ISCC + SHA-256).
+- Built with Inno Setup 6.7.3 (`tools/Build-Installer.ps1`: clean publish + ISCC + SHA-256).
 - Output: `installer/Output/ProcessCoreOptimizer_Setup_2.0.0.exe`
   (gitignored build artifact; reproducible on demand).
-  - Phase 4 final build from `main` 835fa1e: 50,800,314 bytes,
-    SHA-256: `8F8BDE7A00B06072FE0E634BC0D671AC58231021363A2C4A3A668AF2711D34E1`,
-    PE FileVersion `2.0.0`.
-  - Earlier branch builds differ by embedded commit SHA only (expected).
-  - The FINAL release-candidate installer MUST be rebuilt after the final
-    merge from `main` (commit SHA lands in ProductVersion metadata), then
-    re-validated with `tools/Validate-Release.ps1` — done for this state, see below.
-- Final manifest (main 835fa1e): Setup 50,800,314 B,
-  SHA-256 `8F8BDE7A00B06072FE0E634BC0D671AC58231021363A2C4A3A668AF2711D34E1`,
-  AppId `{6AA13087-A3D7-4501-9AAD-52D4CAC7668F}`, ICO `7FAF4AF8…`,
-  validation 8/8 PASS (static; install/uninstall NOT RUN — see below).
+- Per-build SHA-256 values are NOT tracked in this file (that would create a
+  commit → new SHA → new commit loop). The authoritative record per build is
+  `release-staging/SHA256SUMS.txt` plus `.evidence/installer-manifest.json`
+  (gitignored), produced from the final merged `main`.
 - Icon: original PCO ICO (`processcoreoptimizer.ico`, SHA-256
   `7FAF4AF810335B4604C4C300A…`, 6 sizes 16–256) used as `SetupIconFile`,
   app `ApplicationIcon`, window icons and tray source — verified in the
   binary, on taskbar/title bar, and in screenshots (`.evidence/gui/`).
-- Payload: self-contained single-file `ProcessCoreOptimizer.exe` (+PDB),
-  Start Menu shortcut, optional desktop icon, admin install to
-  `{autopf}\Process Core Optimizer`, proper Uninstall entry.
 - User data (`%APPDATA%\ProcessCoreOptimizer`) is never touched by
-  install/uninstall: profiles/settings survive.
+  install/uninstall: profiles/settings/rules survive.
+
+### Real launch model (read this before assuming "one EXE is enough")
+
+`FolderProfile.pubxml` builds a self-contained single-file `win-x64` EXE
+(~170 MB: managed code + .NET runtime bundled). It is still NOT runnable
+alone: WPF/host native sidecars must sit next to it. A Setup.exe missing
+these crashes on window creation (`DllNotFoundException` in `wpfgfx_cor3.dll`).
+The installer therefore ships all of these (all mandatory except the PDB;
+missing mandatory file fails the ISCC compile by design):
+
+- `ProcessCoreOptimizer.exe` (+ optional `ProcessCoreOptimizer.pdb`)
+- `wpfgfx_cor3.dll`, `PresentationNative_cor3.dll`, `D3DCompiler_47_cor3.dll`,
+  `PenImc_cor3.dll`, `vcruntime140_cor3.dll`
+- `MonoPosixHelper.dll`, `libMonoPosixHelper.dll`
+
+`tools/Build-Installer.ps1` writes per-file hashes to
+`.evidence/installer/payload-manifest.txt`; `tools/Validate-Release.ps1`
+check 7 asserts the full set. Setup-embedded bytes are NOT VERIFIED by
+extraction (no trusted Inno unpacker available; installer never executed) —
+ISCC confirms compression of all 9 inputs in its build log.
+
+### Portable ZIP (no installer)
+
+- `tools/Build-Portable.ps1` stages the same publish output plus
+  `docs/README-Portable.txt` into
+  `release-staging/ProcessCoreOptimizer_Portable_2.0.0_win-x64.zip`.
+- Portable = no installer/registry/services. User data intentionally stays in
+  `%APPDATA%\ProcessCoreOptimizer` (same as installed; profiles survive moves).
+- Smoke-tested from an isolated data dir (`PCO_USER_DATA_DIR` + `--safe-mode`).
+
+### Setup behavior (from the script; install-dependent visuals NOT RUN)
+
+- Admin install to `{autopf}\Process Core Optimizer` (`PrivilegesRequired=admin`);
+  the app itself runs unelevated afterwards.
+- EN + PL wizard (`WizardStyle=modern`), LICENSE screen, Start Menu shortcut,
+  optional (unchecked) desktop icon, post-install launch offer (`skipifsilent`).
+- `CloseApplications=yes` prompts to close running PCO on upgrade/reinstall.
+- Proper Apps & Features entry (name/version/publisher/icon); uninstall removes
+  binaries only — `%APPDATA%\ProcessCoreOptimizer` is preserved.
+- Reinstalling the same version repairs in place (Inno default).
 
 ## Compatibility & test status
 
