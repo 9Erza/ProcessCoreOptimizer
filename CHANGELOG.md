@@ -1,6 +1,34 @@
 # Changelog
 
-## v2.0.0 - Engine 2.0, Profiles 2.0 & Desktop 2.0
+## v2.0.0 - Engine 2.0, Profiles 2.0 & Desktop 2.0 (+ Major Functional Expansion)
+
+### Process Explorer 2.0 (P0/P1)
+- Grouped / Instances view toggle (local switch, no rescan): per-instance drill-down (PID, start time, EXE path, CPU, RAM, priority, profile) from the same scan pass.
+- Correct numeric sorting (raw sort twins, semantic priority rank), extended filters (name + path, only-optimized, with-profile), stable refresh without scroll/selection resets.
+- Instance details panel: PID, start, uptime inputs, CPU/RAM, affinity, CPU Sets, profile, last status + "why this profile?" explanation with honest Unknown placeholders.
+- Context menus (keyboard accessible): details, create/capture/preview/apply/restore, copy PID/path, open file location. No destructive actions, no mutation on menu open.
+- P0 scope safety: instance apply touches only the selected PID (`ApplyProfileToInstances`); Update/Delete resolve by stable `Profile.Id`; name-only saves preserve path-bound siblings.
+
+### Profile Studio (P0/P1)
+- Modal editor: name, EXE path (+browse), affinity mask (hex, validated), priority, Affinity/CPU Sets/EcoQoS, apply flags, enable, notes; path-bound conflict hint; cancel-safe drafts.
+- Profile grid sorting, context menu (edit/enable-delete), New/Edit/Toggle commands. Legacy 1.3/2.0 schemas still load unchanged.
+
+### Smart Rules engine (P0/P1)
+- OnLaunch (optional delay) and OnForeground (stability debounce for Alt+Tab) triggers, cooldowns, priorities, deterministic precedence, in-memory pending/override state.
+- No extra timers or scans: evaluates on the existing UI + watcher snapshots; global AutomationPaused stops both channels (observation continues).
+- Rule actions: apply profile (scoped to one PID) or session restore; missing-profile misconfiguration is logged with throttle, never retried hot.
+- UI: Smart Rules tab, rule editor, pause toggle, recent-activity feed ("why this rule fired"), per-rule override clearing.
+
+### EcoQoS / Efficiency mode (P1)
+- Official `SetProcessInformation`/`GetProcessInformation` API with `Version=1` preset; support detection (Win10 1809+), real-state reads, explicit on/off only (never automatic).
+- Profile support (`EcoQos` tri-state: on/off/leave-alone, null preserves old profiles), engine status integration, session capture + restore, preview row, clear access-denied/unsupported errors.
+
+### Live Insights (P1)
+- Single sampler on the existing refresh tick (no new timers): 120-point ring buffer for CPU + working set + private bytes; PID-recycle resets baseline; first CPU point honestly Unknown.
+- Inline history charts in the details panel; unavailable data shown as unavailable, never zero.
+
+### Diagnostics / explainability (P1/P2)
+- "Why this profile?" explainer (path-bound/newest/only/disabled cases, PL/EN), rule activity in Diagnostics, anonymized on-demand ZIP export (user-dir prefixes masked, notes excluded).
 
 ### Engine safety (P0)
 - Mutations now re-validate PID + process start time + process name (+ EXE path for path-bound profiles) from a fresh OS handle immediately before every write. Stale snapshots never authorize a mutation (`SKIPPED_IDENTITY_MISMATCH` on mismatch).

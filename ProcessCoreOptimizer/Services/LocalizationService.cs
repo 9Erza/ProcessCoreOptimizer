@@ -138,6 +138,65 @@ namespace ProcessCoreOptimizer.WPF.Services
                 res["StrRepoTooltip"] = isPl ? "Repozytorium projektu — Process Core Optimizer" : "Project Repository — Process Core Optimizer";
                 res["StrSupportTooltip"] = isPl ? "Postaw kawę — Wesprzyj rozwój" : "Buy Me a Coffee — Support Development";
                 res["StrLinkOpenFailed"] = isPl ? "Nie udało się otworzyć strony w przeglądarce." : "Could not open the link in your browser.";
+                // Process Explorer 2.0 (grouped/instance views, filters, context menu)
+                res["StrViewGrouped"] = isPl ? "Grupy" : "Grouped";
+                res["StrViewInstances"] = isPl ? "Instancje" : "Instances";
+                res["StrOnlyOptimized"] = isPl ? "Tylko zoptymalizowane" : "Only optimized";
+                res["StrOnlyWithProfile"] = isPl ? "Z profilem" : "With profile";
+                res["StrColPid"] = "PID";
+                res["StrColPath"] = isPl ? "ŚCIEŻKA" : "PATH";
+                res["StrColProfile"] = isPl ? "PROFIL" : "PROFILE";
+                res["StrCtxDetails"] = isPl ? "Szczegóły" : "View Details";
+                res["StrCtxCreateProfile"] = isPl ? "Utwórz profil" : "Create Profile";
+                res["StrCtxCapture"] = isPl ? "Przechwyć ustawienia" : "Capture Current Settings";
+                res["StrCtxPreview"] = isPl ? "Podgląd zmian" : "Preview Changes";
+                res["StrCtxApply"] = isPl ? "Zastosuj profil" : "Apply Profile";
+                res["StrCtxRestore"] = isPl ? "Przywróć ustawienia" : "Restore Session Settings";
+                res["StrCtxCopyPid"] = isPl ? "Kopiuj PID" : "Copy PID";
+                res["StrCtxCopyPath"] = isPl ? "Kopiuj ścieżkę EXE" : "Copy EXE Path";
+                res["StrCtxOpenLocation"] = isPl ? "Otwórz lokalizację pliku" : "Open File Location";
+                // Profile Studio editor
+                res["StrProfileEditorTitle"] = isPl ? "Edytor profilu" : "Profile Editor";
+                res["StrProfileName"] = isPl ? "Nazwa procesu" : "Process name";
+                res["StrProfilePath"] = isPl ? "Ścieżka EXE (opcjonalna, czyni profil path-bound)" : "EXE path (optional, makes the profile path-bound)";
+                res["StrBrowse"] = isPl ? "Przeglądaj…" : "Browse…";
+                res["StrAffinityMaskHex"] = isPl ? "Maska affinity (hex, np. FF)" : "Affinity mask (hex, e.g. FF)";
+                res["StrApplyPriority"] = isPl ? "Zastosuj priorytet" : "Apply priority";
+                res["StrApplyCores"] = isPl ? "Zastosuj rdzenie CPU" : "Apply CPU cores";
+                res["StrProfileEnabled"] = isPl ? "Włączony" : "Enabled";
+                res["StrNotes"] = isPl ? "Notatki" : "Notes";
+                res["StrSave"] = isPl ? "Zapisz" : "Save";
+                res["StrCancel"] = isPl ? "Anuluj" : "Cancel";
+                res["StrNewProfile"] = isPl ? "Nowy" : "New";
+                res["StrEditProfile"] = isPl ? "Edytuj" : "Edit";
+                res["StrCtxToggleEnabled"] = isPl ? "Włącz / Wyłącz" : "Enable / Disable";
+                // Smart Rules
+                res["StrSmartRules"] = isPl ? "Inteligentne reguły" : "Smart Rules";
+                res["StrRuleEditorTitle"] = isPl ? "Edytor reguły" : "Rule Editor";
+                res["StrRuleName"] = isPl ? "Nazwa reguły (opcjonalna)" : "Rule name (optional)";
+                res["StrRuleProcess"] = isPl ? "PROCES" : "PROCESS";
+                res["StrRuleTrigger"] = isPl ? "WYZWALACZ" : "TRIGGER";
+                res["StrRuleAction"] = isPl ? "AKCJA" : "ACTION";
+                res["StrRuleDelayS"] = isPl ? "Opóźnienie (s)" : "Delay (s)";
+                res["StrRuleCooldownS"] = isPl ? "Cooldown (s)" : "Cooldown (s)";
+                res["StrRulePriority"] = "PRIO";
+                res["StrRuleProfile"] = isPl ? "Profil do zastosowania" : "Profile to apply";
+                res["StrRuleRecent"] = isPl ? "Ostatnia aktywność reguł (dlaczego reguła zadziałała)" : "Recent rule activity (why this rule fired)";
+                res["StrClearOverride"] = isPl ? "Wyczyść obejście" : "Clear override";
+                res["StrDeleteRule"] = isPl ? "Usuń regułę" : "Delete rule";
+                res["StrTriggerLaunch"] = isPl ? "Przy uruchomieniu procesu" : "On process launch";
+                res["StrTriggerForeground"] = isPl ? "Na aktywnym oknie" : "On foreground window";
+                res["StrActionApply"] = isPl ? "Zastosuj profil" : "Apply profile";
+                res["StrActionRestore"] = isPl ? "Przywróć sesję" : "Restore session";
+                res["StrPauseAutomation"] = isPl ? "Wstrzymaj automatyczną optymalizację" : "Pause automatic optimization";
+                // EcoQoS
+                res["StrEcoQos"] = isPl ? "EcoQoS (tryb wydajności)" : "EcoQoS (Efficiency mode)";
+                res["StrEcoQosHint"] = isPl ? "Opcjonalne. Zaznaczone = żądaj włączenia EcoQoS, odznaczone = żądaj wyłączenia, nieustalone = nie zmieniaj. Nigdy nie włączane automatycznie; tylko przez jawny profil." : "Optional. Checked = request EcoQoS on, unchecked = request off, indeterminate = leave alone. Never auto-enabled; applies only via explicit profile.";
+                // Live Insights + Diagnostics
+                res["StrCpuHistory"] = isPl ? "Historia CPU" : "CPU history";
+                res["StrMemHistory"] = isPl ? "Historia pamięci (zielony = working set, przerywana = prywatna)" : "Memory history (green = working set, dashed = private)";
+                res["StrWhyThis"] = isPl ? "Dlaczego ten profil?" : "Why this profile?";
+                res["StrExportDiagnostics"] = isPl ? "Eksport diagnostyki (ZIP)" : "Export diagnostics (ZIP)";
             }
             catch (Exception ex)
             {

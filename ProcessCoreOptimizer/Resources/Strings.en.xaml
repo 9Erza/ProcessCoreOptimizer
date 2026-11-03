@@ -54,9 +54,6 @@
 
     <system:String x:Key="StrSelectAll">Select All</system:String>
     <system:String x:Key="StrClearAll">Clear All</system:String>
-    <system:String x:Key="StrDisableSMT">Disable SMT</system:String>
-    <system:String x:Key="StrDisableSMT_AMD">Disable SMT</system:String>
-    <system:String x:Key="StrDisableSMT_Intel">Disable HT</system:String>
     <system:String x:Key="StrDisableECores">Disable E-Cores</system:String>
     <system:String x:Key="StrSetPriority">Set Priority</system:String>
     <system:String x:Key="StrSetAffinity">Set Affinity</system:String>
@@ -67,7 +64,6 @@
     <system:String x:Key="StrOptimizationMode">Optimization Mode:</system:String>
     <system:String x:Key="ModeAffinity">Affinity (Standard)</system:String>
     <system:String x:Key="ModeCpuSets">CPU Sets (Smart)</system:String>
-    <system:String x:Key="ModeExclusive">CPU Sets (Smart)</system:String>
 
     <system:String x:Key="StrColName">NAME</system:String>
     <system:String x:Key="StrColPriority">PRIORITY</system:String>
@@ -138,7 +134,6 @@
     <system:String x:Key="StrColPid">PID</system:String>
     <system:String x:Key="StrColPath">PATH</system:String>
     <system:String x:Key="StrColProfile">PROFILE</system:String>
-    <system:String x:Key="StrColStatus">STATUS</system:String>
     <system:String x:Key="StrCtxDetails">View Details</system:String>
     <system:String x:Key="StrCtxCreateProfile">Create Profile</system:String>
     <system:String x:Key="StrCtxCapture">Capture Current Settings</system:String>
@@ -180,6 +175,7 @@
     <system:String x:Key="StrRuleProfile">Profile to apply</system:String>
     <system:String x:Key="StrRuleRecent">Recent rule activity (why this rule fired)</system:String>
     <system:String x:Key="StrClearOverride">Clear override</system:String>
+    <system:String x:Key="StrDeleteRule">Delete rule</system:String>
     <system:String x:Key="StrTriggerLaunch">On process launch</system:String>
     <system:String x:Key="StrTriggerForeground">On foreground window</system:String>
     <system:String x:Key="StrActionApply">Apply profile</system:String>

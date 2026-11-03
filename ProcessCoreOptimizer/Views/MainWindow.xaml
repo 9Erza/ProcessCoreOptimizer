@@ -36,6 +36,10 @@
                     </Grid.RowDefinitions>
 
                     <Grid Grid.Row="0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                         <StackPanel VerticalAlignment="Top">
 
                             <TextBlock Text="Process Core Optimizer" FontWeight="Bold" FontSize="18" Foreground="{StaticResource PcoAccentBrush}" TextWrapping="Wrap" HorizontalAlignment="Center" Margin="0,30,0,10"/>
@@ -121,20 +125,21 @@
                                     </Style>
                                 </Button.Style>
                             </Button>
-                        </StackPanel>
 
-                        <Button Content="{DynamicResource StrSettings}" Command="{Binding SwitchTabCommand}" CommandParameter="Settings" VerticalAlignment="Bottom" Margin="10,0,10,15">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource SidebarButton}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding ActiveTab}" Value="Settings">
-                                            <Setter Property="Background" Value="{StaticResource PcoSelectedBrush}"/>
-                                            <Setter Property="Foreground" Value="White"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                        </Button>
+                            <Button Content="{DynamicResource StrSettings}" Command="{Binding SwitchTabCommand}" CommandParameter="Settings" Margin="10,8,10,15">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource SidebarButton}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ActiveTab}" Value="Settings">
+                                                <Setter Property="Background" Value="{StaticResource PcoSelectedBrush}"/>
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </StackPanel>
+                        </ScrollViewer>
                     </Grid>
 
                     <Grid Grid.Row="1" Margin="15,0,15,5" Height="220">

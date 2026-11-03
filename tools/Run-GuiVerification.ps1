@@ -143,6 +143,7 @@ try {
         @{ Name = @("System Processes", "Procesy Systemowe"); Shot = "01-processes.png" },
         @{ Name = @("CPU & Topology", "CPU i topologia"); Shot = "02-cpu-topology.png" },
         @{ Name = @("Saved Profiles", "Zapisane Profile"); Shot = "03-profiles.png" },
+        @{ Name = @("Smart Rules", "Inteligentne reguły"); Shot = "17-rules.png" },
         @{ Name = @("Hardware Monitor", "Monitor Sprz\u0119tu"); Shot = "04-hardware.png" },
         @{ Name = @("Diagnostics", "Diagnostyka"); Shot = "05-diagnostics.png" },
         @{ Name = @("Settings", "Ustawienia"); Shot = "06-settings.png" }
@@ -157,6 +158,40 @@ try {
             if (!$clicked) { throw "No tab button matched: $($t.Name -join ' / ')" }
             Save-Shot $label $window
         }
+    }
+
+    Check "instance view toggle" {
+        # The Processes view must be active: WPF prunes collapsed views from UIA.
+        $back = $false
+        foreach ($candidate in @("System Processes", "Procesy Systemowe")) {
+            try { Click-Button $window $candidate; $back = $true; break } catch { }
+        }
+        if (!$back) { throw "Could not return to processes tab." }
+        Start-Sleep -Milliseconds 800
+        $toggled = $false
+        foreach ($candidate in @("Instances", "Instancje")) {
+            try {
+                $cb = $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants,
+                    (New-Object System.Windows.Automation.PropertyCondition(
+                        [System.Windows.Automation.AutomationElement]::NameProperty, $candidate)))
+                if ($cb -ne $null) {
+                    $tp = $cb.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern)
+                    $tp.Toggle()
+                    Start-Sleep -Milliseconds 900
+                    Save-Shot "18-instances.png" $window
+                    $tp.Toggle()
+                    Start-Sleep -Milliseconds 900
+                    $toggled = $true
+                    break
+                }
+            } catch { }
+        }
+        if (!$toggled) { throw "Instances toggle checkbox not found." }
+        # Leave the app on Settings like before: later checks assume it.
+        foreach ($candidate in @("Settings", "Ustawienia")) {
+            try { Click-Button $window $candidate; break } catch { }
+        }
+        Start-Sleep -Milliseconds 800
     }
 
     Check "maximize/restore" {

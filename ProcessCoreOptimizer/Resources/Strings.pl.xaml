@@ -54,9 +54,6 @@
 
     <system:String x:Key="StrSelectAll">Zaznacz Wszystko</system:String>
     <system:String x:Key="StrClearAll">Odznacz Wszystko</system:String>
-    <system:String x:Key="StrDisableSMT">Wyłącz SMT</system:String>
-    <system:String x:Key="StrDisableSMT_AMD">Wyłącz SMT</system:String>
-    <system:String x:Key="StrDisableSMT_Intel">Wyłącz HT</system:String>
     <system:String x:Key="StrDisableECores">Wyłącz E-Cores</system:String>
     <system:String x:Key="StrSetPriority">Ustaw Priorytet</system:String>
     <system:String x:Key="StrSetAffinity">Ustaw Koligację</system:String>
@@ -67,7 +64,6 @@
     <system:String x:Key="StrOptimizationMode">Tryb Optymalizacji:</system:String>
     <system:String x:Key="ModeAffinity">Koligacja (Standardowy)</system:String>
     <system:String x:Key="ModeCpuSets">Zestawy CPU (Inteligentny)</system:String>
-    <system:String x:Key="ModeExclusive">Zestawy CPU (Inteligentny)</system:String>
 
     <system:String x:Key="StrColName">NAZWA</system:String>
     <system:String x:Key="StrColPriority">PRIORYTET</system:String>
@@ -138,7 +134,6 @@
     <system:String x:Key="StrColPid">PID</system:String>
     <system:String x:Key="StrColPath">ŚCIEŻKA</system:String>
     <system:String x:Key="StrColProfile">PROFIL</system:String>
-    <system:String x:Key="StrColStatus">STATUS</system:String>
     <system:String x:Key="StrCtxDetails">Szczegóły</system:String>
     <system:String x:Key="StrCtxCreateProfile">Utwórz profil</system:String>
     <system:String x:Key="StrCtxCapture">Przechwyć ustawienia</system:String>
@@ -180,6 +175,7 @@
     <system:String x:Key="StrRuleProfile">Profil do zastosowania</system:String>
     <system:String x:Key="StrRuleRecent">Ostatnia aktywność reguł (dlaczego reguła zadziałała)</system:String>
     <system:String x:Key="StrClearOverride">Wyczyść obejście</system:String>
+    <system:String x:Key="StrDeleteRule">Usuń regułę</system:String>
     <system:String x:Key="StrTriggerLaunch">Przy uruchomieniu procesu</system:String>
     <system:String x:Key="StrTriggerForeground">Na aktywnym oknie</system:String>
     <system:String x:Key="StrActionApply">Zastosuj profil</system:String>

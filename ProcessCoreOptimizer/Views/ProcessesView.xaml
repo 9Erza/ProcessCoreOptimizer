@@ -10,12 +10,12 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <TextBlock Grid.Row="0" Text="{DynamicResource StrProcessList}" Style="{StaticResource PcoTitle}"/>
-            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,6">
-                <TextBox Text="{Binding ProcessFilterText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource PcoFilterBox}" ToolTip="{DynamicResource StrProcessFilter}" Width="220"/>
-                <CheckBox Content="{DynamicResource StrViewInstances}" IsChecked="{Binding ShowInstances, Mode=TwoWay}" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="{StaticResource PcoTextBrush}" ToolTip="{DynamicResource StrViewInstances}"/>
-                <CheckBox Content="{DynamicResource StrOnlyOptimized}" IsChecked="{Binding ProcessOnlyOptimized, Mode=TwoWay}" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="{StaticResource PcoTextBrush}"/>
-                <CheckBox Content="{DynamicResource StrOnlyWithProfile}" IsChecked="{Binding ProcessOnlyWithProfile, Mode=TwoWay}" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="{StaticResource PcoTextBrush}"/>
-            </StackPanel>
+            <WrapPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,6">
+                <TextBox Text="{Binding ProcessFilterText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource PcoFilterBox}" ToolTip="{DynamicResource StrProcessFilter}" Width="160" Margin="0,0,0,4"/>
+                <CheckBox Content="{DynamicResource StrViewInstances}" IsChecked="{Binding ShowInstances, Mode=TwoWay}" VerticalAlignment="Center" Margin="12,0,0,4" Foreground="{StaticResource PcoTextBrush}" ToolTip="{DynamicResource StrViewInstances}"/>
+                <CheckBox Content="{DynamicResource StrOnlyOptimized}" IsChecked="{Binding ProcessOnlyOptimized, Mode=TwoWay}" VerticalAlignment="Center" Margin="12,0,0,4" Foreground="{StaticResource PcoTextBrush}"/>
+                <CheckBox Content="{DynamicResource StrOnlyWithProfile}" IsChecked="{Binding ProcessOnlyWithProfile, Mode=TwoWay}" VerticalAlignment="Center" Margin="12,0,0,4" Foreground="{StaticResource PcoTextBrush}"/>
+            </WrapPanel>
 
             <DataGrid Grid.Row="2" ItemsSource="{Binding Processes}" SelectedItem="{Binding SelectedProcess}" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single" CanUserAddRows="False" CanUserSortColumns="True">
                 <DataGrid.Style>
@@ -148,49 +148,49 @@
                     </ContextMenu>
                 </DataGrid.ContextMenu>
                 <DataGrid.Columns>
-                    <DataGridTextColumn Binding="{Binding ProcessId}" SortMemberPath="ProcessId" Width="70">
+                    <DataGridTextColumn Binding="{Binding ProcessId}" SortMemberPath="ProcessId" Width="60">
                         <DataGridTextColumn.HeaderTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{DynamicResource StrColPid}" />
                             </DataTemplate>
                         </DataGridTextColumn.HeaderTemplate>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Binding="{Binding Name}" SortMemberPath="Name" Width="*" MinWidth="110">
+                    <DataGridTextColumn Binding="{Binding Name}" SortMemberPath="Name" Width="*" MinWidth="100">
                         <DataGridTextColumn.HeaderTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{DynamicResource StrColName}" />
                             </DataTemplate>
                         </DataGridTextColumn.HeaderTemplate>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Binding="{Binding CpuUsage}" SortMemberPath="CpuUsagePercent" Width="70">
+                    <DataGridTextColumn Binding="{Binding CpuUsage}" SortMemberPath="CpuUsagePercent" Width="62">
                         <DataGridTextColumn.HeaderTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{DynamicResource StrColCpu}" />
                             </DataTemplate>
                         </DataGridTextColumn.HeaderTemplate>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Binding="{Binding RamUsageMB}" SortMemberPath="MemoryBytes" Width="72">
+                    <DataGridTextColumn Binding="{Binding RamUsageMB}" SortMemberPath="MemoryBytes" Width="64">
                         <DataGridTextColumn.HeaderTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{DynamicResource StrColRam}" />
                             </DataTemplate>
                         </DataGridTextColumn.HeaderTemplate>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Binding="{Binding Priority}" SortMemberPath="PriorityRank" Width="110">
+                    <DataGridTextColumn Binding="{Binding Priority}" SortMemberPath="PriorityRank" Width="96">
                         <DataGridTextColumn.HeaderTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{DynamicResource StrColPriority}" />
                             </DataTemplate>
                         </DataGridTextColumn.HeaderTemplate>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Binding="{Binding ProfileName}" SortMemberPath="ProfileName" Width="130">
+                    <DataGridTextColumn Binding="{Binding ProfileName}" SortMemberPath="ProfileName" Width="100">
                         <DataGridTextColumn.HeaderTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{DynamicResource StrColProfile}" />
                             </DataTemplate>
                         </DataGridTextColumn.HeaderTemplate>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Binding="{Binding LastStatus}" SortMemberPath="LastStatus" Width="90">
+                    <DataGridTextColumn Binding="{Binding LastStatus}" SortMemberPath="LastStatus" Width="80">
                         <DataGridTextColumn.HeaderTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{DynamicResource StrColStatus}" />
@@ -238,7 +238,7 @@
                         <Run Text="Last: "/><Run Text="{Binding LastStatus, TargetNullValue=—}"/><Run Text=" "/><Run Text="{Binding LastMessage}"/>
                     </TextBlock>
                     <TextBlock Grid.Row="8" Foreground="{StaticResource PcoMutedBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0">
-                        <Run Text="{DynamicResource StrWhyThis}"/><Run Text=" "/><Run Text="{Binding DataContext.ProfileMatchWhy, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                        <Run Text="{DynamicResource StrWhyThis}"/><Run Text=" "/><Run Text="{Binding DataContext.ProfileMatchWhy, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWay}"/>
                     </TextBlock>
                     <Grid Grid.Row="6" Margin="0,8,0,0">
                         <Grid.Style>
@@ -256,7 +256,7 @@
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         <TextBlock Grid.Row="0" Foreground="{StaticResource PcoTextBrush}" FontSize="12">
-                            <Run Text="{DynamicResource StrCpuHistory}"/><Run Text=": "/><Run Text="{Binding DataContext.InsightsSummary, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                            <Run Text="{DynamicResource StrCpuHistory}"/><Run Text=": "/><Run Text="{Binding DataContext.InsightsSummary, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWay}"/>
                         </TextBlock>
                         <Polyline Grid.Row="1" Points="{Binding DataContext.CpuHistoryPoints, RelativeSource={RelativeSource AncestorType=UserControl}}" Stroke="{StaticResource PcoAccentBrush}" StrokeThickness="1.5" Stretch="Fill" Height="30" Margin="0,4,0,0"/>
                     </Grid>
