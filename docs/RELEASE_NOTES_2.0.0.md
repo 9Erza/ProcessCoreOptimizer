@@ -43,28 +43,43 @@ About navigation, full PL/EN).
 ## Verification
 
 - Release build: 0 warnings, 0 errors.
-- Tests: 240 MSTest cases — 237 passing, 3 environment-gated real-startup
+- Tests: 258 MSTest cases — 255 passing, 3 environment-gated real-startup
   integration tests skipped without `PCO_REAL_STARTUP_TESTS=1`
   (fake backend, read-only checks, negative P0 identity tests, CPU Sets
   restore/suspension matrix, startup planner/coordinator/backend,
   reset safety, onboarding, helper protocol, updater gates (incl.
-  no-downgrade-prompt and unparsable-tag guards), localization
-  parity, XAML Run-binding-mode guard, Developer Hub footer guards, and real
-  Windows API tests on isolated self-owned `%TEMP%` probe copies).
-  Manually enabled once locally: all 3 real startup tests green,
-  zero registry/task leftovers. No user, service or agent process is ever touched.
+  no-downgrade-prompt, unparsable-tag, exact-installer-asset, draft/
+  prerelease and HTTP/matrix guards), localization parity, XAML
+  Run-binding-mode guard, Developer Hub footer guards, update-session
+  once/defer rules and no-download scan, and real Windows API tests on
+  isolated self-owned `%TEMP%` probe copies). Manually enabled once locally:
+  all 3 real startup tests green, zero registry/task leftovers. No user,
+  service or agent process is ever touched.
 - Startup architecture: plan → execute → verify with create-before-delete
   ordering; UAC cancel and failed-create paths proven by tests.
 - GUI: 21/21 UI Automation checks on Windows 11 (1920×1080, 100% DPI):
   all seven views incl. Smart Rules via real clicks, instance-view toggle,
+  mini activity console, slim scrollbar, compact hardware empty-state,
   maximize/minimize/restore, tray-aware close, startup status text, scrolled
   startup section, PL toggle with screenshots, safe-mode log line, about links
   with automation names, first-run wizard pages + Finish + settings stamp,
   isolated portable first-run smoke test, Developer Hub collapsed/expanded
   EN+PL with per-row checks, Space-toggle keyboard path, in-app About
-  navigation, 1000×700 minimum-size overflow check.
+  navigation, 1000×700 minimum-size overflow check, update dialog EN+PL
+  (real dialog code, canned API answers) and manual check flow.
   Harness: `tools/Run-GuiVerification.ps1` (backs up and restores `%APPDATA%`,
   launches with `--safe-mode`).
+- GUI defects found live and fixed: theme scope crash at startup (now
+  App-level), version showing `+sha`, truncated process names, clipped log
+  lines, profile-button overflow, CPU Sets handle rights (real tests caught it),
+  wizard modal missed by UIA tree (Win32 fallback), minimize-to-tray vs UIA
+  restore sequencing in harnesses, `Run.Text` TwoWay bindings throwing on
+  read-only sources and killing the details panel (now explicit `Mode=OneWay`
+  enforced by `XamlBindingModeTests`; proof:
+  `docs/screenshots/screen_processes_details.png`), over-narrow IN/RAM/CPU
+  columns (widened after screenshot audit), oversized sidebar console (now a
+  60-DIP mini console), heavy default scrollbar (now a 5-DIP slim style),
+  blank hardware OFF view (now a compact empty-state card).
 - GUI defects found live and fixed: theme scope crash at startup (now
   App-level), version showing `+sha`, truncated process names, clipped log
   lines, profile-button overflow, CPU Sets handle rights (real tests caught it),
@@ -82,15 +97,15 @@ About navigation, full PL/EN).
   raw CSV in gitignored `.evidence/perf`.
 - CI: restore → Release build → tests → `git diff --check`, green.
 - Local artifacts: self-contained single-file `ProcessCoreOptimizer.exe` 2.0.0
-  and `installer/Output/ProcessCoreOptimizer_Setup_2.0.0.exe` (final main
-  build: 54,047,432 bytes, SHA-256
-  `FC726BD54B4AFFE93EBCF4FAD5899AA3F4C0359E34F66214DC1B9DF24A7A327A`,
+  and `installer/Output/ProcessCoreOptimizer_Setup_2.0.0.exe` (final branch
+  build: 54,051,869 bytes, SHA-256
+  `A17ECA4ECACD1EA93DA2B4564E08EE18D1F1D34A0E11FAD487255F1419C7E448`,
   PE 2.0.0; reproducible via `tools/Build-Installer.ps1`) — see
   `docs/INSTALLER.md` and `tools/Validate-Release.ps1` (8/8 static checks green).
 - Interactive screenshots: real 2.0 UI (7 views + instances toggle + wizard
   pages + portable first-run smoke test + collapsible Developer Hub EN/PL);
   no mockups. README gallery: `ProcessCoreOptimizer/Screenshots/` (6 shots);
-  full run: gitignored `.evidence/gui/` (26 captures).
+  full run: gitignored `.evidence/gui/` (30 captures).
 - Install/upgrade/uninstall on a VM: NOT RUN (no isolated VM; dev-machine
   install deliberately avoided). Multi-group hardware: NOT RUN (8-LP machine);
   synthetic mapping discipline tested instead.

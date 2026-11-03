@@ -57,11 +57,14 @@ check 7 asserts the full set. Setup-embedded bytes are NOT VERIFIED by
 extraction (no trusted Inno unpacker available; installer never executed) —
 ISCC confirms compression of all 9 inputs in its build log.
 
-### Portable ZIP (no installer)
+### Portable ZIP (developer tool only — NOT a distribution channel)
 
-- `tools/Build-Portable.ps1` stages the same publish output plus
-  `docs/README-Portable.txt` into
-  `release-staging/ProcessCoreOptimizer_Portable_2.0.0_win-x64.zip`.
+- `tools/Build-Portable.ps1` remains available as a developer convenience: it
+  stages the same publish output plus `docs/README-Portable.txt` into a local
+  ZIP. It is **not part of the official 2.0.0 distribution** and must never be
+  attached to the GitHub Release.
+- Official 2.0.0 distribution is installer-only:
+  `release-staging/ProcessCoreOptimizer_Setup_2.0.0.exe` + `SHA256SUMS.txt`.
 - Portable = no installer/registry/services. User data intentionally stays in
   `%APPDATA%\ProcessCoreOptimizer` (same as installed; profiles survive moves).
 - Smoke-tested from an isolated data dir (`PCO_USER_DATA_DIR` + `--safe-mode`).

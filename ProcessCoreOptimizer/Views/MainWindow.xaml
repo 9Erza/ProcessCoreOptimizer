@@ -28,6 +28,9 @@
             </Grid.RowDefinitions>
 
             <Border Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Background="{StaticResource PcoBg1Brush}" BorderThickness="0,0,1,0" BorderBrush="{StaticResource PcoBorderBrush}">
+                <Border.Resources>
+                    <Style TargetType="ScrollBar" BasedOn="{StaticResource PcoSlimScrollBar}"/>
+                </Border.Resources>
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*"/>
@@ -42,9 +45,9 @@
                         <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                         <StackPanel VerticalAlignment="Top">
 
-                            <TextBlock Text="Process Core Optimizer" FontWeight="Bold" FontSize="18" Foreground="{StaticResource PcoAccentBrush}" TextWrapping="Wrap" HorizontalAlignment="Center" Margin="0,30,0,10"/>
+                            <TextBlock Text="Process Core Optimizer" FontWeight="Bold" FontSize="17" Foreground="{StaticResource PcoAccentBrush}" TextWrapping="Wrap" HorizontalAlignment="Center" Margin="0,20,0,8"/>
 
-                            <Border Width="64" Height="64" Margin="0,0,0,25" CornerRadius="12" HorizontalAlignment="Center" ClipToBounds="True">
+                            <Border Width="56" Height="56" Margin="0,0,0,16" CornerRadius="12" HorizontalAlignment="Center" ClipToBounds="True">
                                 <Image Source="/Images/processcoreoptimizer.ico" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
                             </Border>
 
@@ -142,33 +145,39 @@
                         </ScrollViewer>
                     </Grid>
 
-                    <Grid Grid.Row="1" Margin="15,0,15,5" Height="220">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="*"/>
-                        </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Text="{DynamicResource StrConsoleLog}" FontSize="11" FontWeight="Bold" Foreground="{StaticResource PcoDimBrush}" Margin="5,0,0,8"/>
-                        <Border Grid.Row="1" Background="{StaticResource PcoLogBgBrush}" BorderBrush="{StaticResource PcoBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="5">
-                            <ListBox x:Name="LogConsole" ItemsSource="{Binding ActionLogs}" Background="Transparent" BorderThickness="0" Foreground="#A0A0A0" FontSize="11" FontFamily="Consolas" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding}" TextWrapping="Wrap"/>
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                                <ListBox.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <VirtualizingStackPanel VerticalAlignment="Bottom"/>
-                                    </ItemsPanelTemplate>
-                                </ListBox.ItemsPanel>
-                                <ListBox.ItemContainerStyle>
-                                    <Style TargetType="ListBoxItem">
-                                        <Setter Property="Padding" Value="5,2,10,2"/>
-                                        <Setter Property="IsHitTestVisible" Value="False"/>
-                                    </Style>
-                                </ListBox.ItemContainerStyle>
-                            </ListBox>
-                        </Border>
-                    </Grid>
+                    <!-- Mini activity console (~60 DIP): status dot + latest message.
+                         Click opens Diagnostics with the full log history. -->
+                    <Button Grid.Row="1" Margin="12,0,12,6" Style="{StaticResource PcoMiniConsoleButton}"
+                            Command="{Binding SwitchTabCommand}" CommandParameter="Diagnostics"
+                            ToolTip="{DynamicResource StrConsoleLog}"
+                            ap:AutomationProperties.Name="{Binding ActivitySummary, Mode=OneWay}">
+                        <StackPanel>
+                            <Grid Margin="0,0,0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="{DynamicResource StrActivity}" FontSize="11" FontWeight="Bold" Foreground="{StaticResource PcoDimBrush}" VerticalAlignment="Center"/>
+                                <Ellipse Grid.Column="1" Width="8" Height="8" VerticalAlignment="Center" Margin="8,0,2,0">
+                                    <Ellipse.Style>
+                                        <Style TargetType="Ellipse">
+                                            <Setter Property="Fill" Value="{StaticResource PcoGreenBrush}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ActivityStatus}" Value="Attention">
+                                                    <Setter Property="Fill" Value="{StaticResource PcoOrangeBrush}"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding ActivityStatus}" Value="Error">
+                                                    <Setter Property="Fill" Value="{StaticResource PcoRedBrush}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Ellipse.Style>
+                                </Ellipse>
+                            </Grid>
+                            <TextBlock Text="{Binding ActivitySummary, Mode=OneWay}" Foreground="#A0A0A0" FontSize="11" FontFamily="Consolas"
+                                       TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" MaxHeight="16"/>
+                        </StackPanel>
+                    </Button>
 
                     <Grid Grid.Row="2" Margin="12,0,12,12">
                         <Grid.RowDefinitions>
