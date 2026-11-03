@@ -34,6 +34,31 @@ namespace ProcessCoreOptimizer.WPF.Services
             return !string.IsNullOrWhiteSpace(processName) && SystemProcessBlacklist.Contains(processName.Trim());
         }
 
+        private static string? _windowsDirectory;
+
+        /// <summary>
+        /// True when the executable lives under the Windows directory
+        /// (System32, SysWOW64, SystemApps, WinSxS, ...). Such components are
+        /// never touched by automatic channels (fail-closed); explicit manual
+        /// actions may still proceed with a visible warning. Unknown paths
+        /// (null/unreadable) are NOT classified as system locations.
+        /// </summary>
+        public static bool IsSystemComponentPath(string? executablePath)
+        {
+            if (string.IsNullOrWhiteSpace(executablePath)) return false;
+            try
+            {
+                _windowsDirectory ??= Environment.GetFolderPath(Environment.SpecialFolder.Windows).TrimEnd('\\', '/');
+                if (string.IsNullOrEmpty(_windowsDirectory)) return false;
+                string full = executablePath.Trim().Replace('/', '\\');
+                return full.StartsWith(_windowsDirectory + "\\", StringComparison.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         public bool IsUserProcess(Process p)
         {
             try

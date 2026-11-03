@@ -17,9 +17,11 @@ namespace ProcessCoreOptimizer.WPF.Services
     {
         private const int MaxAffinityMaskLogicalProcessors = 64;
         private readonly ILogger _logger;
-        private readonly List<PerformanceCounter> _cpuCounters = new();
+        private readonly List<PerformanceCounter> _cpuTimeCounters = new();
+        private readonly List<PerformanceCounter> _cpuUtilityCounters = new();
         private readonly object _counterGate = new();
         private bool _countersInitialized;
+        private int _readsCompleted;
         private bool _disposed;
 
         public HardwareService()
@@ -59,36 +61,84 @@ namespace ProcessCoreOptimizer.WPF.Services
             return GetFallbackTopology();
         }
 
-        public List<double> GetCurrentLoads()
+        /// <summary>
+        /// One logical processor's telemetry. Utilization is the share of time
+        /// the processor was busy (0-100%); Utility includes frequency scaling
+        /// and may exceed 100% (never presented as busy time). Null = unknown
+        /// (first sample, missing counter, NaN/Infinity) and must render as "—".
+        /// </summary>
+        public sealed class CoreLoadSample
         {
-            List<PerformanceCounter> snapshot;
+            public double? UtilizationPercent { get; set; }
+            public double? UtilityPercent { get; set; }
+        }
+
+        public List<CoreLoadSample> GetCurrentLoads()
+        {
+            List<(PerformanceCounter Time, PerformanceCounter Utility)> snapshot;
             lock (_counterGate)
             {
                 EnsureCountersInitialized();
-                snapshot = new List<PerformanceCounter>(_cpuCounters);
+                snapshot = new List<(PerformanceCounter, PerformanceCounter)>(_cpuTimeCounters.Count);
+                for (int i = 0; i < _cpuTimeCounters.Count && i < _cpuUtilityCounters.Count; i++)
+                    snapshot.Add((_cpuTimeCounters[i], _cpuUtilityCounters[i]));
             }
-            var loads = new List<double>(snapshot.Count);
 
-            foreach (var counter in snapshot)
+            bool discard = false;
+            lock (_counterGate)
+            {
+                // The first reads after (re)init have no valid interval behind
+                // them: perform the reads to prime PDH but report Unknown.
+                if (_readsCompleted < 2)
+                {
+                    _readsCompleted++;
+                    discard = _readsCompleted < 2;
+                }
+            }
+
+            var loads = new List<CoreLoadSample>(snapshot.Count);
+            foreach (var (time, utility) in snapshot)
             {
                 try
                 {
-                    loads.Add(Math.Round(counter.NextValue(), 1));
+                    double busy = time.NextValue();
+                    double boosted = utility.NextValue();
+                    if (discard || double.IsNaN(busy) || double.IsInfinity(busy) ||
+                        double.IsNaN(boosted) || double.IsInfinity(boosted))
+                    {
+                        loads.Add(new CoreLoadSample());
+                        continue;
+                    }
+
+                    loads.Add(new CoreLoadSample
+                    {
+                        UtilizationPercent = NormalizeUtilization(busy),
+                        UtilityPercent = NormalizeUtility(boosted)
+                    });
                 }
                 catch (Exception ex)
                 {
                     _logger.Debug($"Failed to sample CPU load: {ex.Message}");
-                    loads.Add(0);
+                    loads.Add(new CoreLoadSample());
                 }
-            }
-
-            if (loads.Count > 0)
-            {
-                _logger.Debug($"CPU Load: Avg={loads.Average():F1}%, Max={loads.Max():F1}%, Min={loads.Min():F1}%");
             }
 
             return loads;
         }
+
+        /// <summary>
+        /// Busy-time share, always 0-100. NaN/Infinity/negative read as unknown (null).
+        /// Unit-testable; the UI renders null as "—", never as 0%.
+        /// </summary>
+        public static double? NormalizeUtilization(double raw) =>
+            double.IsNaN(raw) || double.IsInfinity(raw) ? null : Math.Min(100, Math.Max(0, Math.Round(raw, 1)));
+
+        /// <summary>
+        /// Frequency-scaled utility; intentionally NOT clamped (Turbo Boost may
+        /// legitimately exceed 100%). NaN/Infinity read as unknown (null).
+        /// </summary>
+        public static double? NormalizeUtility(double raw) =>
+            double.IsNaN(raw) || double.IsInfinity(raw) ? null : Math.Round(raw, 1);
 
         public Dictionary<int, uint> GetLogicalCoreToCpuSetIdMap()
         {
@@ -354,18 +404,24 @@ namespace ProcessCoreOptimizer.WPF.Services
         {
             if (_countersInitialized || _disposed) return;
             _countersInitialized = true;
+            _readsCompleted = 0;
 
             try
             {
                 int coreCount = Math.Min(Environment.ProcessorCount, MaxAffinityMaskLogicalProcessors);
+                // Instance "0,i" = group 0, logical processor i. Both counters
+                // share the instance mapping (verified against a pinned burner).
                 for (int i = 0; i < coreCount; i++)
                 {
-                    var counter = new PerformanceCounter("Processor Information", "% Processor Utility", $"0,{i}");
-                    counter.NextValue();
-                    _cpuCounters.Add(counter);
+                    var time = new PerformanceCounter("Processor Information", "% Processor Time", $"0,{i}");
+                    time.NextValue();
+                    _cpuTimeCounters.Add(time);
+                    var utility = new PerformanceCounter("Processor Information", "% Processor Utility", $"0,{i}");
+                    utility.NextValue();
+                    _cpuUtilityCounters.Add(utility);
                 }
 
-                _logger.Info($"Initialized {coreCount} CPU performance counters");
+                _logger.Info($"Initialized {coreCount} CPU telemetry counter pairs (time + utility)");
             }
             catch (Exception ex)
             {
@@ -377,18 +433,25 @@ namespace ProcessCoreOptimizer.WPF.Services
         {
             lock (_counterGate)
             {
-                foreach (var counter in _cpuCounters)
+                foreach (var counter in _cpuTimeCounters)
                 {
                     counter.Dispose();
                 }
 
-                if (_cpuCounters.Count > 0)
+                foreach (var counter in _cpuUtilityCounters)
                 {
-                    _logger.Debug($"Released {_cpuCounters.Count} CPU performance counters");
+                    counter.Dispose();
                 }
 
-                _cpuCounters.Clear();
+                if (_cpuTimeCounters.Count > 0)
+                {
+                    _logger.Debug($"Released {_cpuTimeCounters.Count} CPU telemetry counter pairs");
+                }
+
+                _cpuTimeCounters.Clear();
+                _cpuUtilityCounters.Clear();
                 _countersInitialized = false;
+                _readsCompleted = 0;
             }
         }
 

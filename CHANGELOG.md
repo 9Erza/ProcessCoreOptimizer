@@ -98,7 +98,7 @@ refined for daily use.
 - External links (repository, author, website, support) are allowlisted, open only on
   user click, with no tracking and no network requests by the app itself.
 - 268 automated tests (265 passing + 3 environment-gated), UI Automation GUI suite
-  24/24, installer validation 8/8.
+  25/25 (incl. 8-tiles-visible core selector gate, settings category nav), installer validation 8/8.
 
 ### Performance
 

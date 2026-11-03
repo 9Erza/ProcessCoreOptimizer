@@ -3,6 +3,14 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              MinWidth="132" MaxWidth="220" MinHeight="56" MaxHeight="68">
     <Border x:Name="TileBorder" Margin="4" Padding="10,8" Background="{StaticResource PcoBg3Brush}" CornerRadius="6" BorderThickness="1" BorderBrush="{StaticResource PcoBorderSoftBrush}">
+        <Border.ToolTip>
+            <StackPanel>
+                <TextBlock>
+                    <Run Text="{DynamicResource StrCpuUtility}"/><Run Text=": "/><Run Text="{Binding UtilityText, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWay}"/>
+                </TextBlock>
+                <TextBlock Text="{DynamicResource StrUtilityNote}" Foreground="{StaticResource PcoMutedBrush}" FontSize="11" TextWrapping="Wrap" MaxWidth="200"/>
+            </StackPanel>
+        </Border.ToolTip>
         <Border.Style>
             <Style TargetType="Border">
                 <Setter Property="BorderBrush" Value="{StaticResource PcoBorderSoftBrush}"/>
@@ -31,8 +39,20 @@
                 <TextBlock Grid.Column="1" Text="{Binding TileLabel, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWay}"
                            Foreground="{StaticResource PcoTextBrightBrush}" FontWeight="SemiBold" FontSize="12"
                            VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-                <TextBlock Grid.Column="2" Text="{Binding LoadUsage, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWay, StringFormat={}{0:F0}%}"
-                           Foreground="{StaticResource PcoMutedBrush}" FontSize="11" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                <TextBlock Grid.Column="2" FontSize="11" VerticalAlignment="Center" Margin="8,0,0,0">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Text" Value="{Binding LoadUsage, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWay, StringFormat={}{0:F0}%}"/>
+                            <Setter Property="Foreground" Value="{StaticResource PcoMutedBrush}"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsLoadAvailable, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False">
+                                    <Setter Property="Text" Value="—"/>
+                                    <Setter Property="Foreground" Value="{StaticResource PcoFaintBrush}"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
             </Grid>
             <ProgressBar Grid.Row="1" Value="{Binding LoadUsage, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWay}"
                          Maximum="100" Height="4" Margin="0,8,0,0" Foreground="{StaticResource PcoAccentBrush}" Background="#111" BorderThickness="0"/>

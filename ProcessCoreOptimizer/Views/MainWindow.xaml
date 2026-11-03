@@ -329,6 +329,7 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
@@ -342,35 +343,77 @@
                             <StackPanel Grid.Column="0">
                                 <TextBlock Text="{Binding TargetPanelTitle, Mode=OneWay}" Style="{StaticResource PcoTitle}"/>
                                 <TextBlock Text="{Binding TargetScopeLabel, Mode=OneWay}" Foreground="{StaticResource PcoAccentBrush}" FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                                <TextBlock Text="{DynamicResource StrSystemTargetWarning}" Foreground="{StaticResource PcoOrangeBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,6">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsSystemTarget}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
                             </StackPanel>
                             <Button Grid.Column="1" Content="&#xE711;" Style="{StaticResource WindowBtnStyle}" Width="32" Height="32"
                                     Command="{Binding CloseProcessTargetCommand}" ToolTip="{DynamicResource StrClosePanel}"
                                     ap:AutomationProperties.Name="{DynamicResource StrClosePanel}" VerticalAlignment="Top"/>
                         </Grid>
 
-                        <UniformGrid Grid.Row="1" Columns="2" Rows="2" Margin="0,0,0,15">
-                            <Button Content="{DynamicResource StrSelectAll}" Command="{Binding SelectAllCommand}" Style="{StaticResource SmallFilterButton}" Margin="0,0,5,5"/>
-                            <Button Content="{DynamicResource StrClearAll}" Command="{Binding ClearAllCommand}" Style="{StaticResource SmallFilterButton}" Margin="5,0,0,5"/>
-                            <Button Content="{Binding CpuVendorText}" Command="{Binding DisableSmtCommand}" Style="{StaticResource SmallFilterButton}" Margin="0,0,5,0"/>
-                            <Button Content="{DynamicResource StrDisableECores}" Command="{Binding DisableECoresCommand}" IsEnabled="{Binding HasECores}" Style="{StaticResource SmallFilterButton}" Margin="5,0,0,0"/>
+                        <UniformGrid Grid.Row="1" Columns="2" Margin="0,0,0,6">
+                            <Button Content="{DynamicResource StrSelectAll}" Command="{Binding SelectAllCommand}" Style="{StaticResource SmallFilterButton}" Height="30" FontSize="12" Margin="0,0,4,4"/>
+                            <Button Content="{DynamicResource StrClearAll}" Command="{Binding ClearAllCommand}" Style="{StaticResource SmallFilterButton}" Height="30" FontSize="12" Margin="4,0,0,4"/>
+                            <Button Content="{Binding CpuVendorText}" Command="{Binding DisableSmtCommand}" Style="{StaticResource SmallFilterButton}" Height="30" FontSize="12" Margin="0,0,4,0"/>
+                            <Button Content="{DynamicResource StrDisableECores}" Command="{Binding DisableECoresCommand}" IsEnabled="{Binding HasECores}" Style="{StaticResource SmallFilterButton}" Height="30" FontSize="12" Margin="4,0,0,0"/>
                         </UniformGrid>
+                        <StackPanel Grid.Row="2" Margin="0,0,0,6">
+                            <TextBlock Text="{Binding SelectedCoreSummary, Mode=OneWay}" Foreground="{StaticResource PcoMutedBrush}" FontSize="11"/>
+                            <TextBlock Text="{DynamicResource StrEmptyMaskWarning}" Foreground="{StaticResource PcoRedBrush}" FontSize="11" FontWeight="SemiBold" TextWrapping="Wrap">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsCoreMaskEmpty}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
 
-                        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Margin="0,0,0,15">
+                        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" Margin="0,0,0,8">
                             <ItemsControl ItemsSource="{Binding Cores}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <WrapPanel Orientation="Horizontal"/>
+                                        <UniformGrid Columns="2"/>
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <views:CoreTile TileLabel="{Binding DisplayName, Mode=OneWay}" IsTileChecked="{Binding IsChecked, Mode=TwoWay}" LoadUsage="{Binding LoadUsage, Mode=OneWay}"/>
+                                        <Border Margin="3" Padding="7,4" Background="{StaticResource PcoBg3Brush}" CornerRadius="4" BorderThickness="1" BorderBrush="{StaticResource PcoBorderSoftBrush}">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+                                                <CheckBox Grid.Row="0" IsChecked="{Binding IsChecked, Mode=TwoWay}" VerticalContentAlignment="Center"
+                                                          ap:AutomationProperties.Name="{Binding DisplayName, Mode=OneWay}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding DisplayName, Mode=OneWay}" Foreground="{StaticResource PcoTextBrightBrush}" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="{Binding LoadUsage, Mode=OneWay, StringFormat=' {0:F0}%'}" Foreground="{StaticResource PcoMutedBrush}" FontSize="11" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </CheckBox>
+                                                <ProgressBar Grid.Row="1" Value="{Binding LoadUsage, Mode=OneWay}" Maximum="100" Height="3" Margin="0,3,0,0" Foreground="{StaticResource PcoAccentBrush}" Background="#111" BorderThickness="0"/>
+                                            </Grid>
+                                        </Border>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                         </ScrollViewer>
 
-                        <StackPanel Grid.Row="3">
+                        <StackPanel Grid.Row="4">
                             <TextBlock Text="{DynamicResource StrOptimizationMode}" FontWeight="Bold" FontSize="16" Margin="0,10,0,10" Foreground="{StaticResource PcoAccentBrush}"/>
                             <ComboBox ItemsSource="{Binding AvailableOptimizationModes}" SelectedItem="{Binding SelectedOptimizationMode, Mode=TwoWay}" Style="{StaticResource ModernComboBox}" Margin="0,0,0,15">
                                 <ComboBox.ItemTemplate>
@@ -400,13 +443,13 @@
                             <Separator Background="#333" Margin="0,5,0,20"/>
                         </StackPanel>
 
-                        <StackPanel Grid.Row="4" Visibility="{Binding ViewProcesses}">
+                        <StackPanel Grid.Row="5" Visibility="{Binding ViewProcesses}">
                             <Button Content="{DynamicResource StrSetAffinity}" Command="{Binding ApplySettingsCommand}" Background="{StaticResource PcoAccentBrush}" Margin="0,0,0,10" Style="{StaticResource StandardButton}"/>
                             <Button Content="{DynamicResource StrSaveProfile}" Command="{Binding SaveProfileCommand}" Background="{StaticResource PcoGreenBrush}" Margin="0,0,0,10" Style="{StaticResource StandardButton}"/>
                             <Button Content="{DynamicResource StrRestoreSettings}" Command="{Binding RestoreSettingsCommand}" Background="{StaticResource PcoControlBrush}" Style="{StaticResource StandardButton}"/>
                         </StackPanel>
 
-                        <StackPanel Grid.Row="4" Visibility="{Binding ViewProfiles}">
+                        <StackPanel Grid.Row="5" Visibility="{Binding ViewProfiles}">
                             <Button Content="{DynamicResource StrUpdateProfile}" Command="{Binding UpdateProfileCommand}" Background="{StaticResource PcoOrangeBrush}" Margin="0,0,0,10" Style="{StaticResource StandardButton}"/>
                             <Button Content="{DynamicResource StrDeleteProfile}" Command="{Binding DeleteProfileCommand}" Background="{StaticResource PcoRedBrush}" Style="{StaticResource StandardButton}"/>
                         </StackPanel>

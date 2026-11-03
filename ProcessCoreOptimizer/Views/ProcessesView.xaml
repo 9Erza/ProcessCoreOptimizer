@@ -262,6 +262,18 @@
                         <StackPanel Grid.Column="0">
                             <TextBlock Text="{DynamicResource StrProcessDetails}" FontWeight="Bold" FontSize="14" Foreground="{StaticResource PcoAccentBrush}"/>
                             <TextBlock Text="{Binding DataContext.TargetScopeLabel, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWay}" Foreground="{StaticResource PcoAccentBrush}" FontSize="12" FontWeight="SemiBold"/>
+                            <TextBlock Text="{DynamicResource StrSystemTargetWarning}" Foreground="{StaticResource PcoOrangeBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,0">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding DataContext.IsSystemTarget, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
                         </StackPanel>
                         <Button Grid.Column="1" Content="&#xE711;" Style="{StaticResource WindowBtnStyle}" Width="28" Height="28"
                                 Command="{Binding DataContext.CloseProcessTargetCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"

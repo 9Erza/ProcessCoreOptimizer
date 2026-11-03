@@ -431,7 +431,11 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         public ProcessDetails? SelectedProcessDetails
         {
             get => _selectedProcessDetails;
-            private set => SetProperty(ref _selectedProcessDetails, value);
+            private set
+            {
+                if (SetProperty(ref _selectedProcessDetails, value))
+                    OnPropertyChanged(nameof(IsSystemTarget));
+            }
         }
 
         public string ProcessFilterText
@@ -529,6 +533,10 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         /// <summary>True when a live process/instance row is selected (right CPU panel may show).</summary>
         public bool HasProcessTarget => SelectedProcess != null || SelectedInstanceRow != null;
 
+        /// <summary>True when the current target runs from the Windows directory (caution shown, manual only).</summary>
+        public bool IsSystemTarget =>
+            ProcessService.IsSystemComponentPath(SelectedProcessDetails?.ExecutablePath);
+
         /// <summary>Explicit mutation scope label: group with instance count or single PID.</summary>
         public string TargetScopeLabel
         {
@@ -606,6 +614,29 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             set => SetProperty(ref _activeSettingsCategory, string.IsNullOrWhiteSpace(value) ? "General" : value);
         }
         private string _activeSettingsCategory = "General";
+
+        /// <summary>Compact mask summary for the core selector ("Selected: 6 / 8 logical processors").</summary>
+        public string SelectedCoreSummary
+        {
+            get
+            {
+                int total = Cores.Count;
+                int selected = 0;
+                foreach (var c in Cores) if (c.IsChecked) selected++;
+                return IsPolishLanguage
+                    ? $"Wybrano: {selected} z {total} procesorów logicznych"
+                    : $"Selected: {selected} / {total} logical processors";
+            }
+        }
+
+        public bool IsCoreMaskEmpty
+        {
+            get
+            {
+                foreach (var c in Cores) if (c.IsChecked) return false;
+                return true;
+            }
+        }
 
         public ProcessItem? SelectedProcess
         {
@@ -1089,6 +1120,17 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             }
             Services.StartupProfiler.Mark("VM ctor: WMI topology done");
             OnPropertyChanged(nameof(HasECores));
+            foreach (var core in Cores)
+            {
+                core.PropertyChanged += (s, e) =>
+                {
+                    if (e.PropertyName == nameof(Models.CoreInfo.IsChecked))
+                    {
+                        OnPropertyChanged(nameof(SelectedCoreSummary));
+                        OnPropertyChanged(nameof(IsCoreMaskEmpty));
+                    }
+                };
+            }
             // Warm the CPU model name off the UI thread (WMI); UI updates when ready.
             _ = System.Threading.Tasks.Task.Run(() =>
             {
@@ -1303,13 +1345,16 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
 
         private async Task UpdateCoreLoadsAsync()
         {
-            // First call warms up PDH counters (seconds): never on the UI thread.
+            // First calls warm up PDH counters (seconds): never on the UI thread.
             try
             {
                 var coreLoads = await Task.Run(() => _hardwareService.GetCurrentLoads()).ConfigureAwait(true);
                 for (int i = 0; i < Cores.Count && i < coreLoads.Count; i++)
                 {
-                    Cores[i].LoadUsage = coreLoads[i];
+                    var sample = coreLoads[i];
+                    Cores[i].LoadAvailable = sample.UtilizationPercent.HasValue;
+                    Cores[i].LoadUsage = sample.UtilizationPercent ?? 0;
+                    Cores[i].UtilityPercent = sample.UtilityPercent ?? double.NaN;
                 }
             }
             catch (Exception ex)
@@ -1964,7 +2009,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                     }
 
                     var batch = _optimizationService.ApplyProfileToInstances(
-                        profile, d.ProcessName, new[] { d.Key }, AppSettings.AllowRealtimePriority, force: true);
+                        profile, d.ProcessName, new[] { d.Key }, AppSettings.AllowRealtimePriority, force: true, automatic: true);
                     var first = batch.Results.FirstOrDefault();
                     if (first == null)
                     {
@@ -3118,6 +3163,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             OnPropertyChanged(nameof(ActivityStatus));
             OnPropertyChanged(nameof(TargetScopeLabel));
             OnPropertyChanged(nameof(TargetPanelTitle));
+            OnPropertyChanged(nameof(SelectedCoreSummary));
             OnPropertyChanged(nameof(PreviewPresetSummary));
             OnPropertyChanged(nameof(UpdateStatusText));
             RefreshAvailablePriorities();

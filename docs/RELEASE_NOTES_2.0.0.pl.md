@@ -62,7 +62,7 @@ edycja profili/reguł po wyborze z pustymi stanami oraz Ustawienia w 8 kategoria
 - Architektura startup: plan → wykonaj → zweryfikuj z kolejnością
   create-before-delete; ścieżki anulowania UAC i nieudanego tworzenia
   udowodnione testami.
-- GUI: 24/24 kontroli UI Automation na Windows 11 (1920×1080, 100% DPI):
+- GUI: 25/25 kontroli UI Automation na Windows 11 (1920×1080, 100% DPI):
   siedem widoków (w tym Smart Rules) prawdziwymi kliknięciami, przełącznik
   widoku instancji, mini konsola aktywności, smukły scrollbar, zwarty pusty
   stan sprzętu, maximize/minimize/restore, close świadomy tray, tekst statusu
@@ -72,7 +72,9 @@ edycja profili/reguł po wyborze z pustymi stanami oraz Ustawienia w 8 kategoria
   Developer Hub zwinięty/rozwinięty EN+PL z kontrolą wierszy, przełączanie
   spacją (klawiatura), nawigacja do About w aplikacji, kontrola przepełnienia
   przy minimalnym rozmiarze 1000×700, dialog aktualizacji EN+PL (prawdziwy kod
-  dialogu, testowe odpowiedzi API) i ręczny przepływ sprawdzania.
+  dialogu, testowe odpowiedzi API) i ręczny przepływ sprawdzania, procesowy UX
+  zakresu (brak targetu/wybór/zamykanie/przełącznik), read-only CPU hub,
+  kategorie ustawień, bramka 8 widocznych kafli przy 1000×700.
   Harness: `tools/Run-GuiVerification.ps1` (backup i restore `%APPDATA%`,
   start z `--safe-mode`).
 - Defekty GUI wykryte na żywo i naprawione: crash zakresu theme przy starcie

@@ -30,6 +30,7 @@ namespace ProcessCoreOptimizer.WPF.Services
                 res["StrSelectedProcess"] = isPl ? "Wybrany proces" : "Selected process";
                 res["StrInitialLoading"] = isPl ? "Ładowanie procesów…" : "Loading processes…";
                 res["StrClosePanel"] = isPl ? "Zamknij panel" : "Close panel";
+                res["StrSystemTargetWarning"] = isPl ? "Składnik Windows — zmiana ustawień CPU może zdestabilizować system. Reguły automatyczne nigdy go nie tykają; ręczny Apply pozostaje dostępny." : "Windows component — changing CPU settings may destabilize the system. Automatic rules never touch it; manual Apply remains available.";
                 res["StrNoProfilesTitle"] = isPl ? "Brak zapisanych profili" : "No saved profiles yet";
                 res["StrNoProfilesBody"] = isPl ? "Utwórz profil, aby automatycznie stosować ustawienia CPU i priorytetu przy starcie aplikacji." : "Create a profile to automatically apply CPU and priority settings when an application starts.";
                 res["StrSelectProfileHint"] = isPl ? "Wybierz profil, aby zobaczyć szczegóły i go edytować." : "Select a profile to view and edit its configuration.";
@@ -40,6 +41,8 @@ namespace ProcessCoreOptimizer.WPF.Services
                 res["StrTopologyLegend"] = isPl ? "[P] wątek główny · [T] wątek SMT · [E] rdzeń efficiency · [?] nieznany" : "[P] primary thread · [T] SMT sibling · [E] efficiency core · [?] unknown";
                 res["StrAffinityExplained"] = isPl ? "Affinity to twarde ograniczenie: proces może działać tylko na wybranych procesorach logicznych." : "Affinity is a hard limit: the process may run only on the selected logical processors.";
                 res["StrCpuSetsExplained"] = isPl ? "CPU Sets to preferencja: Windows preferuje wybrane procesory, ale może szeregować gdzie indziej. Żaden FPS nie jest gwarantowany." : "CPU Sets are a preference: Windows prefers the selected processors but may schedule elsewhere. No FPS is guaranteed.";
+                res["StrCpuUtility"] = isPl ? "Użycie CPU (z boostem)" : "CPU utility (incl. boost)";
+                res["StrUtilityNote"] = isPl ? "Zawiera skalowanie częstotliwości; może przekraczać 100%. To nie to samo co czas zajętości." : "Includes frequency scaling; may exceed 100%. Not the same as busy time.";
                 res["StrProcessList"] = isPl ? "Lista Procesów" : "Process List";
                 res["StrYourProfiles"] = isPl ? "Twoje Profile" : "Your Profiles";
                 res["StrCpuUsage"] = isPl ? "UŻYCIE CPU" : "CPU USAGE";
@@ -109,6 +112,7 @@ namespace ProcessCoreOptimizer.WPF.Services
                 res["StrSelectAll"] = isPl ? "Zaznacz Wszystko" : "Select All";
                 res["StrClearAll"] = isPl ? "Odznacz Wszystko" : "Clear All";
                 res["StrDisableECores"] = isPl ? "Wyłącz E-Cores" : "Disable E-Cores";
+                res["StrEmptyMaskWarning"] = isPl ? "Nie wybrano rdzeni — nic się nie zmieni. Wybierz co najmniej jeden procesor logiczny." : "No cores selected — nothing would change. Select at least one logical processor.";
                 res["StrSetPriority"] = isPl ? "Ustaw Priorytet" : "Set Priority";
                 res["StrSetAffinity"] = isPl ? "Zastosuj Optymalizację" : "Apply Optimization";
                 res["StrSaveProfile"] = isPl ? "Zapisz Profil" : "Save Profile";

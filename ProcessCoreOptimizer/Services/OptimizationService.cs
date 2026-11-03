@@ -128,7 +128,8 @@ namespace ProcessCoreOptimizer.WPF.Services
             string processName,
             IReadOnlyCollection<ProcessInstanceKey> keys,
             bool allowRealtimePriority,
-            bool force)
+            bool force,
+            bool automatic = false)
         {
             var batch = new OptimizationBatchResult();
             if (!ProcessRowBuilder.IsScopedSelectionValid(keys))
@@ -137,7 +138,7 @@ namespace ProcessCoreOptimizer.WPF.Services
             string normalized = ProfileService.NormalizeProcessName(processName);
             foreach (var key in keys)
             {
-                var result = ApplyProfileToPid(key, normalized, profile, allowRealtimePriority, force);
+                var result = ApplyProfileToPid(key, normalized, profile, allowRealtimePriority, force, automatic);
                 batch.Results.Add(result);
             }
 
@@ -209,7 +210,7 @@ namespace ProcessCoreOptimizer.WPF.Services
                 {
                     foreach (var profile in matchingProfiles)
                     {
-                        var result = ApplyProfileToPid(instance, snapshot.Name, profile, allowRealtimePriority, force);
+                        var result = ApplyProfileToPid(instance, snapshot.Name, profile, allowRealtimePriority, force, automatic: true);
                         if (result.Message == "SKIPPED_IDENTITY_MISMATCH") continue;
                         batch.Results.Add(result);
                         break;
@@ -228,7 +229,27 @@ namespace ProcessCoreOptimizer.WPF.Services
             return ApplyProfileToPid(ProcessScannerService.CreateInstanceKey(process), process.ProcessName, profile, allowRealtimePriority, force);
         }
 
-        internal OptimizationResult ApplyProfileToPid(ProcessInstanceKey key, string processName, ProcessProfile profile, bool allowRealtimePriority, bool force)
+        /// <summary>
+        /// Fail-closed classification for automatic channels: true when the live
+        /// PID occupant identifiably runs from the Windows directory. Unreadable
+        /// or missing paths are NOT system locations (existing identity + blacklist
+        /// gates still apply); refusal is always the safe direction here.
+        /// </summary>
+        private static bool IsAutomaticSystemLocation(ProcessInstanceKey key)
+        {
+            try
+            {
+                using var proc = Process.GetProcessById(key.ProcessId);
+                if (proc.HasExited) return false;
+                return ProcessService.IsSystemComponentPath(ProcessIdentityValidator.TryGetProcessPath(proc));
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        internal OptimizationResult ApplyProfileToPid(ProcessInstanceKey key, string processName, ProcessProfile profile, bool allowRealtimePriority, bool force, bool automatic = false)
         {
             if (ProcessService.IsProtectedProcessName(processName))
             {
@@ -241,6 +262,24 @@ namespace ProcessCoreOptimizer.WPF.Services
                     Priority = PriorityService.Normalize(profile.Priority, allowRealtimePriority),
                     Message = "SKIPPED_PROTECTED",
                     Status = OperationStatus.SkippedProtected,
+                    Retryable = false,
+                    RequestedCore = profile.ApplyCoreOptimization,
+                    RequestedPriority = profile.ApplyPriority,
+                    RequestedEcoQos = profile.EcoQos.HasValue
+                };
+            }
+
+            if (automatic && IsAutomaticSystemLocation(key))
+            {
+                return new OptimizationResult
+                {
+                    Success = false,
+                    ProcessId = key.ProcessId,
+                    ProcessName = processName,
+                    Mode = NormalizeOptimizationMode(profile.OptimizationMode),
+                    Priority = PriorityService.Normalize(profile.Priority, allowRealtimePriority),
+                    Message = "SKIPPED_SYSTEM_LOCATION",
+                    Status = OperationStatus.SkippedSystemLocation,
                     Retryable = false,
                     RequestedCore = profile.ApplyCoreOptimization,
                     RequestedPriority = profile.ApplyPriority,

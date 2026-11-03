@@ -8,7 +8,6 @@ namespace ProcessCoreOptimizer.WPF.Models
     public class CoreInfo : ViewModelBase
     {
         private bool _isChecked = true;
-        private double _loadUsage;
 
         public int Index { get; set; }
         public int Group { get; set; }
@@ -41,10 +40,36 @@ namespace ProcessCoreOptimizer.WPF.Models
             set => SetProperty(ref _isChecked, value);
         }
 
+        private double _loadUsage;
+
         public double LoadUsage
         {
             get => _loadUsage;
             set => SetProperty(ref _loadUsage, value);
         }
+
+        private bool _loadAvailable = true;
+
+        /// <summary>False while the reading is unknown (first sample, missing counter) — UI shows "—".</summary>
+        public bool LoadAvailable
+        {
+            get => _loadAvailable;
+            set => SetProperty(ref _loadAvailable, value);
+        }
+
+        private double _utilityPercent = double.NaN;
+
+        /// <summary>CPU Utility incl. frequency scaling; may exceed 100%. NaN = unknown.</summary>
+        public double UtilityPercent
+        {
+            get => _utilityPercent;
+            set
+            {
+                if (SetProperty(ref _utilityPercent, value)) OnPropertyChanged(nameof(UtilityText));
+            }
+        }
+
+        public string UtilityText =>
+            double.IsNaN(UtilityPercent) || double.IsInfinity(UtilityPercent) ? "—" : $"{UtilityPercent:F0}%";
     }
 }
