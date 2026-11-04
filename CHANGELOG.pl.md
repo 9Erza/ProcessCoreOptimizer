@@ -2,7 +2,7 @@
 
 ## Process Core Optimizer 2.0.0
 
-**Data wydania: 2026-11-03** · Windows 10/11 x64 · Instalator: `ProcessCoreOptimizer_Setup_2.0.0.exe`
+**Data wydania: 2026-11-04** · Windows 10/11 x64 · Instalator: `ProcessCoreOptimizer_Setup_2.0.0.exe`
 
 Największa aktualizacja PCO od wersji 1.3.0. Optymalizacja procesów jest teraz
 bezpieczniejsza (zweryfikowana tożsamość przed każdą zmianą), łatwiejsza w
@@ -87,6 +87,13 @@ codziennego użytku.
 - Start single-instance przetrwa crash zamiast padać na porzuconym mutexie.
 - Wywołania harmonogramu mają timeout zamiast wieszać UI.
 - Zamknięto wyciek uchwytu procesu w detekcji sprzętu.
+- Kafelki zwartego selektora rdzeni nie rozciągają się już na zmaksymalizowanym
+  oknie: stała wysokość 38 DIP, selektor wyrównany do góry, sekcja z limitem
+  i przewijaniem (8/8 LP zweryfikowane przy 1000×700 i na pełnym ekranie).
+- Nieudany odczyt `% Processor Utility` nie unieważnia już zweryfikowanej próbki
+  `% Processor Time` (niezależny Unknown na metrykę); zwarty selektor pokazuje
+  — z przygaszonym paskiem zamiast fałszywego 0%.
+- Etykieta zakresu używa poprawnej liczby pojedynczej ("Grupa procesów — 1 instancja").
 
 ### Bezpieczeństwo i niezawodność
 
@@ -105,9 +112,10 @@ codziennego użytku.
   ograniczone cache, throttled logowanie.
 - Linki zewnętrzne (repozytorium, autor, strona, wsparcie) na allowliście, otwierane
   tylko po kliknięciu, bez trackingu i bez żądań sieciowych samej aplikacji.
-- 268 testów automatycznych (265 zielonych + 3 warunkowe), suita GUI 25/25
-  (w tym bramka 8 widocznych kafelków i nawigacja kategorii), walidacja instalatora 8/8.
-  walidacja instalatora 8/8.
+- 289 testów automatycznych (286 zielonych + 3 warunkowe), suita GUI 25/25
+  (w tym bramka 8 widocznych kafelków o stałej wysokości przy 1000×700 i na
+  pełnym ekranie, kontrakt stanu Unknown zwartego selektora, nawigacja kategorii),
+  walidacja instalatora 8/8 (statyczna).
 
 ### Wydajność
 
@@ -115,8 +123,10 @@ codziennego użytku.
   zdarzeniami, checki maksymalnie raz na uruchomienie.
 - Pełne skany tylko przy widocznym zakładce Procesy; watcher skanuje tylko procesy
   z włączonymi profilami; czujniki sprzętu OFF do włączenia.
-- Typowy idle (zminimalizowany): ~0,16% CPU, ~144 MB working set na maszynie
-  referencyjnej. Bez obietnic FPS: PCO przypina pracę do rdzeni, nie podkręca sprzętu.
+- Typowy idle (zakładka Procesy, brak włączonych profili): ~0,5% CPU procesu,
+  ~190 MB working set; zminimalizowany: ~0,3% CPU, ~188 MB WS (referencyjna
+  maszyna i5-10210U/8LP; surowe CSV w gitignorowanym `.evidence/perf`).
+  Bez obietnic FPS: PCO przypina pracę do rdzeni, nie podkręca sprzętu.
 
 ### Instalacja
 

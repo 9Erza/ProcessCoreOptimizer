@@ -75,6 +75,7 @@
     <system:String x:Key="StrClearAll">Odznacz Wszystko</system:String>
     <system:String x:Key="StrDisableECores">Wyłącz E-Cores</system:String>
     <system:String x:Key="StrEmptyMaskWarning">Nie wybrano rdzeni — nic się nie zmieni. Wybierz co najmniej jeden procesor logiczny.</system:String>
+    <system:String x:Key="StrNoData">Brak danych — licznik nie zwrócił jeszcze zweryfikowanej próbki.</system:String>
     <system:String x:Key="StrSetPriority">Ustaw Priorytet</system:String>
     <system:String x:Key="StrSetAffinity">Ustaw Koligację</system:String>
     <system:String x:Key="StrSaveProfile">Zapisz Profil</system:String>

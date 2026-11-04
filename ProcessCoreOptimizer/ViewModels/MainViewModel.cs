@@ -538,6 +538,15 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             ProcessService.IsSystemComponentPath(SelectedProcessDetails?.ExecutablePath);
 
         /// <summary>Explicit mutation scope label: group with instance count or single PID.</summary>
+        private static string PolishInstanceNoun(int n)
+        {
+            if (n == 1) return "instancja";
+            int lastTwo = n % 100;
+            int last = n % 10;
+            if (last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14)) return "instancje";
+            return "instancji";
+        }
+
         public string TargetScopeLabel
         {
             get
@@ -550,9 +559,10 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 }
                 if (SelectedProcess != null && SelectedProcessDetails != null)
                 {
+                    int n = SelectedProcessDetails.InstanceCount;
                     return IsPolishLanguage
-                        ? $"Grupa procesów — {SelectedProcessDetails.InstanceCount} instancji"
-                        : $"Process group — {SelectedProcessDetails.InstanceCount} instances";
+                        ? $"Grupa procesów — {n} {PolishInstanceNoun(n)}"
+                        : $"Process group — {n} {(n == 1 ? "instance" : "instances")}";
                 }
                 if (SelectedSavedProfile != null)
                 {

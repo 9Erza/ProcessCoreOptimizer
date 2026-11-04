@@ -66,6 +66,17 @@ public sealed class CpuTelemetryTests
     }
 
     [TestMethod]
+    public void Metrics_AreIndependent_ValidUtilizationSurvivesBadUtility()
+    {
+        // A failed Utility read must never void a verified Utilization sample
+        // (and vice versa): GetCurrentLoads normalizes each metric on its own.
+        Assert.IsNotNull(HardwareService.NormalizeUtilization(45.17));
+        Assert.IsNull(HardwareService.NormalizeUtility(double.NaN));
+        Assert.IsNotNull(HardwareService.NormalizeUtility(123.37));
+        Assert.IsNull(HardwareService.NormalizeUtilization(double.NaN));
+    }
+
+    [TestMethod]
     public void SteadyStateReadings_AreRealValuesNotUnknown()
     {
         using var svc = new HardwareService();

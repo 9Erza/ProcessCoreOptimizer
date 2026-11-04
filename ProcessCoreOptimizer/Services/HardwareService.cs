@@ -103,13 +103,14 @@ namespace ProcessCoreOptimizer.WPF.Services
                 {
                     double busy = time.NextValue();
                     double boosted = utility.NextValue();
-                    if (discard || double.IsNaN(busy) || double.IsInfinity(busy) ||
-                        double.IsNaN(boosted) || double.IsInfinity(boosted))
+                    if (discard)
                     {
                         loads.Add(new CoreLoadSample());
                         continue;
                     }
 
+                    // Utilization and Utility are independent metrics: a bad read on one
+                    // counter must not invalidate a verified sample from the other.
                     loads.Add(new CoreLoadSample
                     {
                         UtilizationPercent = NormalizeUtilization(busy),

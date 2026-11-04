@@ -129,4 +129,36 @@ public sealed class ProcessScopeContractTests
         Assert.IsTrue(vm.Contains("Task.Run(() => _hardwareService.GetCurrentLoads())"),
             "PDH warmup must run off the UI thread.");
     }
+
+    [TestMethod]
+    public void CompactSelector_TilesStayFixedHeight()
+    {
+        // Maximized windows must not stretch CPU tiles: fixed 38 DIP height,
+        // top-aligned selector, capped section with scrolling for many LPs.
+        string xaml = MainWindow();
+        Assert.IsTrue(xaml.Contains("Height=\"38\""), "Core tiles must carry a fixed compact height.");
+        Assert.IsTrue(xaml.Contains("MaxHeight=\"280\""), "Core selector section must cap its height and scroll.");
+    }
+
+    [TestMethod]
+    public void CompactSelector_UnknownShowsEmDash_NotZero()
+    {
+        // Missing sample renders as an em dash with a dimmed bar — never fake 0%.
+        string xaml = MainWindow();
+        Assert.IsTrue(xaml.Contains("LoadAvailable"), "Compact selector must gate on LoadAvailable.");
+        Assert.IsTrue(xaml.Contains("Setter Property=\"Text\" Value=\" —\""),
+            "Unknown load must render as an em dash.");
+        Assert.IsFalse(xaml.Contains("StringFormat=' —"), "Em dash must come from the Unknown trigger, not a format.");
+    }
+
+    [TestMethod]
+    public void GroupScopeLabel_UsesSingularGrammar()
+    {
+        // "Process group — 1 instance" (not "1 instances"); Polish paucal forms.
+        string vm = MainViewModel();
+        Assert.IsTrue(vm.Contains("n == 1 ? \"instance\" : \"instances\""),
+            "English scope label must use the singular for one instance.");
+        Assert.IsTrue(vm.Contains("\"instancje\"") && vm.Contains("\"instancji\""),
+            "Polish scope label must use paucal/plural forms (instancja/instancje/instancji).");
+    }
 }

@@ -113,6 +113,7 @@ namespace ProcessCoreOptimizer.WPF.Services
                 res["StrClearAll"] = isPl ? "Odznacz Wszystko" : "Clear All";
                 res["StrDisableECores"] = isPl ? "Wyłącz E-Cores" : "Disable E-Cores";
                 res["StrEmptyMaskWarning"] = isPl ? "Nie wybrano rdzeni — nic się nie zmieni. Wybierz co najmniej jeden procesor logiczny." : "No cores selected — nothing would change. Select at least one logical processor.";
+                res["StrNoData"] = isPl ? "Brak danych — licznik nie zwrócił jeszcze zweryfikowanej próbki." : "No data — counter has not returned a verified sample yet.";
                 res["StrSetPriority"] = isPl ? "Ustaw Priorytet" : "Set Priority";
                 res["StrSetAffinity"] = isPl ? "Zastosuj Optymalizację" : "Apply Optimization";
                 res["StrSaveProfile"] = isPl ? "Zapisz Profil" : "Save Profile";
