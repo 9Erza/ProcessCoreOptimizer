@@ -383,8 +383,9 @@
                             </TextBlock>
                         </StackPanel>
 
-                        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" Margin="0,0,0,8">
-                            <ItemsControl ItemsSource="{Binding Cores}">
+                        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" Margin="0,0,0,8"
+                                      VerticalAlignment="Top" MaxHeight="280">
+                            <ItemsControl ItemsSource="{Binding Cores}" VerticalAlignment="Top">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
                                         <UniformGrid Columns="2"/>
@@ -392,7 +393,11 @@
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border Margin="3" Padding="7,4" Background="{StaticResource PcoBg3Brush}" CornerRadius="4" BorderThickness="1" BorderBrush="{StaticResource PcoBorderSoftBrush}">
+                                        <!-- Fixed compact height: the tile never grows with a maximized window.
+                                             The surrounding ScrollViewer is top-aligned, so spare space stays
+                                             below the selector instead of stretching each tile. -->
+                                        <Border Margin="3" Padding="7,4" Height="38" VerticalAlignment="Top"
+                                                Background="{StaticResource PcoBg3Brush}" CornerRadius="4" BorderThickness="1" BorderBrush="{StaticResource PcoBorderSoftBrush}">
                                             <Grid>
                                                 <Grid.RowDefinitions>
                                                     <RowDefinition Height="Auto"/>
@@ -402,10 +407,35 @@
                                                           ap:AutomationProperties.Name="{Binding DisplayName, Mode=OneWay}">
                                                     <StackPanel Orientation="Horizontal">
                                                         <TextBlock Text="{Binding DisplayName, Mode=OneWay}" Foreground="{StaticResource PcoTextBrightBrush}" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center"/>
-                                                        <TextBlock Text="{Binding LoadUsage, Mode=OneWay, StringFormat=' {0:F0}%'}" Foreground="{StaticResource PcoMutedBrush}" FontSize="11" VerticalAlignment="Center"/>
+                                                        <TextBlock Foreground="{StaticResource PcoMutedBrush}" FontSize="11" VerticalAlignment="Center"
+                                                                   Text="{Binding LoadUsage, Mode=OneWay, StringFormat=' {0:F0}%'}">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Style.Triggers>
+                                                                        <!-- Unknown sample: em dash, never a fake 0%. -->
+                                                                        <DataTrigger Binding="{Binding LoadAvailable, Mode=OneWay}" Value="False">
+                                                                            <Setter Property="Text" Value=" —"/>
+                                                                            <Setter Property="ToolTip" Value="{DynamicResource StrNoData}"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
                                                     </StackPanel>
                                                 </CheckBox>
-                                                <ProgressBar Grid.Row="1" Value="{Binding LoadUsage, Mode=OneWay}" Maximum="100" Height="3" Margin="0,3,0,0" Foreground="{StaticResource PcoAccentBrush}" Background="#111" BorderThickness="0"/>
+                                                <ProgressBar Grid.Row="1" Value="{Binding LoadUsage, Mode=OneWay}" Maximum="100" Height="3" Margin="0,3,0,0" Foreground="{StaticResource PcoAccentBrush}" Background="#111" BorderThickness="0">
+                                                    <ProgressBar.Style>
+                                                        <Style TargetType="ProgressBar">
+                                                            <Style.Triggers>
+                                                                                <!-- No verified sample: dim the bar instead of showing 0%. -->
+                                                                                <DataTrigger Binding="{Binding LoadAvailable, Mode=OneWay}" Value="False">
+                                                                                    <Setter Property="Opacity" Value="0.25"/>
+                                                                                    <Setter Property="ToolTip" Value="{DynamicResource StrNoData}"/>
+                                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </ProgressBar.Style>
+                                                </ProgressBar>
                                             </Grid>
                                         </Border>
                                     </DataTemplate>

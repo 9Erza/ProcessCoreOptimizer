@@ -75,6 +75,7 @@
     <system:String x:Key="StrClearAll">Clear All</system:String>
     <system:String x:Key="StrDisableECores">Disable E-Cores</system:String>
     <system:String x:Key="StrEmptyMaskWarning">No cores selected — nothing would change. Select at least one logical processor.</system:String>
+    <system:String x:Key="StrNoData">No data — counter has not returned a verified sample yet.</system:String>
     <system:String x:Key="StrSetPriority">Set Priority</system:String>
     <system:String x:Key="StrSetAffinity">Set Affinity</system:String>
     <system:String x:Key="StrSaveProfile">Save Profile</system:String>

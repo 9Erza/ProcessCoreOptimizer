@@ -2,7 +2,7 @@
 
 ## Process Core Optimizer 2.0.0
 
-**Release date: 2026-11-03** · Windows 10/11 x64 · Installer: `ProcessCoreOptimizer_Setup_2.0.0.exe`
+**Release date: 2026-11-04** · Windows 10/11 x64 · Installer: `ProcessCoreOptimizer_Setup_2.0.0.exe`
 
 The biggest PCO update since 1.3.0. Process optimization is now safer (verified process
 identity before every change), easier to automate (Smart Rules, Profile Studio, EcoQoS),
@@ -79,6 +79,13 @@ refined for daily use.
 - Single-instance startup survives a crash instead of failing on an abandoned mutex.
 - Scheduler calls time out instead of hanging the UI.
 - Closed process-handle leak in hardware detection fixed.
+- Compact core selector tiles no longer stretch on maximized windows: fixed
+  38 DIP tile height, top-aligned selector, capped scrollable section (8/8 LPs
+  verified at 1000×700 and maximized).
+- A failed `% Processor Utility` read no longer voids a verified
+  `% Processor Time` sample (independent Unknown per metric); the compact
+  selector shows — with a dimmed bar instead of a fake 0%.
+- Scope label uses correct singular grammar ("Process group — 1 instance").
 
 ### Security & Reliability
 
@@ -97,8 +104,9 @@ refined for daily use.
   caches, throttled logging.
 - External links (repository, author, website, support) are allowlisted, open only on
   user click, with no tracking and no network requests by the app itself.
-- 268 automated tests (265 passing + 3 environment-gated), UI Automation GUI suite
-  25/25 (incl. 8-tiles-visible core selector gate, settings category nav), installer validation 8/8.
+- 289 automated tests (286 passing + 3 environment-gated), UI Automation GUI suite
+  25/25 (incl. fixed-height 8-tiles-visible core selector gate at 1000×700 and
+  maximized, compact-selector Unknown-state contract, category nav), installer validation 8/8 (static).
 
 ### Performance
 
@@ -106,8 +114,9 @@ refined for daily use.
   checks run once per launch at most.
 - Full process scans run only when the Processes tab is visible; the watcher scans
   only processes with enabled profiles; hardware sensors stay off until enabled.
-- Typical idle footprint (minimized): ~0.16% CPU, ~144 MB working set on the
-  reference machine. No FPS claims are made: PCO pins work to cores, it does not
+- Typical idle footprint (Processes tab, no enabled profiles): ~0.5% process CPU,
+  ~190 MB working set; minimized: ~0.3% CPU, ~188 MB WS (reference i5-10210U/8LP;
+  raw CSV in gitignored `.evidence/perf`). No FPS claims are made: PCO pins work to cores, it does not
   boost hardware.
 
 ### Installation

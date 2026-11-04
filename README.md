@@ -12,14 +12,12 @@
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4?style=flat-square)
 [![CI](https://github.com/9Erza/ProcessCoreOptimizer/actions/workflows/ci.yml/badge.svg)](https://github.com/9Erza/ProcessCoreOptimizer/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-2EA44F?style=flat-square)](LICENSE)
-![Release](https://img.shields.io/badge/release-v1.3.0-EAB45D?style=flat-square)
-![RC](https://img.shields.io/badge/2.0.0-release--candidate-blue?style=flat-square)
+![Release](https://img.shields.io/badge/release-v2.0.0-2EA44F?style=flat-square)
 
 </div>
 
 > [!NOTE]
-> **Latest public release: v1.3.0** ([GitHub Releases](https://github.com/9Erza/ProcessCoreOptimizer/releases)).
-> **v2.0.0 is a release candidate** in final review — not published yet.
+> **Latest public release: v2.0.0** ([GitHub Releases](https://github.com/9Erza/ProcessCoreOptimizer/releases)).
 > A focused, standalone utility for process CPU management.
 > No hidden tweaks, no background bloat — every change is explicit, reversible and logged.
 
@@ -46,7 +44,7 @@
 - **Reliability:** session restore of pre-optimization settings, updater that
   notifies only for published releases with an installer asset, startup
   registration only on startup-setting changes, central `version.txt` versioning.
-- **Tests:** 280 passing + 3 environment-gated integration tests, green CI (build + tests + `git diff --check`).
+- **Tests:** 286 passing + 3 environment-gated integration tests, green CI (build + tests + `git diff --check`).
 
 See [CHANGELOG.md](CHANGELOG.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 and [docs/RELEASE_NOTES_2.0.0.md](docs/RELEASE_NOTES_2.0.0.md).
@@ -162,12 +160,19 @@ Manual **Apply / Save / Update** actions use `force: true` and bypass the cache.
 
 ## Install and run
 
-> **Release status:** the current public release is **v1.3.0**. The **v2.0.0**
-> installer below is a release candidate awaiting manual acceptance —
-> do not treat this branch as the published release.
+> **Release status:** the current public release is **v2.0.0**.
+> Download `ProcessCoreOptimizer_Setup_2.0.0.exe` from
+> [GitHub Releases](https://github.com/9Erza/ProcessCoreOptimizer/releases),
+> verify the SHA-256 shown in the release notes, then run the installer
+> (Windows 10/11 x64, EN+PL wizard). The installer is not EV code-signed yet:
+> Windows SmartScreen may ask for confirmation on first run — this is expected.
+>
+> Upgrading from v1.3.0 is **not** an in-place upgrade: uninstall 1.3.0 first
+> (your profiles/settings in `%APPDATA%\ProcessCoreOptimizer` are preserved),
+> then install 2.0.0.
 
-1. Open [GitHub Releases](https://github.com/9Erza/ProcessCoreOptimizer/releases) and download the latest **published** `ProcessCoreOptimizer` build (v1.3.0).
-2. Extract and run `ProcessCoreOptimizer.exe` on Windows 10/11 x64.
+1. Run the installer from the 2.0.0 GitHub Release asset.
+2. Launch from the Start Menu (optional desktop shortcut).
 3. Optional startup flags: `--minimized`, `--tray`, `--no-update-check`, `--safe-mode`.
 
 Installed user data is **never** stored next to the EXE. Everything lives under:
@@ -253,7 +258,7 @@ dotnet publish ProcessCoreOptimizer/ProcessCoreOptimizer.csproj -c Release -p:Pu
 - Solution: `ProcessCoreOptimizer.slnx` (primary). `ProcessCoreOptimizer/ProcessCoreOptimizer.sln` is legacy.
 - Version source of truth: `version.txt`, propagated via `Directory.Build.props` to MSBuild, PE metadata, UI and updater.
 - Target: `net10.0-windows`, `win-x64`, WPF + WinForms (tray icon).
-- Tests: MSTest, 280 passing + 3 environment-gated integration tests (fake backend + read-only checks + real Windows API on isolated self-owned probe processes), no user/system processes touched.
+- Tests: MSTest, 286 passing + 3 environment-gated integration tests (fake backend + read-only checks + real Windows API on isolated self-owned probe processes), no user/system processes touched.
 - CI: `.github/workflows/ci.yml` — restore, Release build, tests, `git diff --check`.
 - GUI: verified on Windows 11 via UI Automation (all 7 tabs, instance view, mini activity console, developer hub, update dialog, maximize/minimize/restore, tray-intercept close) — see `tools/Run-GuiVerification.ps1`, evidence in `.evidence/` (gitignored).
 - Installer: `installer/ProcessCoreOptimizer.iss` (new identity, see [docs/INSTALLER.md](docs/INSTALLER.md)); build with `tools/Build-Installer.ps1`. No release is published without maintainer approval.
@@ -286,7 +291,7 @@ Neither project is abandoned; they have different jobs.
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md). Code version on this branch: **v2.0.0 (release candidate, unpublished)**; latest public GitHub release: **v1.3.0**.
+See [CHANGELOG.md](CHANGELOG.md). Code version on this branch: **v2.0.0 (stable, published)**; see [GitHub Releases](https://github.com/9Erza/ProcessCoreOptimizer/releases).
 Technical overview: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 No release, installer or version bump is published from automation without explicit approval.
 

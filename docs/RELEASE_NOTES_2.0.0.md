@@ -1,7 +1,6 @@
 # Process Core Optimizer 2.0.0 — Release Notes
 
-> Status: **ready for maintainer review, NOT published.**
-> No public GitHub Release has been created from this branch.
+> Status: **published 2026-11-04 as stable GitHub Release v2.0.0.**
 
 ## What is new
 
@@ -47,7 +46,7 @@ selection profiles/rules with empty states, and 8-category Settings.
 ## Verification
 
 - Release build: 0 warnings, 0 errors.
-- Tests: 268 MSTest cases — 265 passing, 3 environment-gated real-startup
+- Tests: 289 MSTest cases — 286 passing, 3 environment-gated real-startup
   integration tests skipped without `PCO_REAL_STARTUP_TESTS=1`
   (fake backend, read-only checks, negative P0 identity tests, CPU Sets
   restore/suspension matrix, startup planner/coordinator/backend,
@@ -72,7 +71,8 @@ selection profiles/rules with empty states, and 8-category Settings.
   navigation, 1000×700 minimum-size overflow check, update dialog EN+PL
   (real dialog code, canned API answers) and manual check flow, process
   scope UX (no-target/selected/close/mode-switch), read-only CPU hub, settings
-  categories, 8-tiles-visible selector gate at 1000x700.
+  categories, 8-tiles-visible selector gate at 1000x700 and maximized
+  (fixed 38-DIP tiles, top-aligned capped selector, Unknown-state contract).
   Harness: `tools/Run-GuiVerification.ps1` (backs up and restores `%APPDATA%`,
   launches with `--safe-mode`).
 - GUI defects found live and fixed: theme scope crash at startup (now
@@ -85,16 +85,8 @@ selection profiles/rules with empty states, and 8-category Settings.
   `docs/screenshots/screen_processes_details.png`), over-narrow IN/RAM/CPU
   columns (widened after screenshot audit), oversized sidebar console (now a
   60-DIP mini console), heavy default scrollbar (now a 5-DIP slim style),
-  blank hardware OFF view (now a compact empty-state card).
-- GUI defects found live and fixed: theme scope crash at startup (now
-  App-level), version showing `+sha`, truncated process names, clipped log
-  lines, profile-button overflow, CPU Sets handle rights (real tests caught it),
-  wizard modal missed by UIA tree (Win32 fallback), minimize-to-tray vs UIA
-  restore sequencing in harnesses, `Run.Text` TwoWay bindings throwing on
-  read-only sources and killing the details panel (now explicit `Mode=OneWay`
-  enforced by `XamlBindingModeTests`; proof:
-  `docs/screenshots/screen_processes_details.png`), over-narrow IN/RAM/CPU
-  columns (widened after screenshot audit).
+  blank hardware OFF view (now a compact empty-state card),
+  maximized-window tile stretching (now fixed-height top-aligned tiles).
 - Performance baseline (Win11, i5-10210U, 8 LP, 100% DPI, published Release):
   startup 1.5–1.6 s; idle 60 s ≈ 190 MB WS / 90 MB Private / 0.55% CPU /
   ~786 handles / 23 threads; 100 synthetic profiles ≈ no CPU delta, +2 MB WS;
@@ -115,7 +107,7 @@ selection profiles/rules with empty states, and 8-category Settings.
 - Interactive screenshots: real 2.0 UI (7 views + instances toggle + wizard
   pages + portable first-run smoke test + collapsible Developer Hub EN/PL);
   no mockups. README gallery: `ProcessCoreOptimizer/Screenshots/` (6 shots);
-  full run: gitignored `.evidence/gui/` (30 captures).
+  full run: gitignored `.evidence/gui/` (45 captures).
 - Install/upgrade/uninstall on a VM: NOT RUN (no isolated VM; dev-machine
   install deliberately avoided). Multi-group hardware: NOT RUN (8-LP machine);
   synthetic mapping discipline tested instead.

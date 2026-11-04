@@ -26,10 +26,12 @@ No identifiers were invented to fake upgrade compatibility.
 - Built with Inno Setup 6.7.3 (`tools/Build-Installer.ps1`: clean publish + ISCC + SHA-256).
 - Output: `installer/Output/ProcessCoreOptimizer_Setup_2.0.0.exe`
   (gitignored build artifact; reproducible on demand).
-- Per-build SHA-256 values are NOT tracked in this file (that would create a
+- Per-build SHA-256 values are NOT tracked in git (that would create a
   commit → new SHA → new commit loop). The authoritative record per build is
-  `release-staging/SHA256SUMS.txt` plus `.evidence/installer-manifest.json`
-  (gitignored), produced from the final merged `main`.
+  `.evidence/installer-manifest.json` plus `.evidence/installer/` (both
+  gitignored, produced from the final merged `main`), and — after publication —
+  the digest shown in the GitHub Release notes. `release-staging/` is a local
+  scratch directory for the final asset and is not versioned either.
 - Icon: original PCO ICO (`processcoreoptimizer.ico`, SHA-256
   `7FAF4AF810335B4604C4C300A…`, 6 sizes 16–256) used as `SetupIconFile`,
   app `ApplicationIcon`, window icons and tray source — verified in the
@@ -63,8 +65,10 @@ ISCC confirms compression of all 9 inputs in its build log.
   stages the same publish output plus `docs/README-Portable.txt` into a local
   ZIP. It is **not part of the official 2.0.0 distribution** and must never be
   attached to the GitHub Release.
-- Official 2.0.0 distribution is installer-only:
-  `release-staging/ProcessCoreOptimizer_Setup_2.0.0.exe` + `SHA256SUMS.txt`.
+- Official 2.0.0 distribution is installer-only: the single
+  `ProcessCoreOptimizer_Setup_2.0.0.exe` asset attached to the GitHub Release
+  (plus its SHA-256 in the release notes). No `SHA256SUMS.txt` sidecar asset,
+  no portable ZIP.
 - Portable = no installer/registry/services. User data intentionally stays in
   `%APPDATA%\ProcessCoreOptimizer` (same as installed; profiles survive moves).
 - Smoke-tested from an isolated data dir (`PCO_USER_DATA_DIR` + `--safe-mode`).
@@ -106,8 +110,15 @@ When the owner explicitly approves, on a non-production physical machine:
 6. Record results (installer SHA-256 verified before install) in this file.
 
 Until then the checklist above stays NOT RUN — this is declared openly, not hidden.
-2. Attach the verified `ProcessCoreOptimizer_Setup_2.0.0.exe` as the Release asset.
-3. The in-app updater (releases-aware) will then pick it up; no false positives before that.
+
+## Publishing the GitHub Release (maintainer approval required)
+
+1. Merge to `main` only with green CI on the exact merge HEAD.
+2. Build the final `ProcessCoreOptimizer_Setup_2.0.0.exe` from that `main`
+   (`tools/Build-Installer.ps1`), verify it (`tools/Validate-Release.ps1`).
+3. Attach the verified Setup.exe as the single asset of the existing `v2.0.0`
+   draft and publish it as stable (never as prerelease).
+4. The in-app updater (releases-aware) will then pick it up; no false positives before that.
 
 **Do not publish a GitHub Release, installer, or version bump from automation
 without explicit maintainer approval.**

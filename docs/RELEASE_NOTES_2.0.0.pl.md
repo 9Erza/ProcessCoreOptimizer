@@ -1,7 +1,6 @@
 # Process Core Optimizer 2.0.0 — Informacja o wydaniu
 
-> Status: **gotowe do przeglądu przez opiekuna, NIE opublikowane.**
-> Nie utworzono publicznego GitHub Release z tej gałęzi.
+> Status: **opublikowane 2026-11-04 jako stabilne GitHub Release v2.0.0.**
 
 ## Co nowego
 
@@ -47,7 +46,7 @@ edycja profili/reguł po wyborze z pustymi stanami oraz Ustawienia w 8 kategoria
 ## Weryfikacja
 
 - Release build: 0 ostrzeżeń, 0 błędów.
-- Testy: 268 przypadków MSTest — 265 zielonych, 3 integracyjne testy prawdziwego
+- Testy: 289 przypadków MSTest — 286 zielonych, 3 integracyjne testy prawdziwego
   startupu pominięte bez `PCO_REAL_STARTUP_TESTS=1`
   (fałszywy backend, read-only, negatywne testy tożsamości P0, macierz restore/
   suspension CPU Sets, planner/koordynator/backend startupu, bezpieczeństwo
@@ -74,7 +73,8 @@ edycja profili/reguł po wyborze z pustymi stanami oraz Ustawienia w 8 kategoria
   przy minimalnym rozmiarze 1000×700, dialog aktualizacji EN+PL (prawdziwy kod
   dialogu, testowe odpowiedzi API) i ręczny przepływ sprawdzania, procesowy UX
   zakresu (brak targetu/wybór/zamykanie/przełącznik), read-only CPU hub,
-  kategorie ustawień, bramka 8 widocznych kafli przy 1000×700.
+  kategorie ustawień, bramka 8 widocznych kafli przy 1000×700 i na pełnym
+  ekranie (stałe kafelki 38 DIP, selektor wyrównany do góry, kontrakt stanu Unknown).
   Harness: `tools/Run-GuiVerification.ps1` (backup i restore `%APPDATA%`,
   start z `--safe-mode`).
 - Defekty GUI wykryte na żywo i naprawione: crash zakresu theme przy starcie
@@ -85,7 +85,8 @@ edycja profili/reguł po wyborze z pustymi stanami oraz Ustawienia w 8 kategoria
   na źródłach read-only i zabijające panel szczegółów (teraz jawne `Mode=OneWay`
   egzekwowane przez `XamlBindingModeTests`; dowód:
   `docs/screenshots/screen_processes_details.png`), za wąskie kolumny IN/RAM/CPU
-  (poszerzone po audycie screenshotów).
+  (poszerzone po audycie screenshotów), rozciąganie kafelków na zmaksymalizowanym
+  oknie (teraz stała wysokość 38 DIP, selektor wyrównany do góry).
 - Baseline wydajności (Win11, i5-10210U, 8 LP, 100% DPI, opublikowany Release):
   start 1,5–1,6 s; idle 60 s ≈ 190 MB WS / 90 MB Private / 0,55% CPU /
   ~786 uchwytów / 23 wątki; 100 syntetycznych profili ≈ brak delty CPU, +2 MB WS;
@@ -107,7 +108,7 @@ edycja profili/reguł po wyborze z pustymi stanami oraz Ustawienia w 8 kategoria
 - Interaktywne screenshoty: prawdziwe UI 2.0 (7 widoków + przełącznik instancji
   + strony kreatora + smoke-test portable + zwijany Developer Hub EN/PL);
   bez mockupów. Galeria README: `ProcessCoreOptimizer/Screenshots/` (6 ujęć);
-  pełny przebieg: ignorowany `.evidence/gui/` (30 ujęć).
+  pełny przebieg: ignorowany `.evidence/gui/` (45 ujęć).
 - Instalacja/upgrade/uninstall na VM: NIE WYKONANO (brak izolowanej VM; instalacja
   na maszynie deweloperskiej celowo uniknięta). Sprzęt multi-group: NIE WYKONANO
   (maszyna 8-LP); przetestowano syntetyczną dyscyplinę mapowania.
