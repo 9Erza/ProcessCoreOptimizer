@@ -59,10 +59,21 @@ namespace ProcessCoreOptimizer.WPF.Logging
 
             RollIfNeeded();
 
-            _streamWriter = new StreamWriter(_config.LogFilePath, append: true, Encoding.UTF8)
+            try
             {
-                AutoFlush = true
-            };
+                // Shared write: a second PCO process (a launch racing the running
+                // instance, the elevated helper, tests) must never crash because the
+                // log is open elsewhere. Each line is flushed, so appends interleave.
+                var stream = new FileStream(_config.LogFilePath, FileMode.Append, FileAccess.Write,
+                    FileShare.ReadWrite | FileShare.Delete);
+                _streamWriter = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true };
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Logging is best-effort: run without a file log rather than fail startup.
+                _streamWriter = null;
+                Console.WriteLine($"[WARN] Log file unavailable: {ex.Message}");
+            }
         }
 
         private void RollIfNeeded()
