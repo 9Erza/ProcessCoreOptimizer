@@ -19,6 +19,7 @@ Aktualizacja serwisowa wersji 2.1.0. Instalacja na 2.0.x lub 2.1.0 aktualizuje j
 - Jeszcze nieodrysowane fragmenty okna (zmiana rozmiaru, przywracanie, GPU zajęte grą)
   mają kolor tła aplikacji zamiast czarnego; otwieranie z zasobnika nie przechodzi już
   przez minimalizację i przywracanie.
+- Lista priorytetów w panelu procesu była pusta po zmianie języka.
 
 ## Process Core Optimizer 2.1.0
 

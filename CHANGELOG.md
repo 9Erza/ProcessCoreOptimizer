@@ -19,6 +19,7 @@ A maintenance update for 2.1.0. Installing it over 2.0.x or 2.1.0 upgrades in pl
 - Areas of the window not yet repainted (resize, restore, GPU busy with a game) show
   the app background instead of black; opening from the tray no longer goes through a
   minimized → restore round trip.
+- The priority drop-down in the target panel went blank after switching language.
 
 ## Process Core Optimizer 2.1.0
 

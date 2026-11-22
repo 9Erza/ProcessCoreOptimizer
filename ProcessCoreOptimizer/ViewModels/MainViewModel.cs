@@ -3339,10 +3339,20 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
 
         private void RefreshAvailablePriorities()
         {
+            // Clearing the list makes the bound ComboBox push null into
+            // SelectedPriority; keep the language-neutral value and restore it in
+            // the new language so the drop-down never ends up empty.
+            string rawSelected = NormalizePriority(_selectedPriority);
             AvailablePriorities.Clear();
             foreach (string priority in PriorityService.GetDisplayPriorities(AppSettings.Language, AppSettings.AllowRealtimePriority))
             {
                 AvailablePriorities.Add(priority);
+            }
+
+            if (!string.IsNullOrEmpty(rawSelected))
+            {
+                _selectedPriority = TranslatePriority(rawSelected);
+                OnPropertyChanged(nameof(SelectedPriority));
             }
         }
 
