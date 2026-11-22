@@ -2,11 +2,11 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:system="clr-namespace:System;assembly=mscorlib">
 
-    <system:String x:Key="StrSystemProcesses">Procesy Systemowe</system:String>
-    <system:String x:Key="StrSavedProfiles">Zapisane Profile</system:String>
-    <system:String x:Key="StrHardwareMonitor">Monitor Sprzętu</system:String>
+    <system:String x:Key="StrSystemProcesses">Procesy</system:String>
+    <system:String x:Key="StrSavedProfiles">Profile</system:String>
+    <system:String x:Key="StrHardwareMonitor">Monitor sprzętu</system:String>
     <system:String x:Key="StrSettings">Ustawienia</system:String>
-    <system:String x:Key="StrConsoleLog">LOGI KONSOLI</system:String>
+    <system:String x:Key="StrConsoleLog">Log aktywności</system:String>
     <system:String x:Key="StrActivity">Aktywność</system:String>
     <system:String x:Key="StrSelectProcessHint">Wybierz proces, aby zobaczyć szczegóły i dostępne działania.</system:String>
     <system:String x:Key="StrSelectedProcess">Wybrany proces</system:String>
@@ -25,10 +25,10 @@
     <system:String x:Key="StrCpuSetsExplained">CPU Sets to preferencja: Windows preferuje wybrane procesory, ale może szeregować gdzie indziej. Żaden FPS nie jest gwarantowany.</system:String>
     <system:String x:Key="StrCpuUtility">Użycie CPU (z boostem)</system:String>
     <system:String x:Key="StrUtilityNote">Zawiera skalowanie częstotliwości; może przekraczać 100%. To nie to samo co czas zajętości.</system:String>
-    <system:String x:Key="StrProcessList">Lista Procesów</system:String>
-    <system:String x:Key="StrYourProfiles">Twoje Profile</system:String>
+    <system:String x:Key="StrProcessList">Procesy</system:String>
+    <system:String x:Key="StrYourProfiles">Profile</system:String>
     <system:String x:Key="StrCpuCores">Rdzenie CPU</system:String>
-    <system:String x:Key="StrAppSettings">Ustawienia Aplikacji</system:String>
+    <system:String x:Key="StrAppSettings">Ustawienia</system:String>
 
     <system:String x:Key="StrLanguage">Język / Language</system:String>
     <system:String x:Key="StrStartWindows">Uruchamiaj z systemem Windows</system:String>
@@ -42,7 +42,7 @@
     <system:String x:Key="StrSetGroupHardware">Monitor sprzętu</system:String>
     <system:String x:Key="StrSetGroupDiagnostics">Diagnostyka</system:String>
     <system:String x:Key="StrSetGroupUpdates">Aktualizacje</system:String>
-    <system:String x:Key="StrSetGroupData">Dane aplikacji i reset</system:String>
+    <system:String x:Key="StrSetGroupData">Dane i reset</system:String>
     <system:String x:Key="StrSetGroupAbout">O programie</system:String>
     <system:String x:Key="StrStartupWindowBehavior">Zachowanie okna przy logowaniu</system:String>
     <system:String x:Key="StrStartupRunElevated">Uruchamiaj z prawami administratora przy starcie</system:String>
@@ -51,11 +51,11 @@
     <system:String x:Key="StrStartupRefresh">Odśwież</system:String>
     <system:String x:Key="StrStartupWorking">Stosowanie…</system:String>
     <system:String x:Key="StrCurrentPrivileges">Aktualne uprawnienia</system:String>
-    <system:String x:Key="StrRestartAsAdmin">Uruchom ponownie jako Administrator…</system:String>
+    <system:String x:Key="StrRestartAsAdmin">Uruchom ponownie jako administrator…</system:String>
     <system:String x:Key="StrTrayHint">Zachowanie tray dotyczy ręcznych przycisków minimalizacji/zamykania.</system:String>
     <system:String x:Key="StrOpenWizard">Otwórz kreator pierwszego uruchomienia…</system:String>
     <system:String x:Key="StrRestoreDefaults">Przywróć ustawienia domyślne</system:String>
-    <system:String x:Key="StrFactoryResetTitle">Factory Reset — usuń wszystkie dane aplikacji</system:String>
+    <system:String x:Key="StrFactoryResetTitle">Reset fabryczny — usuń wszystkie dane aplikacji</system:String>
     <system:String x:Key="StrFactoryResetWarning">Usuwa ustawienia, profile, kopie, logi i cache PCO. Ręczne eksporty poza katalogiem danych zostają. Wpisz RESET, aby uzbroić.</system:String>
     <system:String x:Key="StrFactoryReset">Usuń wszystkie dane aplikacji</system:String>
     <system:String x:Key="StrAboutLine">Samodzielne narzędzie do CPU i procesów. Bez sterowników, usług i ukrytych zmian.</system:String>
@@ -71,26 +71,26 @@
     <system:String x:Key="StrWizardNext">Dalej</system:String>
     <system:String x:Key="StrWizardFinish">Zakończ</system:String>
 
-    <system:String x:Key="StrSelectAll">Zaznacz Wszystko</system:String>
-    <system:String x:Key="StrClearAll">Odznacz Wszystko</system:String>
-    <system:String x:Key="StrDisableECores">Wyłącz E-Cores</system:String>
+    <system:String x:Key="StrSelectAll">Wszystkie</system:String>
+    <system:String x:Key="StrClearAll">Żadne</system:String>
+    <system:String x:Key="StrDisableECores">Bez E-core</system:String>
     <system:String x:Key="StrEmptyMaskWarning">Nie wybrano rdzeni — nic się nie zmieni. Wybierz co najmniej jeden procesor logiczny.</system:String>
     <system:String x:Key="StrNoData">Brak danych — licznik nie zwrócił jeszcze zweryfikowanej próbki.</system:String>
-    <system:String x:Key="StrSetPriority">Ustaw Priorytet</system:String>
-    <system:String x:Key="StrSetAffinity">Ustaw Koligację</system:String>
-    <system:String x:Key="StrSaveProfile">Zapisz Profil</system:String>
-    <system:String x:Key="StrUpdateProfile">Aktualizuj Profil</system:String>
-    <system:String x:Key="StrDeleteProfile">Usuń Profil</system:String>
+    <system:String x:Key="StrSetPriority">Priorytet</system:String>
+    <system:String x:Key="StrSetAffinity">Zastosuj</system:String>
+    <system:String x:Key="StrSaveProfile">Zapisz profil</system:String>
+    <system:String x:Key="StrUpdateProfile">Aktualizuj profil</system:String>
+    <system:String x:Key="StrDeleteProfile">Usuń profil</system:String>
 
-    <system:String x:Key="StrOptimizationMode">Tryb Optymalizacji:</system:String>
+    <system:String x:Key="StrOptimizationMode">Tryb</system:String>
     <system:String x:Key="ModeAffinity">Koligacja (Standardowy)</system:String>
     <system:String x:Key="ModeCpuSets">Zestawy CPU (Inteligentny)</system:String>
 
-    <system:String x:Key="StrColName">NAZWA</system:String>
-    <system:String x:Key="StrColPriority">PRIORYTET</system:String>
+    <system:String x:Key="StrColName">Nazwa</system:String>
+    <system:String x:Key="StrColPriority">Priorytet</system:String>
     <system:String x:Key="StrColRam">RAM</system:String>
     <system:String x:Key="StrColCpu">CPU</system:String>
-    <system:String x:Key="StrColInstances">INST.</system:String>
+    <system:String x:Key="StrColInstances">Inst.</system:String>
     <system:String x:Key="StrAllowRealtime">Pokaż priorytet RealTime (zaawansowane)</system:String>
     <system:String x:Key="StrRealtimeWarn">Może spowodować przycięcia systemu. Używaj tylko świadomie.</system:String>
     <system:String x:Key="StrCheckUpdates">Sprawdzaj aktualizacje przy starcie</system:String>
@@ -98,36 +98,36 @@
     <system:String x:Key="StrEnableStorageSensors">Włącz czujniki dysków (zaawansowane)</system:String>
     <system:String x:Key="StrStorageSensorsWarn">Domyślnie wyłączone, aby monitor sprzętu nie odpytywał niepotrzebnie dysków.</system:String>
     <system:String x:Key="StrLogEnabled">Włącz logowanie do pliku</system:String>
-    <system:String x:Key="StrColMode">TRYB</system:String>
+    <system:String x:Key="StrColMode">Tryb</system:String>
 
-    <system:String x:Key="StrCpuUsage">UŻYCIE CPU</system:String>
-    <system:String x:Key="StrCpuTemp">TEMPERATURA CPU</system:String>
-    <system:String x:Key="StrGpuUsage">UŻYCIE GPU</system:String>
-    <system:String x:Key="StrGpuTemp">TEMPERATURA GPU</system:String>
-    <system:String x:Key="StrRamUsage">UŻYCIE RAM (%)</system:String>
-    <system:String x:Key="StrRamUsedAvail">RAM ZAJĘTY / DOSTĘPNY</system:String>
+    <system:String x:Key="StrCpuUsage">Użycie CPU</system:String>
+    <system:String x:Key="StrCpuTemp">Temperatura CPU</system:String>
+    <system:String x:Key="StrGpuUsage">Użycie GPU</system:String>
+    <system:String x:Key="StrGpuTemp">Temperatura GPU</system:String>
+    <system:String x:Key="StrRamUsage">Użycie RAM</system:String>
+    <system:String x:Key="StrRamUsedAvail">RAM zajęty / łącznie</system:String>
 
-    <system:String x:Key="StrExpandHardware">Rozwiń Szczegóły Sprzętu</system:String>
-    <system:String x:Key="StrGpuDetails">SZCZEGÓŁY GPU</system:String>
-    <system:String x:Key="StrCpuDetails">SZCZEGÓŁY CPU</system:String>
-    <system:String x:Key="StrVramUsage">Zużycie VRAM:</system:String>
-    <system:String x:Key="StrCoreClock">Takt. Rdzenia:</system:String>
-    <system:String x:Key="StrMemClock">Takt. Pamięci:</system:String>
-    <system:String x:Key="StrHotSpot">Hot Spot:</system:String>
-    <system:String x:Key="StrVramTemp">Temp. VRAM:</system:String>
-    <system:String x:Key="StrPowerDraw">Pobór Mocy:</system:String>
-    <system:String x:Key="StrAvgClock">Średnie Takt.:</system:String>
-    <system:String x:Key="StrCoreTemps">Temperatury Rdzeni:</system:String>
+    <system:String x:Key="StrExpandHardware">Szczegóły sprzętu</system:String>
+    <system:String x:Key="StrGpuDetails">GPU</system:String>
+    <system:String x:Key="StrCpuDetails">CPU</system:String>
+    <system:String x:Key="StrVramUsage">Zużycie VRAM</system:String>
+    <system:String x:Key="StrCoreClock">Taktowanie rdzenia</system:String>
+    <system:String x:Key="StrMemClock">Taktowanie pamięci</system:String>
+    <system:String x:Key="StrHotSpot">Hot spot</system:String>
+    <system:String x:Key="StrVramTemp">Temperatura VRAM</system:String>
+    <system:String x:Key="StrPowerDraw">Pobór mocy</system:String>
+    <system:String x:Key="StrAvgClock">Średnie taktowanie</system:String>
+    <system:String x:Key="StrCoreTemps">Temperatury rdzeni</system:String>
     <system:String x:Key="StrHardwareMonitorSwitch">Monitor sprzętu</system:String>
     <system:String x:Key="StrHardwareMonitorOffInfo">Monitor sprzętu jest wyłączony. Włącz go tylko wtedy, gdy chcesz podgląd temperatur i użycia podzespołów.</system:String>
-    <system:String x:Key="StrBackgroundWatcherStatus">Watcher profili w tle: aktywny</system:String>
+    <system:String x:Key="StrBackgroundWatcherStatus">Watcher profili w tle jest aktywny</system:String>
     <system:String x:Key="StrHwEmptyTitle">Brak danych na żywo</system:String>
     <system:String x:Key="StrHwEmptyBody">Włącz monitoring powyżej, aby zobaczyć temperatury, taktowania, VRAM i pobór mocy. Czujniki pozostają wyłączone do czasu Twojej decyzji.</system:String>
 
     <system:String x:Key="StrNavCpuTopology">CPU i topologia</system:String>
     <system:String x:Key="StrDiagnostics">Diagnostyka</system:String>
-    <system:String x:Key="StrProcessFilter">Filtruj procesy...</system:String>
-    <system:String x:Key="StrProfileFilter">Filtruj profile...</system:String>
+    <system:String x:Key="StrProcessFilter">Szukaj procesów</system:String>
+    <system:String x:Key="StrProfileFilter">Szukaj profili</system:String>
     <system:String x:Key="StrProcessDetails">Szczegóły procesu</system:String>
     <system:String x:Key="StrNoSelection">Wybierz proces lub profil, aby zobaczyć szczegóły.</system:String>
     <system:String x:Key="StrCorePresets">Presety rdzeni</system:String>
@@ -141,7 +141,7 @@
     <system:String x:Key="StrDuplicateProfile">Duplikuj</system:String>
     <system:String x:Key="StrExportProfiles">Eksport</system:String>
     <system:String x:Key="StrImportProfiles">Import</system:String>
-    <system:String x:Key="StrColStatus">STATUS</system:String>
+    <system:String x:Key="StrColStatus">Status</system:String>
     <system:String x:Key="StrUnknown">Nieznany</system:String>
     <system:String x:Key="StrApplyPreset">Zastosuj</system:String>
     <system:String x:Key="StrRestoreSettings">Przywróć sesję</system:String>
@@ -150,7 +150,7 @@
     <system:String x:Key="StrSupportDev">Wesprzyj rozwój</system:String>
     <system:String x:Key="StrAuthorTooltip">GitHub autora — 9Erza</system:String>
     <system:String x:Key="StrRepoTooltip">Repozytorium projektu — Process Core Optimizer</system:String>
-    <system:String x:Key="StrSupportTooltip">Postaw kawę — Wesprzyj rozwój</system:String>
+    <system:String x:Key="StrSupportTooltip">Postaw kawę — wesprzyj rozwój</system:String>
     <system:String x:Key="StrFooterRepoLabel">Repozytorium projektu</system:String>
     <system:String x:Key="StrFooterWebsiteTooltip">Strona autora — DobryPC.pl</system:String>
     <system:String x:Key="StrFooterSupportLabel">Wesprzyj projekt</system:String>
@@ -161,14 +161,14 @@
     <system:String x:Key="StrOnlyOptimized">Tylko zoptymalizowane</system:String>
     <system:String x:Key="StrOnlyWithProfile">Z profilem</system:String>
     <system:String x:Key="StrColPid">PID</system:String>
-    <system:String x:Key="StrColPath">ŚCIEŻKA</system:String>
-    <system:String x:Key="StrColProfile">PROFIL</system:String>
+    <system:String x:Key="StrColPath">Ścieżka</system:String>
+    <system:String x:Key="StrColProfile">Profil</system:String>
     <system:String x:Key="StrCtxDetails">Szczegóły</system:String>
     <system:String x:Key="StrCtxCreateProfile">Utwórz profil</system:String>
     <system:String x:Key="StrCtxCapture">Przechwyć ustawienia</system:String>
     <system:String x:Key="StrCtxPreview">Podgląd zmian</system:String>
-    <system:String x:Key="StrCtxApply">Zastosuj profil</system:String>
-    <system:String x:Key="StrCtxRestore">Przywróć ustawienia</system:String>
+    <system:String x:Key="StrCtxApply">Zastosuj</system:String>
+    <system:String x:Key="StrCtxRestore">Przywróć ustawienia sesji</system:String>
     <system:String x:Key="StrCtxCopyPid">Kopiuj PID</system:String>
     <system:String x:Key="StrCtxCopyPath">Kopiuj ścieżkę EXE</system:String>
     <system:String x:Key="StrCtxOpenLocation">Otwórz lokalizację pliku</system:String>
@@ -183,26 +183,26 @@
     <system:String x:Key="StrNotes">Notatki</system:String>
     <system:String x:Key="StrSave">Zapisz</system:String>
     <system:String x:Key="StrCancel">Anuluj</system:String>
-    <system:String x:Key="StrNewProfile">Nowy</system:String>
+    <system:String x:Key="StrNewProfile">Nowy profil</system:String>
     <system:String x:Key="StrEditProfile">Edytuj</system:String>
-    <system:String x:Key="StrCtxToggleEnabled">Włącz / Wyłącz</system:String>
+    <system:String x:Key="StrCtxToggleEnabled">Włącz / wyłącz</system:String>
     <system:String x:Key="StrEcoQos">EcoQoS (tryb wydajności)</system:String>
     <system:String x:Key="StrEcoQosHint">Opcjonalne. Zaznaczone = żądaj włączenia EcoQoS, odznaczone = żądaj wyłączenia, nieustalone = nie zmieniaj. Nigdy nie włączane automatycznie; tylko przez jawny profil.</system:String>
     <system:String x:Key="StrCpuHistory">Historia CPU</system:String>
     <system:String x:Key="StrWhyThis">Dlaczego ten profil?</system:String>
-    <system:String x:Key="StrExportDiagnostics">Eksport diagnostyki (ZIP, częściowo zanonimizowany)</system:String>
-    <system:String x:Key="StrMemHistory">Historia pamięci (zielony = working set, przerywana = prywatna)</system:String>
-    <system:String x:Key="StrSmartRules">Inteligentne reguły</system:String>
+    <system:String x:Key="StrExportDiagnostics">Eksportuj diagnostykę (ZIP)</system:String>
+    <system:String x:Key="StrMemHistory">Pamięć: linia ciągła = working set, przerywana = prywatna</system:String>
+    <system:String x:Key="StrSmartRules">Reguły</system:String>
     <system:String x:Key="StrRuleEditorTitle">Edytor reguły</system:String>
     <system:String x:Key="StrRuleName">Nazwa reguły (opcjonalna)</system:String>
-    <system:String x:Key="StrRuleProcess">PROCES</system:String>
-    <system:String x:Key="StrRuleTrigger">WYZWALACZ</system:String>
-    <system:String x:Key="StrRuleAction">AKCJA</system:String>
+    <system:String x:Key="StrRuleProcess">Proces</system:String>
+    <system:String x:Key="StrRuleTrigger">Wyzwalacz</system:String>
+    <system:String x:Key="StrRuleAction">Akcja</system:String>
     <system:String x:Key="StrRuleDelayS">Opóźnienie (s)</system:String>
     <system:String x:Key="StrRuleCooldownS">Cooldown (s)</system:String>
-    <system:String x:Key="StrRulePriority">PRIO</system:String>
+    <system:String x:Key="StrRulePriority">Priorytet</system:String>
     <system:String x:Key="StrRuleProfile">Profil do zastosowania</system:String>
-    <system:String x:Key="StrRuleRecent">Ostatnia aktywność reguł (dlaczego reguła zadziałała)</system:String>
+    <system:String x:Key="StrRuleRecent">Ostatnia aktywność reguł</system:String>
     <system:String x:Key="StrClearOverride">Wyczyść obejście</system:String>
     <system:String x:Key="StrDeleteRule">Usuń regułę</system:String>
     <system:String x:Key="StrTriggerLaunch">Przy uruchomieniu procesu</system:String>
@@ -211,4 +211,26 @@
     <system:String x:Key="StrActionRestore">Przywróć sesję</system:String>
     <system:String x:Key="StrPauseAutomation">Wstrzymaj automatyczną optymalizację</system:String>
 
+    <!-- 2.1 interface redesign -->
+    <system:String x:Key="StrPageProcessesSub">Uruchomione aplikacje na żywo. Wybierz jedną, aby dobrać jej rdzenie i priorytet.</system:String>
+    <system:String x:Key="StrPageCpuSub">Układ procesora i gotowe presety rdzeni. Tylko podgląd — tutaj nic nie jest zmieniane.</system:String>
+    <system:String x:Key="StrPageProfilesSub">Zapisane ustawienia stosowane automatycznie, gdy aplikacja się uruchamia.</system:String>
+    <system:String x:Key="StrPageRulesSub">Stosuj profile, gdy proces startuje lub trafia na pierwszy plan.</system:String>
+    <system:String x:Key="StrPageHardwareSub">Czujniki na żywo. Domyślnie wyłączone, aby oszczędzać zasoby.</system:String>
+    <system:String x:Key="StrPageDiagnosticsSub">Watcher w tle, konflikty profili, ostatnie operacje i pełny log.</system:String>
+    <system:String x:Key="StrPageSettingsSub">Preferencje, autostart, aktualizacje i dane aplikacji.</system:String>
+    <system:String x:Key="StrDetailPath">Ścieżka</system:String>
+    <system:String x:Key="StrDetailCpu">CPU</system:String>
+    <system:String x:Key="StrDetailProfile">Profil</system:String>
+    <system:String x:Key="StrDetailLast">Ostatnio</system:String>
+    <system:String x:Key="StrStatLogical">Procesory logiczne</system:String>
+    <system:String x:Key="StrStatPhysical">Rdzenie fizyczne</system:String>
+    <system:String x:Key="StrStatSmt">Wątki SMT</system:String>
+    <system:String x:Key="StrStatPCores">Rdzenie P</system:String>
+    <system:String x:Key="StrStatECores">Rdzenie E</system:String>
+    <system:String x:Key="StrStatAffinityRange">Zakres affinity</system:String>
+    <system:String x:Key="StrNewRule">Nowa reguła</system:String>
+    <system:String x:Key="StrColMessage">Komunikat</system:String>
+    <system:String x:Key="StrStartupRepair">Napraw</system:String>
+    <system:String x:Key="StrStartupRepairHint">Ponownie zapisuje wpis autostartu (np. gdy został wyłączony w Menedżerze zadań → Aplikacje autostartu).</system:String>
 </ResourceDictionary>

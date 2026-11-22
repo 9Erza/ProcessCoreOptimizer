@@ -5,8 +5,13 @@
         Icon="/Images/processcoreoptimizer.ico"
         WindowStartupLocation="CenterOwner"
         ResizeMode="CanResizeWithGrip"
-        ShowInTaskbar="False">
-    <Border Background="{StaticResource PcoBg0Brush}" CornerRadius="8" BorderBrush="{StaticResource PcoBorderSoftBrush}" BorderThickness="1" Padding="24" SnapsToDevicePixels="True">
+        ShowInTaskbar="False"
+        Background="{StaticResource PcoBg1Brush}"
+        Foreground="{StaticResource PcoTextBrush}"
+        FontFamily="{StaticResource PcoFontFamily}"
+        FontSize="13"
+        UseLayoutRounding="True">
+    <Border Padding="24" SnapsToDevicePixels="True">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -14,17 +19,17 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <TextBlock Grid.Row="0" Text="{DynamicResource StrRuleEditorTitle}" FontSize="20" FontWeight="Bold" Foreground="White" Margin="0,0,0,16"/>
+            <TextBlock Grid.Row="0" Text="{DynamicResource StrRuleEditorTitle}" Style="{StaticResource PcoTitle}" FontSize="20"/>
 
             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                 <StackPanel>
-                    <TextBlock Text="{DynamicResource StrRuleName}" Foreground="{StaticResource PcoTextBrush}" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                    <TextBlock Text="{DynamicResource StrRuleName}" Style="{StaticResource PcoFieldLabel}"/>
                     <TextBox x:Name="NameBox" Style="{StaticResource PcoFilterBox}" Margin="0,0,0,12" AutomationProperties.Name="Rule name"/>
 
-                    <TextBlock Text="{DynamicResource StrProfileName}" Foreground="{StaticResource PcoTextBrush}" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                    <TextBlock Text="{DynamicResource StrProfileName}" Style="{StaticResource PcoFieldLabel}"/>
                     <TextBox x:Name="ProcessBox" Style="{StaticResource PcoFilterBox}" Margin="0,0,0,12" AutomationProperties.Name="Process name"/>
 
-                    <TextBlock Text="{DynamicResource StrProfilePath}" Foreground="{StaticResource PcoTextBrush}" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                    <TextBlock Text="{DynamicResource StrProfilePath}" Style="{StaticResource PcoFieldLabel}"/>
                     <Grid Margin="0,0,0,12">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -34,20 +39,20 @@
                         <Button Grid.Column="1" Content="{DynamicResource StrBrowse}" Click="BrowseButton_Click" Style="{StaticResource SmallFilterButton}" Margin="8,0,0,0" Padding="12,4" AutomationProperties.Name="Browse"/>
                     </Grid>
 
-                    <TextBlock Text="{DynamicResource StrRuleTrigger}" Foreground="{StaticResource PcoTextBrush}" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                    <TextBlock Text="{DynamicResource StrRuleTrigger}" Style="{StaticResource PcoFieldLabel}"/>
                     <ComboBox x:Name="TriggerBox" Style="{StaticResource ModernComboBox}" Margin="0,0,0,4" AutomationProperties.Name="Trigger">
                         <ComboBoxItem Content="{DynamicResource StrTriggerLaunch}"/>
                         <ComboBoxItem Content="{DynamicResource StrTriggerForeground}"/>
                     </ComboBox>
                     <TextBlock x:Name="TriggerHint" Foreground="{StaticResource PcoMutedBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,12"/>
 
-                    <TextBlock Text="{DynamicResource StrRuleAction}" Foreground="{StaticResource PcoTextBrush}" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                    <TextBlock Text="{DynamicResource StrRuleAction}" Style="{StaticResource PcoFieldLabel}"/>
                     <ComboBox x:Name="ActionBox" Style="{StaticResource ModernComboBox}" Margin="0,0,0,12" AutomationProperties.Name="Action">
                         <ComboBoxItem Content="{DynamicResource StrActionApply}"/>
                         <ComboBoxItem Content="{DynamicResource StrActionRestore}"/>
                     </ComboBox>
 
-                    <TextBlock Text="{DynamicResource StrRuleProfile}" Foreground="{StaticResource PcoTextBrush}" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                    <TextBlock Text="{DynamicResource StrRuleProfile}" Style="{StaticResource PcoFieldLabel}"/>
                     <ComboBox x:Name="ProfileBox" Style="{StaticResource ModernComboBox}" Margin="0,0,0,12" AutomationProperties.Name="Profile"/>
 
                     <Grid Margin="0,0,0,12">
@@ -57,22 +62,22 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0" Margin="0,0,6,0">
-                            <TextBlock Text="{DynamicResource StrRuleDelayS}" Foreground="{StaticResource PcoTextBrush}" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                            <TextBlock Text="{DynamicResource StrRuleDelayS}" Style="{StaticResource PcoFieldLabel}"/>
                             <TextBox x:Name="DelayBox" Style="{StaticResource PcoFilterBox}" AutomationProperties.Name="Delay seconds"/>
                         </StackPanel>
                         <StackPanel Grid.Column="1" Margin="3,0,3,0">
-                            <TextBlock Text="{DynamicResource StrRuleCooldownS}" Foreground="{StaticResource PcoTextBrush}" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                            <TextBlock Text="{DynamicResource StrRuleCooldownS}" Style="{StaticResource PcoFieldLabel}"/>
                             <TextBox x:Name="CooldownBox" Style="{StaticResource PcoFilterBox}" AutomationProperties.Name="Cooldown seconds"/>
                         </StackPanel>
                         <StackPanel Grid.Column="2" Margin="6,0,0,0">
-                            <TextBlock Text="{DynamicResource StrRulePriority}" Foreground="{StaticResource PcoTextBrush}" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                            <TextBlock Text="{DynamicResource StrRulePriority}" Style="{StaticResource PcoFieldLabel}"/>
                             <TextBox x:Name="PriorityBox" Style="{StaticResource PcoFilterBox}" AutomationProperties.Name="Priority"/>
                         </StackPanel>
                     </Grid>
 
                     <CheckBox x:Name="EnabledBox" Content="{DynamicResource StrProfileEnabled}" Foreground="{StaticResource PcoTextBrush}" Margin="0,0,0,12" VerticalContentAlignment="Center"/>
 
-                    <TextBlock Text="{DynamicResource StrNotes}" Foreground="{StaticResource PcoTextBrush}" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                    <TextBlock Text="{DynamicResource StrNotes}" Style="{StaticResource PcoFieldLabel}"/>
                     <TextBox x:Name="NotesBox" Style="{StaticResource PcoFilterBox}" Margin="0,0,0,12" Height="60" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Notes"/>
 
                     <TextBlock x:Name="ErrorText" Foreground="{StaticResource PcoRedBrush}" FontSize="12" TextWrapping="Wrap" Visibility="Collapsed"/>
@@ -80,8 +85,8 @@
             </ScrollViewer>
 
             <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
-                <Button Content="{DynamicResource StrSave}" Click="OkButton_Click" Style="{StaticResource StandardButton}" MinWidth="100" Margin="0,0,8,0" IsDefault="True" AutomationProperties.Name="Save"/>
-                <Button Content="{DynamicResource StrCancel}" Click="CancelButton_Click" Style="{StaticResource SmallFilterButton}" MinWidth="100" IsCancel="True" AutomationProperties.Name="Cancel"/>
+                <Button Content="{DynamicResource StrSave}" Click="OkButton_Click" Style="{StaticResource PcoPrimaryButton}" MinWidth="100" Margin="0,0,8,0" IsDefault="True" AutomationProperties.Name="Save"/>
+                <Button Content="{DynamicResource StrCancel}" Click="CancelButton_Click" Style="{StaticResource PcoSecondaryButton}" MinWidth="100" IsCancel="True" AutomationProperties.Name="Cancel"/>
             </StackPanel>
         </Grid>
     </Border>

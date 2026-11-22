@@ -5,119 +5,184 @@
              xmlns:conv="clr-namespace:ProcessCoreOptimizer.WPF.Converters">
     <UserControl.Resources>
         <conv:PreviewHighlightConverter x:Key="PreviewHighlightConverter"/>
+        <Style x:Key="StatValue" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{StaticResource PcoDisplayFontFamily}"/>
+            <Setter Property="FontSize" Value="22"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{StaticResource PcoTextBrightBrush}"/>
+        </Style>
+        <Style x:Key="StatLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="Foreground" Value="{StaticResource PcoMutedBrush}"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+            <Setter Property="Margin" Value="0,2,0,0"/>
+        </Style>
     </UserControl.Resources>
-    <Border Style="{StaticResource PcoCard}" Margin="0,0,25,0">
-        <ScrollViewer VerticalScrollBarVisibility="Auto">
-            <StackPanel>
-                <TextBlock Text="{DynamicResource StrCpuCores}" Style="{StaticResource PcoTitle}"/>
 
-                <!-- Informational only: no process, no mutation. Presets preview a selection. -->
-                <TextBlock Text="{DynamicResource StrProcessorOverview}" Style="{StaticResource PcoSectionHeader}"/>
-                <Border Background="{StaticResource PcoBg3Brush}" CornerRadius="6" Padding="12" Margin="0,0,0,12" BorderThickness="1" BorderBrush="{StaticResource PcoBorderSoftBrush}">
+    <!-- Informational only: no process, no mutation. Presets preview a selection. -->
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+        <StackPanel Margin="0,0,4,0">
+            <TextBlock Text="{DynamicResource StrCpuCores}" Style="{StaticResource PcoTitle}"/>
+            <TextBlock Text="{DynamicResource StrPageCpuSub}" Style="{StaticResource PcoSubtitle}"/>
+
+            <!-- Processor overview -->
+            <Border Style="{StaticResource PcoCard}" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="{DynamicResource StrProcessorOverview}" Style="{StaticResource PcoCaption}"/>
+                    <TextBlock Text="{Binding CpuModelText, Mode=OneWay}" Foreground="{StaticResource PcoTextBrightBrush}" FontWeight="SemiBold" FontSize="16" Margin="0,0,0,16" TextWrapping="Wrap"/>
+                    <UniformGrid Columns="6">
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Text="{Binding LogicalProcessorCount, Mode=OneWay}" Style="{StaticResource StatValue}"/>
+                            <TextBlock Text="{DynamicResource StrStatLogical}" Style="{StaticResource StatLabel}"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Text="{Binding PhysicalCoreCount, Mode=OneWay}" Style="{StaticResource StatValue}"/>
+                            <TextBlock Text="{DynamicResource StrStatPhysical}" Style="{StaticResource StatLabel}"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Text="{Binding SmtThreadCount, Mode=OneWay}" Style="{StaticResource StatValue}"/>
+                            <TextBlock Text="{DynamicResource StrStatSmt}" Style="{StaticResource StatLabel}"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Text="{Binding PerformanceCoreCount, Mode=OneWay}" Style="{StaticResource StatValue}"/>
+                            <TextBlock Text="{DynamicResource StrStatPCores}" Style="{StaticResource StatLabel}"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Text="{Binding EfficiencyCoreCount, Mode=OneWay}" Style="{StaticResource StatValue}"/>
+                            <TextBlock Text="{DynamicResource StrStatECores}" Style="{StaticResource StatLabel}"/>
+                        </StackPanel>
+                        <StackPanel>
+                            <TextBlock Text="{Binding AffinityRangeText, Mode=OneWay}" Style="{StaticResource StatValue}"/>
+                            <TextBlock Text="{DynamicResource StrStatAffinityRange}" Style="{StaticResource StatLabel}"/>
+                        </StackPanel>
+                    </UniformGrid>
+
+                    <Border Margin="0,16,0,0">
+                        <Border.Style>
+                            <Style TargetType="Border" BasedOn="{StaticResource PcoWarningInset}">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding TopologyLimitation}" Value="{x:Null}">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <StackPanel>
+                            <TextBlock Text="{DynamicResource StrTopologyNote}" FontWeight="SemiBold" FontSize="12" Foreground="{StaticResource PcoOrangeBrush}" Margin="0,0,0,4"/>
+                            <TextBlock Text="{Binding TopologyLimitation}" Style="{StaticResource PcoMutedText}"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="5*" MinWidth="260"/>
+                    <ColumnDefinition Width="16"/>
+                    <ColumnDefinition Width="7*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Presets (preview only) -->
+                <Border Grid.Column="0" Style="{StaticResource PcoCard}" VerticalAlignment="Top">
                     <StackPanel>
-                        <TextBlock Text="{Binding CpuModelText, Mode=OneWay}" Foreground="{StaticResource PcoTextBrightBrush}" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,4" TextWrapping="Wrap"/>
-                        <TextBlock Foreground="{StaticResource PcoMutedBrush}" FontSize="12" Margin="0,0,0,2">
-                            <Run Text="{Binding LogicalProcessorCount, Mode=OneWay}"/><Run Text=" LP · "/><Run Text="{Binding PhysicalCoreCount, Mode=OneWay}"/><Run Text=" cores"/>
+                        <TextBlock Text="{DynamicResource StrCorePresets}" Style="{StaticResource PcoSectionHeader}" Margin="0,0,0,4"/>
+                        <TextBlock Text="{Binding PreviewPresetSummary, Mode=OneWay}" Foreground="{StaticResource PcoAccentLightBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,8">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding PreviewPresetId}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
                         </TextBlock>
-                        <TextBlock Foreground="{StaticResource PcoMutedBrush}" FontSize="12" Margin="0,0,0,2">
-                            <Run Text="SMT ×"/><Run Text="{Binding SmtThreadCount, Mode=OneWay}"/><Run Text=" · P "/><Run Text="{Binding PerformanceCoreCount, Mode=OneWay}"/><Run Text=" · E "/><Run Text="{Binding EfficiencyCoreCount, Mode=OneWay}"/>
-                        </TextBlock>
-                        <TextBlock Foreground="{StaticResource PcoMutedBrush}" FontSize="12">
-                            <Run Text="Affinity "/><Run Text="{Binding AffinityRangeText, Mode=OneWay}"/>
-                        </TextBlock>
+                        <ItemsControl ItemsSource="{Binding CorePresets}" Margin="0,4,0,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Margin="0,0,0,8" Style="{StaticResource PcoInset}" Padding="12,10">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding DisplayName}" Foreground="{StaticResource PcoTextBrightBrush}" FontWeight="SemiBold" FontSize="13" TextWrapping="Wrap"/>
+                                                <TextBlock Text="{Binding Description}" Style="{StaticResource PcoMutedText}" Margin="0,2,0,0"/>
+                                                <TextBlock Text="{Binding UnavailableReason}" Foreground="{StaticResource PcoOrangeBrush}" FontSize="11.5" TextWrapping="Wrap" Margin="0,2,0,0">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsAvailable}" Value="False">
+                                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </StackPanel>
+                                            <Button Grid.Column="1" Content="{DynamicResource StrPreviewPreset}" Style="{StaticResource SmallFilterButton}" Margin="12,0,0,0" VerticalAlignment="Center"
+                                                    Command="{Binding DataContext.PreviewCorePresetCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding Id}" IsEnabled="{Binding IsAvailable}"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                     </StackPanel>
                 </Border>
 
-                <TextBlock Text="{DynamicResource StrTopologyLegend}" Foreground="{StaticResource PcoFaintBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,12"/>
-
-                <Border Background="{StaticResource PcoBg3Brush}" CornerRadius="6" Padding="12" Margin="0,0,0,12" BorderThickness="1" BorderBrush="{StaticResource PcoBorderBrush}">
-                    <Border.Style>
-                        <Style TargetType="Border">
-                            <Setter Property="Visibility" Value="Visible"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding TopologyLimitation}" Value="{x:Null}">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Border.Style>
+                <!-- Live core map -->
+                <Border Grid.Column="2" Style="{StaticResource PcoCard}" VerticalAlignment="Top">
                     <StackPanel>
-                        <TextBlock Text="{DynamicResource StrTopologyNote}" FontWeight="Bold" FontSize="12" Foreground="{StaticResource PcoOrangeBrush}" Margin="0,0,0,4"/>
-                        <TextBlock Text="{Binding TopologyLimitation}" Style="{StaticResource PcoMutedText}"/>
+                        <TextBlock Text="{DynamicResource StrCoreTopology}" Style="{StaticResource PcoSectionHeader}" Margin="0,0,0,4"/>
+                        <TextBlock Text="{DynamicResource StrTopologyLegend}" Foreground="{StaticResource PcoDimBrush}" FontSize="11.5" TextWrapping="Wrap" Margin="0,0,0,12"/>
+                        <ItemsControl ItemsSource="{Binding Cores}" Margin="-4,0,-4,0">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <views:CoreTile TileLabel="{Binding DisplayName, Mode=OneWay}" LoadUsage="{Binding LoadUsage, Mode=OneWay}" IsTileReadOnly="True" IsLoadAvailable="{Binding LoadAvailable, Mode=OneWay}" UtilityText="{Binding UtilityText, Mode=OneWay}">
+                                        <views:CoreTile.IsPreviewHighlighted>
+                                            <MultiBinding Converter="{StaticResource PreviewHighlightConverter}">
+                                                <Binding Path="Index"/>
+                                                <Binding Path="DataContext.PreviewLogicalProcessors" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                            </MultiBinding>
+                                        </views:CoreTile.IsPreviewHighlighted>
+                                    </views:CoreTile>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                     </StackPanel>
                 </Border>
+            </Grid>
 
-                <TextBlock Text="{DynamicResource StrCorePresets}" Style="{StaticResource PcoSectionHeader}"/>
-                <TextBlock Text="{Binding PreviewPresetSummary, Mode=OneWay}" Foreground="{StaticResource PcoAccentBrush}" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,6">
-                    <TextBlock.Style>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="Visibility" Value="Collapsed"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding PreviewPresetId}" Value="{x:Null}">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBlock.Style>
-                </TextBlock>
-                <ItemsControl ItemsSource="{Binding CorePresets}" Margin="0,0,0,8">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Border Margin="0,0,0,6" Padding="10" Background="{StaticResource PcoBg3Brush}" CornerRadius="6" BorderThickness="1" BorderBrush="{StaticResource PcoBorderSoftBrush}">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel Grid.Column="0">
-                                        <TextBlock Text="{Binding DisplayName}" Foreground="{StaticResource PcoTextBrightBrush}" FontWeight="SemiBold" FontSize="13"/>
-                                        <TextBlock Text="{Binding Description}" Style="{StaticResource PcoMutedText}"/>
-                                        <TextBlock Text="{Binding UnavailableReason}" Foreground="{StaticResource PcoOrangeBrush}" FontSize="11">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsAvailable}" Value="False">
-                                                            <Setter Property="Visibility" Value="Visible"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
-                                    </StackPanel>
-                                    <Button Grid.Column="1" Content="{DynamicResource StrPreviewPreset}" Style="{StaticResource SmallFilterButton}" Padding="12,0" Margin="10,0,0,0"
-                                            Command="{Binding DataContext.PreviewCorePresetCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                            CommandParameter="{Binding Id}" IsEnabled="{Binding IsAvailable}"/>
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-
-                <TextBlock Text="{DynamicResource StrCoreTopology}" Style="{StaticResource PcoSectionHeader}"/>
-                <ItemsControl ItemsSource="{Binding Cores}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <WrapPanel Orientation="Horizontal"/>
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <views:CoreTile TileLabel="{Binding DisplayName, Mode=OneWay}" LoadUsage="{Binding LoadUsage, Mode=OneWay}" IsTileReadOnly="True" IsLoadAvailable="{Binding LoadAvailable, Mode=OneWay}" UtilityText="{Binding UtilityText, Mode=OneWay}">
-                                <views:CoreTile.IsPreviewHighlighted>
-                                    <MultiBinding Converter="{StaticResource PreviewHighlightConverter}">
-                                        <Binding Path="Index"/>
-                                        <Binding Path="DataContext.PreviewLogicalProcessors" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
-                                    </MultiBinding>
-                                </views:CoreTile.IsPreviewHighlighted>
-                            </views:CoreTile>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-
-                <TextBlock Text="{DynamicResource StrAffinityExplained}" Foreground="{StaticResource PcoMutedBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,12,0,4"/>
-                <TextBlock Text="{DynamicResource StrCpuSetsExplained}" Foreground="{StaticResource PcoMutedBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,12"/>
-            </StackPanel>
-        </ScrollViewer>
-    </Border>
+            <!-- Affinity vs CPU Sets -->
+            <Grid Margin="0,16,0,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="16"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Style="{StaticResource PcoInset}">
+                    <StackPanel>
+                        <TextBlock Text="{DynamicResource ModeAffinity}" Style="{StaticResource PcoFieldLabel}" Margin="0,0,0,4"/>
+                        <TextBlock Text="{DynamicResource StrAffinityExplained}" Style="{StaticResource PcoMutedText}"/>
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="2" Style="{StaticResource PcoInset}">
+                    <StackPanel>
+                        <TextBlock Text="{DynamicResource ModeCpuSets}" Style="{StaticResource PcoFieldLabel}" Margin="0,0,0,4"/>
+                        <TextBlock Text="{DynamicResource StrCpuSetsExplained}" Style="{StaticResource PcoMutedText}"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
 </UserControl>

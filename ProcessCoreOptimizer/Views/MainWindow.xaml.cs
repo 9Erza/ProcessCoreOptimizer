@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Interop;
 using ProcessCoreOptimizer.WPF.Logging;
 using ProcessCoreOptimizer.WPF.Models;
 using ProcessCoreOptimizer.WPF.ViewModels;
@@ -30,6 +31,7 @@ namespace ProcessCoreOptimizer.WPF.Views
         {
             Services.StartupProfiler.Mark("MainWindow ctor start");
             InitializeComponent();
+            Helpers.WindowTheme.Attach(this);
             Services.StartupProfiler.Mark("MainWindow InitializeComponent done");
             _viewModel = new MainViewModel();
             Services.StartupProfiler.Mark("MainWindow VM created");
@@ -53,7 +55,11 @@ namespace ProcessCoreOptimizer.WPF.Views
 
             this.Loaded += MainWindow_Loaded;
             this.Loaded += (s, e) => Services.StartupProfiler.Mark("MainWindow Loaded");
-            this.SizeChanged += (s, e) => _viewModel.SetNarrowLayout(ActualWidth < 1130);
+            this.SizeChanged += (s, e) =>
+            {
+                _viewModel.SetNarrowLayout(ActualWidth < 1100);
+                if (WindowState == WindowState.Maximized) UpdateMaximizedInset();
+            };
             this.ContentRendered += MainWindow_ContentRendered;
         }
 
@@ -150,17 +156,8 @@ namespace ProcessCoreOptimizer.WPF.Views
 
         #region Custom Title Bar Controls
 
-        private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            if (e.ClickCount == 2)
-            {
-                MaximizeButton_Click(sender, e);
-            }
-            else
-            {
-                this.DragMove();
-            }
-        }
+        // Caption is provided by WindowChrome (drag, double-click maximize, Aero Snap
+        // and system menu are native). Only the three caption buttons live here.
 
         private void MinimizeButton_Click(object sender, RoutedEventArgs e)
         {
@@ -168,6 +165,11 @@ namespace ProcessCoreOptimizer.WPF.Views
         }
 
         private void MaximizeButton_Click(object sender, RoutedEventArgs e)
+        {
+            ToggleMaximize();
+        }
+
+        private void ToggleMaximize()
         {
             this.WindowState = this.WindowState == WindowState.Maximized
                 ? WindowState.Normal
@@ -177,6 +179,116 @@ namespace ProcessCoreOptimizer.WPF.Views
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
             this.Close();
+        }
+
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            // base raises SourceInitialized, where WindowChrome installs its own hook;
+            // hooks added afterwards run first, so the snap-layout hit test wins.
+            base.OnSourceInitialized(e);
+            if (PresentationSource.FromVisual(this) is HwndSource source)
+            {
+                source.AddHook(SnapLayoutHook);
+            }
+        }
+
+        private const int WM_NCHITTEST = 0x0084;
+        private const int WM_NCMOUSEMOVE = 0x00A0;
+        private const int WM_NCLBUTTONDOWN = 0x00A1;
+        private const int WM_NCLBUTTONUP = 0x00A2;
+        private const int WM_NCMOUSELEAVE = 0x02A2;
+        private const int HTMAXBUTTON = 9;
+
+        /// <summary>
+        /// Reports the custom maximize button as HTMAXBUTTON so Windows 11 shows the
+        /// Snap Layouts flyout on hover. Clicks on it then arrive as non-client
+        /// messages, so hover/press visuals and the toggle are handled here.
+        /// </summary>
+        private IntPtr SnapLayoutHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            try
+            {
+                switch (msg)
+                {
+                    case WM_NCHITTEST:
+                        if (IsOverMaximizeButton(lParam))
+                        {
+                            SetMaximizeHover(true);
+                            handled = true;
+                            return new IntPtr(HTMAXBUTTON);
+                        }
+                        SetMaximizeHover(false);
+                        break;
+                    case WM_NCLBUTTONDOWN:
+                        if (wParam.ToInt32() == HTMAXBUTTON)
+                        {
+                            handled = true;
+                            return IntPtr.Zero;
+                        }
+                        break;
+                    case WM_NCLBUTTONUP:
+                        if (wParam.ToInt32() == HTMAXBUTTON)
+                        {
+                            handled = true;
+                            ToggleMaximize();
+                            return IntPtr.Zero;
+                        }
+                        break;
+                    case WM_NCMOUSEMOVE:
+                        if (wParam.ToInt32() != HTMAXBUTTON) SetMaximizeHover(false);
+                        break;
+                    case WM_NCMOUSELEAVE:
+                        SetMaximizeHover(false);
+                        break;
+                }
+            }
+            catch
+            {
+                // Never let chrome cosmetics break window message processing.
+            }
+
+            return IntPtr.Zero;
+        }
+
+        private bool IsOverMaximizeButton(IntPtr lParam)
+        {
+            if (MaximizeIconBtn == null || !MaximizeIconBtn.IsVisible) return false;
+            long value = lParam.ToInt64();
+            int x = unchecked((short)(value & 0xFFFF));
+            int y = unchecked((short)((value >> 16) & 0xFFFF));
+            System.Windows.Point local = MaximizeIconBtn.PointFromScreen(new System.Windows.Point(x, y));
+            return local.X >= 0 && local.Y >= 0
+                && local.X < MaximizeIconBtn.ActualWidth && local.Y < MaximizeIconBtn.ActualHeight;
+        }
+
+        private bool _maximizeHover;
+
+        private void SetMaximizeHover(bool hover)
+        {
+            if (_maximizeHover == hover || MaximizeIconBtn == null) return;
+            _maximizeHover = hover;
+            if (hover)
+            {
+                MaximizeIconBtn.Background = (System.Windows.Media.Brush)FindResource("PcoHoverBrush");
+                MaximizeIconBtn.Foreground = (System.Windows.Media.Brush)FindResource("PcoTextBrightBrush");
+            }
+            else
+            {
+                MaximizeIconBtn.ClearValue(BackgroundProperty);
+                MaximizeIconBtn.ClearValue(ForegroundProperty);
+            }
+        }
+
+        /// <summary>
+        /// A maximized WindowChrome window extends past the monitor by its resize
+        /// frame; pad the content by exactly that overflow so nothing is clipped.
+        /// </summary>
+        private void UpdateMaximizedInset()
+        {
+            if (RootBorder == null) return;
+            RootBorder.Margin = WindowState == WindowState.Maximized
+                ? Helpers.WindowTheme.GetMaximizedOverflow(this)
+                : new Thickness(0);
         }
 
         #endregion
@@ -263,6 +375,8 @@ namespace ProcessCoreOptimizer.WPF.Views
             {
                 MaximizeIconBtn.Content = this.WindowState == WindowState.Maximized ? "\uE923" : "\uE922";
             }
+
+            UpdateMaximizedInset();
 
             base.OnStateChanged(e);
         }
