@@ -424,20 +424,36 @@ namespace ProcessCoreOptimizer.WPF.Views
             BringToFront(this);
         }
 
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+        private static extern bool IsIconic(IntPtr hWnd);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+        private const int SW_RESTORE = 9;
+
         /// <summary>
-        /// Shows the window from the tray without the minimized → restore round
-        /// trip: the state is normalized while still hidden, then the window is
-        /// shown, laid out and repainted in one go so no stale/black frame appears.
+        /// Brings the window forward from the tray / a second launch. Show first,
+        /// then restore: WPF's WindowState can say Normal while the native window
+        /// is still iconic (hidden while minimized), so the native state is checked
+        /// too and restored with SW_RESTORE. Then lay out and repaint in one pass.
         /// </summary>
         internal static void BringToFront(Window window)
         {
-            if (window.WindowState == WindowState.Minimized && !window.IsVisible)
+            window.Show();
+            if (window.WindowState == WindowState.Minimized)
             {
                 window.WindowState = WindowState.Normal;
             }
 
-            window.Show();
-            if (window.WindowState == WindowState.Minimized) window.WindowState = WindowState.Normal;
+            IntPtr hwnd = new WindowInteropHelper(window).Handle;
+            if (hwnd != IntPtr.Zero && IsIconic(hwnd))
+            {
+                ShowWindow(hwnd, SW_RESTORE);
+            }
+
             window.UpdateLayout();
             window.InvalidateVisual();
             window.Activate();
