@@ -370,7 +370,7 @@
                         </StackPanel>
 
                         <!-- Core chips: fixed height, top aligned, scroll for large CPUs. -->
-                        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" Margin="0,0,-8,12" Padding="0,0,8,0" VerticalAlignment="Top">
+                        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" Margin="0,0,-8,12" Padding="0,0,8,0" VerticalAlignment="Top" MaxHeight="280">
                             <ItemsControl ItemsSource="{Binding Cores}" VerticalAlignment="Top">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
@@ -379,7 +379,7 @@
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <CheckBox Style="{StaticResource PcoCoreChip}" Margin="0,0,6,6" Height="44"
+                                        <CheckBox Style="{StaticResource PcoCoreChip}" Margin="0,0,6,6" Height="38" VerticalAlignment="Top"
                                                   IsChecked="{Binding IsChecked, Mode=TwoWay}"
                                                   ap:AutomationProperties.Name="{Binding DisplayName, Mode=OneWay}">
                                             <Grid>
@@ -394,14 +394,14 @@
                                                 <TextBlock Grid.Column="0" Text="{Binding DisplayName, Mode=OneWay}" FontSize="11.5" FontWeight="SemiBold"
                                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=CheckBox}}"
                                                            TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
-                                                <TextBlock Grid.Column="1" Foreground="{StaticResource PcoDimBrush}" FontSize="10.5" VerticalAlignment="Center" Margin="4,0,0,0"
-                                                           Text="{Binding LoadUsage, Mode=OneWay, StringFormat={}{0:F0}%}">
+                                                <TextBlock Grid.Column="1" Foreground="{StaticResource PcoDimBrush}" FontSize="10.5" VerticalAlignment="Center" Margin="4,0,0,0">
                                                     <TextBlock.Style>
                                                         <Style TargetType="TextBlock">
+                                                            <Setter Property="Text" Value="{Binding LoadUsage, Mode=OneWay, StringFormat={}{0:F0}%}"/>
                                                             <Style.Triggers>
                                                                 <!-- Unknown sample: em dash, never a fake 0%. -->
                                                                 <DataTrigger Binding="{Binding LoadAvailable, Mode=OneWay}" Value="False">
-                                                                    <Setter Property="Text" Value="—"/>
+                                                                    <Setter Property="Text" Value=" —"/>
                                                                     <Setter Property="ToolTip" Value="{DynamicResource StrNoData}"/>
                                                                 </DataTrigger>
                                                             </Style.Triggers>
