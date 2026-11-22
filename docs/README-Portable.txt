@@ -1,4 +1,4 @@
-Process Core Optimizer 2.0.0 — portable package (no installer)
+Process Core Optimizer 2.1.0 — portable package (no installer)
 =============================================================
 
 Requirements: Windows 10 / 11, 64-bit (x64). No .NET runtime needed
@@ -34,7 +34,7 @@ Support the developer: https://buymeacoffee.com/9erza
 Sources: https://github.com/9Erza/ProcessCoreOptimizer
 
 ---
-Process Core Optimizer 2.0.0 — paczka portable (bez instalatora)
+Process Core Optimizer 2.1.0 — paczka portable (bez instalatora)
 =============================================================
 
 Wymagania: Windows 10 / 11, 64-bit (x64). Runtime .NET nie jest potrzebny

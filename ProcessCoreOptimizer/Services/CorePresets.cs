@@ -33,8 +33,9 @@ namespace ProcessCoreOptimizer.WPF.Services
     /// </summary>
     public static class CorePresets
     {
-        public static List<CorePreset> Build(IReadOnlyList<CoreInfoDto> cores)
+        public static List<CorePreset> Build(IReadOnlyList<CoreInfoDto> cores, bool polish = false)
         {
+            string T(string en, string pl) => polish ? pl : en;
             var result = new List<CorePreset>();
             var all = new List<int>();
             var pCores = new List<int>();
@@ -55,8 +56,8 @@ namespace ProcessCoreOptimizer.WPF.Services
             result.Add(new CorePreset
             {
                 Id = "all",
-                DisplayName = "All logical processors",
-                Description = $"System default: every visible logical processor ({all.Count}).",
+                DisplayName = T("All logical processors", "Wszystkie procesory logiczne"),
+                Description = T($"System default: every visible logical processor ({all.Count}).", $"Domyślne ustawienie systemu: wszystkie widoczne procesory logiczne ({all.Count})."),
                 IsAvailable = all.Count > 0,
                 LogicalProcessors = all
             });
@@ -64,32 +65,32 @@ namespace ProcessCoreOptimizer.WPF.Services
             result.Add(new CorePreset
             {
                 Id = "p-cores",
-                DisplayName = "Performance cores",
-                Description = pCores.Count > 0 ? $"{pCores.Count} P-core logical processor(s)." : "No performance cores detected.",
+                DisplayName = T("Performance cores", "Rdzenie wydajnościowe (P)"),
+                Description = pCores.Count > 0 ? T($"{pCores.Count} P-core logical processor(s).", $"Procesory logiczne rdzeni P: {pCores.Count}.") : T("No performance cores detected.", "Nie wykryto rdzeni wydajnościowych."),
                 IsAvailable = pCores.Count > 0,
-                UnavailableReason = anyKnown ? "No performance cores detected on this CPU." : "Topology classification is Unknown on this system.",
+                UnavailableReason = anyKnown ? T("No performance cores detected on this CPU.", "Ten procesor nie ma rdzeni wydajnościowych.") : T("Topology classification is Unknown on this system.", "Klasyfikacja topologii jest nieznana w tym systemie."),
                 LogicalProcessors = pCores
             });
 
             result.Add(new CorePreset
             {
                 Id = "e-cores",
-                DisplayName = "Efficiency cores",
-                Description = eCores.Count > 0 ? $"{eCores.Count} E-core logical processor(s)." : "No efficiency cores detected.",
+                DisplayName = T("Efficiency cores", "Rdzenie energooszczędne (E)"),
+                Description = eCores.Count > 0 ? T($"{eCores.Count} E-core logical processor(s).", $"Procesory logiczne rdzeni E: {eCores.Count}.") : T("No efficiency cores detected.", "Nie wykryto rdzeni energooszczędnych."),
                 IsAvailable = eCores.Count > 0,
-                UnavailableReason = anyKnown ? "No efficiency cores detected on this CPU." : "Topology classification is Unknown on this system.",
+                UnavailableReason = anyKnown ? T("No efficiency cores detected on this CPU.", "Ten procesor nie ma rdzeni energooszczędnych.") : T("Topology classification is Unknown on this system.", "Klasyfikacja topologii jest nieznana w tym systemie."),
                 LogicalProcessors = eCores
             });
 
             result.Add(new CorePreset
             {
                 Id = "physical",
-                DisplayName = "Physical cores without SMT",
-                Description = physical.Count > 0 ? $"{physical.Count} physical core(s), first thread only." : "SMT layout unknown.",
+                DisplayName = T("Physical cores without SMT", "Rdzenie fizyczne bez SMT"),
+                Description = physical.Count > 0 ? T($"{physical.Count} physical core(s), first thread only.", $"Rdzenie fizyczne: {physical.Count}, tylko pierwszy wątek.") : T("SMT layout unknown.", "Układ SMT nieznany."),
                 IsAvailable = physical.Count > 0 && physical.Count < all.Count,
                 UnavailableReason = physical.Count >= all.Count
-                    ? "No SMT threads detected; all cores are already physical."
-                    : "SMT layout is Unknown on this system.",
+                    ? T("No SMT threads detected; all cores are already physical.", "Nie wykryto wątków SMT; wszystkie rdzenie są już fizyczne.")
+                    : T("SMT layout is Unknown on this system.", "Układ SMT jest nieznany w tym systemie."),
                 LogicalProcessors = physical
             });
 

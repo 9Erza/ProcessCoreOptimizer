@@ -1,6 +1,6 @@
 #Requires -Version 5.1
 <#
-  Repeatable 2.0.0 portable ZIP build (no installer, no registry, no services):
+  Repeatable portable ZIP build (no installer, no registry, no services):
   1. clean dotnet publish (self-contained single-file win-x64, FolderProfile)
   2. stage publish output + README-Portable.txt into release-staging/
   3. Compress-Archive to ProcessCoreOptimizer_Portable_<version>_win-x64.zip

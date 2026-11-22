@@ -1,5 +1,67 @@
 # Lista zmian
 
+## Process Core Optimizer 2.1.0
+
+**Data wydania: 2026-11-22** · Windows 10/11 x64 · Instalator: `ProcessCoreOptimizer_Setup_2.1.0.exe`
+
+Przeprojektowany, szybszy interfejs z pełnym tłumaczeniem na polski, niezawodny
+autostart i poprawki w całym silniku affinity / CPU Sets. Instalacja 2.1.0 na
+wersji 2.0.0 aktualizuje ją w miejscu; profile i ustawienia zostają zachowane.
+
+### Najważniejsze
+
+- **Interfejs 2.1** — minimalistyczny ciemny wygląd, boczna nawigacja ikonami, karty i nagłówki stron.
+- **Natywne okno Windows 11** — zaokrąglone rogi, Snap Layouts, ciemna ramka, kompozycja GPU.
+- **Naprawiony autostart** — rejestracja po kreatorze, samonaprawa, przycisk Napraw.
+- **Poprawki silnika CPU** — chronione gry, CPU Sets a stara affinity, ponowne stosowanie przy rozjazdach.
+- **Pełne tłumaczenie na polski** — presety rdzeni, statusy, dziennik aktywności i przyciski okna.
+
+### Dodano
+
+- Ustawienia → Uruchamianie: przycisk **Napraw**, który ponownie rejestruje wpis autostartu.
+- Kontrola rozjazdów: zastosowane instancje są sprawdzane co 10 s i ponownie
+  ustawiane (z limitem), gdy gra lub launcher zresetuje priorytet, affinity albo CPU Sets.
+- Snap Layouts na przycisku maksymalizacji (Windows 11) i Aero Snap.
+- Przetłumaczone statusy w Diagnostyce, kolumna statusu w Procesach i nazwy przycisków okna.
+
+### Zmieniono
+
+- Cały interfejs przebudowany: nowa paleta z jednym kolorem akcentu, przyciski
+  główne / drugorzędne / subtelne, przełączniki w Ustawieniach, filtry-chipy, pole
+  wyszukiwania z podpowiedzią, ciemne podpowiedzi i menu kontekstowe, smukłe paski
+  przewijania, obwódka fokusu.
+- Okno używa natywnego WindowChrome zamiast renderowanego programowo okna warstwowego
+  (mniejsze użycie CPU/GPU przy otwartym oknie).
+- CPU i topologia: kafelki statystyk, układ dwukolumnowy presety / mapa rdzeni, obciążenie na żywo.
+- Sprzęt: karty metryk; RAM pokazuje zajęty / łącznie; brak temperatury pokazuje „—”.
+- Teksty zapisane wielką literą tylko na początku zdania (PL i EN).
+- Zadanie logowania z uprawnieniami administratora działa z normalnym priorytetem.
+
+### Naprawiono
+
+- PCO nie uruchamiał się z Windows: wybór autostartu w kreatorze był
+  zapisywany, ale nie rejestrowany; nieaktualny wpis Run albo flaga „wyłączone”
+  w Menedżerze zadań → Aplikacje autostartu blokowały uruchomienie.
+- Drugie uruchomienie przywołuje działające okno; duplikaty z autostartu kończą się po cichu.
+- Profile przypisane do ścieżki działają z grami uruchomionymi jako administrator /
+  z anty-cheatem (ścieżka EXE przez QueryFullProcessImageName).
+- CPU Sets nie działały, gdy wcześniejszy profil Affinity zostawił ograniczoną twardą affinity.
+- Ręczne Zastosuj było cofane przez watcher, gdy włączony profil się różnił.
+- Aktualizacja profilu usuwała profile ukryte przez filtr listy.
+- Profile tylko z EcoQoS znikały przy wczytaniu; duplikat tracił EcoQoS.
+- Profile tylko z priorytetem czyściły wybór rdzeni.
+- Edytor profilu przyjmował maski spoza tego CPU; domyślna maska obejmuje wszystkie rdzenie.
+- Obciążenie rdzeni w zakładce CPU i topologia zamarzało; podsumowanie podglądu presetu się nie pokazywało.
+- Nieprzetłumaczone etykiety w szczegółach procesu, nagłówki kolumn Diagnostyki,
+  przycisk „Nowa” w Smart Rules, ucięte etykiety w Diagnostyce i Ustawieniach.
+
+### Instalacja
+
+Pobierz `ProcessCoreOptimizer_Setup_2.1.0.exe` z GitHub Releases i sprawdź SHA-256
+podany w notatkach wydania. Instalacja na 2.0.0 aktualizuje ją w miejscu: instalator
+zamyka działający PCO, podmienia pliki programu i nie rusza
+`%APPDATA%\ProcessCoreOptimizer` (profile, ustawienia, reguły).
+
 ## Process Core Optimizer 2.0.0
 
 **Data wydania: 2026-11-04** · Windows 10/11 x64 · Instalator: `ProcessCoreOptimizer_Setup_2.0.0.exe`

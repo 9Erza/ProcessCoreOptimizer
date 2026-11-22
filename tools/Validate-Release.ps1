@@ -1,13 +1,13 @@
 #Requires -Version 5.1
 <#
-  PCO 2.0.0 release artifact validation (no install, no VM).
+  PCO release artifact validation (no install, no VM).
   Checks: version consistency, AppId stability, original icon presence +
   hash, payload EXE metadata, forbidden branding scan, installer presence.
   Prints PASS/FAIL per check and a final manifest block.
   NOT verified here (see docs/INSTALLER.md): real install/upgrade/uninstall.
 #>
 param(
-    [string]$Version = "2.0.0",
+    [string]$Version = "2.1.0",
     [string]$ExpectedAppId = "{6AA13087-A3D7-4501-9AAD-52D4CAC7668F}",
     [string]$ExpectedIconSha256 = "7FAF4AF810335B4604C4C300A90559111539890CDEB5BC1D23A72D13CF5285DB"
 )

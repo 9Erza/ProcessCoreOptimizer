@@ -12,14 +12,28 @@
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4?style=flat-square)
 [![CI](https://github.com/9Erza/ProcessCoreOptimizer/actions/workflows/ci.yml/badge.svg)](https://github.com/9Erza/ProcessCoreOptimizer/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-2EA44F?style=flat-square)](LICENSE)
-![Release](https://img.shields.io/badge/release-v2.0.0-2EA44F?style=flat-square)
+![Release](https://img.shields.io/badge/release-v2.1.0-2EA44F?style=flat-square)
 
 </div>
 
 > [!NOTE]
-> **Ostatnie publiczne wydanie: v2.0.0** ([GitHub Releases](https://github.com/9Erza/ProcessCoreOptimizer/releases)).
+> **Ostatnie publiczne wydanie: v2.1.0** ([GitHub Releases](https://github.com/9Erza/ProcessCoreOptimizer/releases)).
 > Lekkie, samodzielne narzędzie do zarządzania CPU procesów.
 > Bez ukrytych optymalizacji i zbędnego obciążenia — każda zmiana jest jawna, odwracalna i logowana.
+
+## Co nowego w 2.1
+
+- **Interfejs 2.1:** nowy, minimalistyczny ciemny interfejs z boczną nawigacją
+  ikonami, natywnymi zaokrąglonymi rogami Windows 11 i Snap Layouts, oknem
+  renderowanym przez GPU oraz pełnym tłumaczeniem na polski (presety rdzeni,
+  statusy, dziennik aktywności).
+- **Naprawiony autostart:** wpis autostartu jest rejestrowany po kreatorze
+  pierwszego uruchomienia, naprawiany automatycznie i odblokowywany, gdy
+  wyłączono go w Menedżerze zadań; nowy przycisk **Napraw** w Ustawieniach.
+- **Poprawki silnika CPU:** profile przypisane do ścieżki działają z grami
+  uruchomionymi jako administrator / z anty-cheatem, CPU Sets poszerzają starą
+  twardą affinity, rozjazdy są ponownie stosowane, a ręczne Zastosuj nie jest
+  już cofane przez watcher.
 
 ## Co nowego w 2.0
 
@@ -47,7 +61,7 @@
 - **Testy:** 286 zaliczonych + 3 warunkowe testy integracyjne, zielone CI (build + testy + `git diff --check`).
 
 Zobacz [CHANGELOG.md](CHANGELOG.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-i [docs/RELEASE_NOTES_2.0.0.pl.md](docs/RELEASE_NOTES_2.0.0.pl.md).
+oraz notatki wydania [2.1.0](docs/RELEASE_NOTES_2.1.0.pl.md) i [2.0.0](docs/RELEASE_NOTES_2.0.0.pl.md).
 
 ## Czym jest Process Core Optimizer?
 
@@ -159,8 +173,8 @@ Ręczne akcje **Apply / Save / Update** używają `force: true` i omijają cache
 
 ## Instalacja i uruchomienie
 
-> **Status wydania:** aktualne publiczne wydanie to **v2.0.0**.
-> Pobierz `ProcessCoreOptimizer_Setup_2.0.0.exe` z
+> **Status wydania:** aktualne publiczne wydanie to **v2.1.0**.
+> Pobierz `ProcessCoreOptimizer_Setup_2.1.0.exe` z
 > [GitHub Releases](https://github.com/9Erza/ProcessCoreOptimizer/releases),
 > zweryfikuj SHA-256 z opisu wydania i uruchom instalator
 > (Windows 10/11 x64, kreator EN+PL). Instalator nie ma jeszcze podpisu EV:
@@ -168,9 +182,9 @@ Ręczne akcje **Apply / Save / Update** używają `force: true` i omijają cache
 >
 > Aktualizacja z v1.3.0 **nie** jest aktualizacją in-place: najpierw odinstaluj 1.3.0
 > (profile/ustawienia w `%APPDATA%\ProcessCoreOptimizer` zostają zachowane),
-> potem zainstaluj 2.0.0.
+> potem zainstaluj 2.1.0. Instalacja 2.1.0 na 2.0.0 aktualizuje ją w miejscu.
 
-1. Uruchom instalator z assetu wydania 2.0.0 na GitHub.
+1. Uruchom instalator z assetu najnowszego wydania na GitHub.
 2. Uruchom z Menu Start (opcjonalny skrót na pulpicie).
 3. Opcjonalne flagi startu: `--minimized`, `--tray`, `--no-update-check`, `--safe-mode`.
 
@@ -290,7 +304,7 @@ benchmarki PresentMon, Companion).
 
 ## Changelog
 
-Zobacz [CHANGELOG.pl.md](CHANGELOG.pl.md). Wersja kodu na tej gałęzi: **v2.0.0 (stabilna, opublikowana)**; zobacz [GitHub Releases](https://github.com/9Erza/ProcessCoreOptimizer/releases).
+Zobacz [CHANGELOG.pl.md](CHANGELOG.pl.md). Wersja kodu na tej gałęzi: **v2.1.0 (stabilna, opublikowana)**; zobacz [GitHub Releases](https://github.com/9Erza/ProcessCoreOptimizer/releases).
 Przegląd techniczny: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 Bez wyraźnej zgody nie publikujemy z automatyzacji release, instalatora ani podbicia wersji.
 
