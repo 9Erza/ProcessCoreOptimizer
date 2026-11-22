@@ -24,6 +24,13 @@ namespace ProcessCoreOptimizer.WPF.Services
 
         private const string RunKeyPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
 
+        /// <summary>
+        /// Where Task Manager / Settings → Startup apps store the per-entry
+        /// enabled/disabled flag. A disabled flag survives rewriting the Run
+        /// value, so Windows keeps skipping PCO at logon until it is cleared.
+        /// </summary>
+        private const string StartupApprovedRunKeyPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run";
+
         private readonly string _registryValueName;
         private readonly string _taskName;
         private readonly ITaskSchedulerQuery _taskQuery;
@@ -127,7 +134,8 @@ namespace ProcessCoreOptimizer.WPF.Services
                 return new(true, full, args,
                     full != null && File.Exists(full),
                     PathsEqual(full, CurrentExecutablePath),
-                    string.Equals(args, desired.Arguments, StringComparison.OrdinalIgnoreCase));
+                    string.Equals(args, desired.Arguments, StringComparison.OrdinalIgnoreCase),
+                    DisabledInStartupApps: IsDisabledInStartupApps());
             }
             catch (Exception ex)
             {
@@ -142,6 +150,7 @@ namespace ProcessCoreOptimizer.WPF.Services
                 using var key = Registry.CurrentUser.OpenSubKey(RunKeyPath, writable: true)
                     ?? Registry.CurrentUser.CreateSubKey(RunKeyPath, writable: true);
                 key?.DeleteValue(_registryValueName, throwOnMissingValue: false);
+                ClearStartupApprovedFlag();
                 return new StartupOperationResult(true);
             }
             catch (UnauthorizedAccessException ex)
@@ -167,6 +176,12 @@ namespace ProcessCoreOptimizer.WPF.Services
                 if (key == null) return new StartupOperationResult(false, Error: "Registry Run key is unavailable.");
                 key.SetValue(_registryValueName, expected, RegistryValueKind.String);
 
+                // The user asked PCO to start with Windows: a stale "disabled"
+                // flag from Task Manager would make Windows skip the entry anyway.
+                ClearStartupApprovedFlag();
+                if (IsDisabledInStartupApps())
+                    return new StartupOperationResult(false, Error: "Windows still lists the startup entry as disabled (Startup apps).");
+
                 string? actual = key.GetValue(_registryValueName) as string;
                 if (!string.Equals(actual, expected, StringComparison.Ordinal))
                     return new StartupOperationResult(false, Error: "Registry read-back verification failed.");
@@ -179,6 +194,42 @@ namespace ProcessCoreOptimizer.WPF.Services
             catch (Exception ex)
             {
                 return new StartupOperationResult(false, Error: ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Reads the Explorer StartupApproved flag for PCO's Run value. Windows
+        /// stores a 12-byte blob whose first byte is even (0x02/0x06) when the
+        /// entry is enabled and odd (0x03/0x07) when the user disabled it.
+        /// A missing value means enabled.
+        /// </summary>
+        private bool IsDisabledInStartupApps()
+        {
+            try
+            {
+                using var key = Registry.CurrentUser.OpenSubKey(StartupApprovedRunKeyPath, writable: false);
+                return IsStartupApprovedDisabled(key?.GetValue(_registryValueName) as byte[]);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>Pure decoder for the StartupApproved blob (testable).</summary>
+        public static bool IsStartupApprovedDisabled(byte[]? blob) =>
+            blob != null && blob.Length > 0 && (blob[0] & 0x01) != 0;
+
+        private void ClearStartupApprovedFlag()
+        {
+            try
+            {
+                using var key = Registry.CurrentUser.OpenSubKey(StartupApprovedRunKeyPath, writable: true);
+                key?.DeleteValue(_registryValueName, throwOnMissingValue: false);
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug($"Could not clear StartupApproved flag: {ex.Message}");
             }
         }
 
@@ -303,7 +354,7 @@ namespace ProcessCoreOptimizer.WPF.Services
     <RunOnlyIfIdle>false</RunOnlyIfIdle>
     <WakeToRun>false</WakeToRun>
     <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
-    <Priority>7</Priority>
+    <Priority>5</Priority>
   </Settings>
   <Actions Context=""Author"">
     <Exec>

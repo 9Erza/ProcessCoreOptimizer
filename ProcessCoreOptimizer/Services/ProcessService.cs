@@ -456,12 +456,143 @@ namespace ProcessCoreOptimizer.WPF.Services
                     return $"ERR_CPUSETS_{error}";
                 }
 
-                return $"OK_CPUSETS_{selectedCpuSetIds.Length}";
+                // CPU Sets are only a preference inside the hard affinity mask. A
+                // restricted mask left behind by an earlier Affinity profile (or a
+                // manual pin) silently overrode the CPU Sets choice, so widen it
+                // back to the full system mask. The pre-mutation baseline was
+                // captured before this call, so session restore still works.
+                bool widened = WidenRestrictedAffinity(pid, target);
+                return widened
+                    ? $"OK_CPUSETS_{selectedCpuSetIds.Length}"
+                    : $"OK_CPUSETS_{selectedCpuSetIds.Length}_AFFINITY_STILL_RESTRICTED";
             }
             finally
             {
                 NativeMethods.CloseHandle(hProc);
             }
+        }
+
+        /// <summary>
+        /// Resets a restricted process affinity to the system mask. Returns true
+        /// when the affinity is already unrestricted or was widened; false when
+        /// the OS refused (the caller reports it, CPU Sets stay applied).
+        /// </summary>
+        private bool WidenRestrictedAffinity(int pid, ProcessMutationTarget target)
+        {
+            IntPtr hProc = NativeMethods.OpenProcess(
+                NativeMethods.PROCESS_SET_INFORMATION | NativeMethods.PROCESS_QUERY_LIMITED_INFORMATION,
+                false, pid);
+            if (hProc == IntPtr.Zero)
+            {
+                return !IsAffinityRestricted(pid);
+            }
+
+            try
+            {
+                if (!TryGetProcessStartTimeUtc(hProc, out DateTime startUtc) || startUtc != target.StartTimeUtc)
+                    return false;
+                if (!NativeMethods.GetProcessAffinityMask(hProc, out UIntPtr processMask, out UIntPtr systemMask))
+                    return false;
+
+                ulong current = processMask.ToUInt64();
+                ulong system = systemMask.ToUInt64();
+                // 0 = the process spans several processor groups: nothing to widen.
+                if (current == 0 || system == 0 || current == system) return true;
+                return NativeMethods.SetProcessAffinityMask(hProc, systemMask);
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug($"Could not widen affinity for PID {pid}: {ex.Message}");
+                return false;
+            }
+            finally
+            {
+                NativeMethods.CloseHandle(hProc);
+            }
+        }
+
+        private static bool IsAffinityRestricted(int pid)
+        {
+            var mask = TryGetAffinityMasks(pid);
+            return mask.HasValue && mask.Value.Process != 0 && mask.Value.Process != mask.Value.System;
+        }
+
+        /// <summary>Process + system affinity masks via QUERY_LIMITED rights; null when unreadable.</summary>
+        public static (ulong Process, ulong System)? TryGetAffinityMasks(int pid)
+        {
+            IntPtr hProc = NativeMethods.OpenProcess(NativeMethods.PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
+            if (hProc == IntPtr.Zero) return null;
+            try
+            {
+                if (!NativeMethods.GetProcessAffinityMask(hProc, out UIntPtr processMask, out UIntPtr systemMask)) return null;
+                return (processMask.ToUInt64(), systemMask.ToUInt64());
+            }
+            catch
+            {
+                return null;
+            }
+            finally
+            {
+                NativeMethods.CloseHandle(hProc);
+            }
+        }
+
+        /// <summary>
+        /// Compares the live state of a process with what a profile requests.
+        /// true = something the profile controls was changed by someone else,
+        /// false = matches, null = could not be read (never treated as drift).
+        /// Read-only: needs PROCESS_QUERY_LIMITED_INFORMATION only.
+        /// </summary>
+        public virtual bool? DetectDrift(int pid, ProcessProfile profile, OptimizationMode mode, string priority, bool allowRealtimePriority, Dictionary<int, uint> cpuSetMap)
+        {
+            if (pid <= 0 || profile == null) return null;
+            bool anyRead = false;
+
+            if (profile.ApplyPriority && PriorityService.TryParse(priority, allowRealtimePriority, out ProcessPriorityClass wanted))
+            {
+                var live = TryGetPriority(pid);
+                if (live.HasValue)
+                {
+                    anyRead = true;
+                    if (live.Value != wanted) return true;
+                }
+            }
+
+            if (profile.ApplyCoreOptimization && profile.AffinityMask != 0)
+            {
+                if (mode == OptimizationMode.CpuSets)
+                {
+                    if (cpuSetMap.Count > 0 && TryReadCpuSetsState(pid, cpuSetMap, out long liveSets))
+                    {
+                        anyRead = true;
+                        long expected = profile.AffinityMask & KnownProcessorMask(cpuSetMap);
+                        if (liveSets != expected) return true;
+                    }
+                }
+                else
+                {
+                    var masks = TryGetAffinityMasks(pid);
+                    if (masks.HasValue && masks.Value.Process != 0)
+                    {
+                        anyRead = true;
+                        if (masks.Value.Process != unchecked((ulong)profile.AffinityMask)) return true;
+                    }
+                }
+            }
+
+            return anyRead ? false : null;
+        }
+
+        /// <summary>
+        /// Reads explicit process CPU Sets as a logical-processor mask.
+        /// Returns true with mask 0 when no explicit sets are assigned.
+        /// </summary>
+        private bool TryReadCpuSetsState(int pid, Dictionary<int, uint> cpuSetMap, out long mask)
+        {
+            mask = 0;
+            if (TryReadProcessDefaultCpuSets(pid, cpuSetMap, out mask, out string message)) return true;
+            mask = 0;
+            return message.StartsWith("No process CPU Sets", StringComparison.Ordinal);
         }
 
         private bool ClearCpuSets(int pid, ProcessMutationTarget target)
@@ -716,15 +847,10 @@ namespace ProcessCoreOptimizer.WPF.Services
                     return false;
                 }
 
-                string? livePath;
-                try
-                {
-                    livePath = process.MainModule?.FileName;
-                }
-                catch
-                {
-                    livePath = null;
-                }
+                // Only path-bound targets need the path; name-only targets skip the read.
+                string? livePath = string.IsNullOrWhiteSpace(target.ExecutablePath)
+                    ? null
+                    : ProcessIdentityValidator.TryGetProcessPath(process);
 
                 if (!string.Equals(
                     ProfileService.NormalizeProcessName(target.ProcessName),

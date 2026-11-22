@@ -37,7 +37,13 @@ namespace ProcessCoreOptimizer.WPF.Models
         MissingElevatedRunLevel,
         UnexpectedRegistryEntry,
         UnexpectedScheduledTask,
-        ReadFailed
+        ReadFailed,
+        /// <summary>
+        /// The Run value exists but Windows marks it disabled in
+        /// Task Manager / Settings → Startup apps (Explorer\StartupApproved\Run),
+        /// so Windows silently skips it at logon.
+        /// </summary>
+        DisabledInStartupApps
     }
 
     public enum StartupOperation
@@ -66,7 +72,8 @@ namespace ProcessCoreOptimizer.WPF.Models
         bool IsExpectedExecutable,
         bool IsExpectedArguments,
         bool ReadSucceeded = true,
-        string? Error = null);
+        string? Error = null,
+        bool DisabledInStartupApps = false);
 
     public sealed record ScheduledTaskStartupSnapshot(
         bool Exists,

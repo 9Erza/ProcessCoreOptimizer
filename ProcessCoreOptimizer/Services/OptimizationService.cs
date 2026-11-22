@@ -24,6 +24,22 @@ namespace ProcessCoreOptimizer.WPF.Services
         private readonly ILogger _logger;
         private readonly Dictionary<ProcessInstanceKey, string> _appliedProfileSignatures = new();
         private readonly Dictionary<ProcessInstanceKey, (DateTimeOffset ExpiresAt, string Reason)> _suspensions = new();
+        private readonly Dictionary<ProcessInstanceKey, DateTimeOffset> _lastVerifiedAt = new();
+        private readonly Dictionary<ProcessInstanceKey, int> _driftReapplies = new();
+
+        /// <summary>
+        /// How often an already-applied instance is re-checked against the OS.
+        /// Many games, launchers and anti-cheat helpers reset priority/affinity
+        /// a few seconds after start; without this check the cache kept saying
+        /// "already applied" while the game ran unpinned.
+        /// </summary>
+        public TimeSpan DriftCheckInterval { get; set; } = TimeSpan.FromSeconds(10);
+
+        /// <summary>
+        /// Upper bound of automatic re-applies per instance after drift, so PCO
+        /// never fights an application that keeps overriding its own settings.
+        /// </summary>
+        public int MaxDriftReapplies { get; set; } = 5;
         private readonly object _cacheLock = new();
 
         public OptimizationService(ProcessService processService, Func<Dictionary<int, uint>> cpuSetMapProvider, SessionRestoreService? restoreService = null)
@@ -69,6 +85,33 @@ namespace ProcessCoreOptimizer.WPF.Services
                     }
                 }
             }
+            finally
+            {
+                foreach (var proc in live) proc.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Lifts suspensions for every live instance of a process, so an explicit
+        /// user action (save/update profile, manual apply) is not silently skipped.
+        /// </summary>
+        public void ClearSuspensionsForProcess(string processName)
+        {
+            string normalized = ProfileService.NormalizeProcessName(processName);
+            Process[] live = Array.Empty<Process>();
+            try
+            {
+                live = Process.GetProcessesByName(normalized);
+                lock (_cacheLock)
+                {
+                    foreach (var proc in live)
+                    {
+                        try { _suspensions.Remove(ProcessScannerService.CreateInstanceKey(proc)); }
+                        catch { }
+                    }
+                }
+            }
+            catch { }
             finally
             {
                 foreach (var proc in live) proc.Dispose();
@@ -327,9 +370,15 @@ namespace ProcessCoreOptimizer.WPF.Services
             var mode = NormalizeOptimizationMode(profile.OptimizationMode);
             string signature = BuildProfileSignature(profile, priority, mode, allowRealtimePriority);
 
+            bool driftReapply = false;
             lock (_cacheLock)
             {
                 if (!force && _appliedProfileSignatures.TryGetValue(key, out string? existingSignature) && existingSignature == signature)
+                {
+                    driftReapply = ShouldReapplyAfterDriftLocked(key, profile, mode, priority, allowRealtimePriority);
+                }
+
+                if (!force && !driftReapply && _appliedProfileSignatures.TryGetValue(key, out existingSignature) && existingSignature == signature)
                 {
                     return new OptimizationResult
                     {
@@ -428,11 +477,19 @@ namespace ProcessCoreOptimizer.WPF.Services
                 coreMessage, priorityMessage,
                 profile.EcoQos.HasValue, ecoMessage);
 
+            if (driftReapply)
+            {
+                _logger.Info($"Settings of '{processName}' (PID {key.ProcessId}) were changed by another program; profile re-applied: {status}.");
+            }
+
             lock (_cacheLock)
             {
                 if (status == OperationStatus.FullyApplied)
                 {
+                    if (!_appliedProfileSignatures.TryGetValue(key, out string? previous) || previous != signature)
+                        _driftReapplies.Remove(key);
                     _appliedProfileSignatures[key] = signature;
+                    _lastVerifiedAt[key] = DateTimeOffset.UtcNow;
                 }
                 else
                 {
@@ -465,6 +522,41 @@ namespace ProcessCoreOptimizer.WPF.Services
                 RequestedPriority = profile.ApplyPriority,
                 RequestedEcoQos = profile.EcoQos.HasValue
             };
+        }
+
+        /// <summary>
+        /// Called under the cache lock for an instance whose signature is cached.
+        /// Re-reads the live state at most every <see cref="DriftCheckInterval"/>
+        /// and allows a bounded number of re-applies when it no longer matches.
+        /// Unknown reads (null) never trigger a re-apply.
+        /// </summary>
+        private bool ShouldReapplyAfterDriftLocked(ProcessInstanceKey key, ProcessProfile profile, OptimizationMode mode, string priority, bool allowRealtimePriority)
+        {
+            var now = DateTimeOffset.UtcNow;
+            if (_lastVerifiedAt.TryGetValue(key, out var last) && now - last < DriftCheckInterval) return false;
+            _lastVerifiedAt[key] = now;
+
+            _driftReapplies.TryGetValue(key, out int used);
+            if (used >= MaxDriftReapplies) return false;
+
+            bool? drifted;
+            try
+            {
+                drifted = _processService.DetectDrift(key.ProcessId, profile, mode, priority, allowRealtimePriority, _cpuSetMapProvider());
+            }
+            catch
+            {
+                drifted = null;
+            }
+
+            if (drifted != true) return false;
+            _driftReapplies[key] = used + 1;
+            if (used + 1 == MaxDriftReapplies)
+            {
+                _logger.Warn($"PID {key.ProcessId} ('{profile.ProcessName}') keeps overriding its CPU settings; PCO stops re-applying after {MaxDriftReapplies} attempts.");
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -536,7 +628,9 @@ namespace ProcessCoreOptimizer.WPF.Services
                 {
                     foreach (var process in processes)
                     {
-                        _appliedProfileSignatures.Remove(ProcessScannerService.CreateInstanceKey(process));
+                        var key = ProcessScannerService.CreateInstanceKey(process);
+                        _appliedProfileSignatures.Remove(key);
+                        _driftReapplies.Remove(key);
                     }
                 }
             }
@@ -555,12 +649,21 @@ namespace ProcessCoreOptimizer.WPF.Services
         /// </summary>
         public void ClearProfileCacheForKey(ProcessInstanceKey key)
         {
-            lock (_cacheLock) _appliedProfileSignatures.Remove(key);
+            lock (_cacheLock)
+            {
+                _appliedProfileSignatures.Remove(key);
+                _driftReapplies.Remove(key);
+            }
         }
 
         public void ClearAllCache()
         {
-            lock (_cacheLock) _appliedProfileSignatures.Clear();
+            lock (_cacheLock)
+            {
+                _appliedProfileSignatures.Clear();
+                _driftReapplies.Clear();
+                _lastVerifiedAt.Clear();
+            }
         }
 
         public void CleanupStaleCache(HashSet<ProcessInstanceKey> activeInstances)
@@ -575,6 +678,12 @@ namespace ProcessCoreOptimizer.WPF.Services
                 foreach (var staleKey in _suspensions.Keys.Where(k => !activeInstances.Contains(k)).ToList())
                 {
                     _suspensions.Remove(staleKey);
+                }
+
+                foreach (var staleKey in _lastVerifiedAt.Keys.Where(k => !activeInstances.Contains(k)).ToList())
+                {
+                    _lastVerifiedAt.Remove(staleKey);
+                    _driftReapplies.Remove(staleKey);
                 }
 
                 PruneSuspensionsLocked();

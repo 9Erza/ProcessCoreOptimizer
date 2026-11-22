@@ -53,10 +53,7 @@ namespace ProcessCoreOptimizer.WPF.Services
             }
 
             var final = StartupConfigurationPlanner.Evaluate(desired, await _backend.ReadActualAsync(desired, cancellationToken).ConfigureAwait(false));
-            bool healthy = !final.Reasons.Contains(StartupReason.ReadFailed) &&
-                (desired.StartWithWindows
-                    ? desired.RunElevated ? final.State == StartupState.ElevatedTask : final.State == StartupState.Registry
-                    : final.State == StartupState.Disabled);
+            bool healthy = StartupConfigurationPlanner.IsHealthy(desired, final);
             _logger.Info($"Startup final evaluation. State={final.State}; Reasons={string.Join(',', final.Reasons)}; Success={healthy}.");
             return new(healthy, elevationRequired, elevationCancelled, attempted, final, healthy ? null : "Startup configuration differs from the requested configuration.");
         }

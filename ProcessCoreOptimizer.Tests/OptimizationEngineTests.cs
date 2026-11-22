@@ -19,6 +19,14 @@ internal sealed class FakeProcessService : ProcessService
     public Func<int, ProcessPriorityClass, bool>? PriorityBehavior;
     public Func<int, long, bool>? AffinityBehavior;
     public Func<int, bool>? ClearCpuSetsBehavior;
+    public Func<bool?>? DriftBehavior;
+    public int DriftChecks;
+
+    public override bool? DetectDrift(int pid, ProcessProfile profile, OptimizationMode mode, string priority, bool allowRealtimePriority, Dictionary<int, uint> cpuSetMap)
+    {
+        DriftChecks++;
+        return DriftBehavior?.Invoke();
+    }
 
     public override string ApplyCoreOptimization(
         int pid, long mask, OptimizationMode mode, Dictionary<int, uint> cpuSetMap,
