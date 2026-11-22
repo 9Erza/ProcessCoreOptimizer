@@ -13,6 +13,20 @@ namespace ProcessCoreOptimizer.WPF.Helpers
         public const uint PROCESS_SET_INFORMATION = 0x0200;
         public const uint PROCESS_SET_LIMITED_INFORMATION = 0x2000;
 
+        /// <summary>
+        /// Full image path with only PROCESS_QUERY_LIMITED_INFORMATION. Unlike
+        /// Process.MainModule (needs VM_READ + module enumeration) it works for
+        /// elevated and anti-cheat protected games and costs one syscall.
+        /// </summary>
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode, EntryPoint = "QueryFullProcessImageNameW")]
+        public static extern bool QueryFullProcessImageName(IntPtr hProcess, uint dwFlags, char[] lpExeName, ref uint lpdwSize);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool GetProcessAffinityMask(IntPtr hProcess, out UIntPtr lpProcessAffinityMask, out UIntPtr lpSystemAffinityMask);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool SetProcessAffinityMask(IntPtr hProcess, UIntPtr dwProcessAffinityMask);
+
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern IntPtr OpenProcess(uint processAccess, bool bInheritHandle, int processId);
 

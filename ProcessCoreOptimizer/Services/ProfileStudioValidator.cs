@@ -21,7 +21,9 @@ namespace ProcessCoreOptimizer.WPF.Services
             string? processName,
             string? maskText,
             bool applyCoreOptimization,
-            bool applyPriority)
+            bool applyPriority,
+            bool ecoQosRequested = false,
+            long knownProcessorMask = 0)
         {
             if (string.IsNullOrWhiteSpace(ProfileService.NormalizeProcessName(processName ?? string.Empty)))
             {
@@ -33,13 +35,13 @@ namespace ProcessCoreOptimizer.WPF.Services
                 };
             }
 
-            if (!applyCoreOptimization && !applyPriority)
+            if (!applyCoreOptimization && !applyPriority && !ecoQosRequested)
             {
                 return new ValidationResult
                 {
                     Ok = false,
-                    ErrorEn = "Enable at least one action: CPU cores or priority.",
-                    ErrorPl = "Włącz co najmniej jedną akcję: rdzenie CPU lub priorytet."
+                    ErrorEn = "Enable at least one action: CPU cores, priority or EcoQoS.",
+                    ErrorPl = "Włącz co najmniej jedną akcję: rdzenie CPU, priorytet lub EcoQoS."
                 };
             }
 
@@ -53,6 +55,16 @@ namespace ProcessCoreOptimizer.WPF.Services
                         Ok = false,
                         ErrorEn = "Affinity mask must be a non-zero hex value (e.g. FF).",
                         ErrorPl = "Maska affinity musi być niezerową wartością hex (np. FF)."
+                    };
+                }
+
+                if (knownProcessorMask != 0 && (mask & ~knownProcessorMask) != 0)
+                {
+                    return new ValidationResult
+                    {
+                        Ok = false,
+                        ErrorEn = $"The mask selects processors this PC does not have (available: 0x{knownProcessorMask:X}).",
+                        ErrorPl = $"Maska wskazuje procesory, których ten komputer nie ma (dostępne: 0x{knownProcessorMask:X})."
                     };
                 }
             }

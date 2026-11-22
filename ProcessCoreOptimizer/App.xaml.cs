@@ -41,25 +41,22 @@ namespace ProcessCoreOptimizer.WPF
                 return;
             }
 
+            bool alreadyRunning;
             try
             {
                 _singleInstanceMutex = new Mutex(initiallyOwned: true, SingleInstanceMutexName, out bool createdNew);
-                if (!createdNew)
+                alreadyRunning = !createdNew;
+                if (alreadyRunning)
                 {
-                    WpfMessageBox.Show(
-                        "Process Core Optimizer is already running.",
-                        "Process Core Optimizer",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Information);
-
-                    Shutdown();
-                    return;
+                    _singleInstanceMutex.Dispose();
+                    _singleInstanceMutex = null;
                 }
             }
             catch (AbandonedMutexException)
             {
                 // Previous instance crashed without releasing the mutex.
                 // We now own it; continue startup instead of crashing.
+                alreadyRunning = false;
                 try
                 {
                     _singleInstanceMutex = Mutex.OpenExisting(SingleInstanceMutexName);
@@ -69,9 +66,87 @@ namespace ProcessCoreOptimizer.WPF
                     _singleInstanceMutex = null;
                 }
             }
+            catch (UnauthorizedAccessException)
+            {
+                // The mutex belongs to an elevated instance (e.g. started by the
+                // elevated logon task): a standard-user process may not open it.
+                // That still means PCO is running; never crash here.
+                alreadyRunning = true;
+            }
+
+            if (alreadyRunning)
+            {
+                // Ask the running instance to show itself. Autostart launches
+                // (--tray / --minimized) that lose the race exit silently instead
+                // of greeting the user with a modal box at logon.
+                bool signalled = SignalExistingInstance();
+                bool unattended = StartupOptions.StartToTray || StartupOptions.StartMinimized;
+                if (!signalled && !unattended)
+                {
+                    WpfMessageBox.Show(
+                        "Process Core Optimizer is already running.",
+                        "Process Core Optimizer",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                }
+
+                Shutdown();
+                return;
+            }
+
+            StartShowRequestListener();
 
             base.OnStartup(e);
             Services.StartupProfiler.Mark("App.OnStartup end");
+        }
+
+        private const string ShowRequestEventName = "ERZA.ProcessCoreOptimizer.ShowRequest";
+        private static EventWaitHandle? _showRequestEvent;
+        private static RegisteredWaitHandle? _showRequestWait;
+
+        private static bool SignalExistingInstance()
+        {
+            if (StartupOptions.StartToTray || StartupOptions.StartMinimized) return true;
+            try
+            {
+                using var handle = EventWaitHandle.OpenExisting(ShowRequestEventName);
+                return handle.Set();
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private void StartShowRequestListener()
+        {
+            try
+            {
+                _showRequestEvent?.Dispose();
+                _showRequestEvent = new EventWaitHandle(false, EventResetMode.AutoReset, ShowRequestEventName);
+                _showRequestWait = ThreadPool.RegisterWaitForSingleObject(_showRequestEvent, (_, _) =>
+                {
+                    try
+                    {
+                        Dispatcher.BeginInvoke(() =>
+                        {
+                            var window = MainWindow;
+                            if (window == null) return;
+                            window.Show();
+                            if (window.WindowState == WindowState.Minimized) window.WindowState = WindowState.Normal;
+                            window.Activate();
+                        });
+                    }
+                    catch
+                    {
+                        // Best effort: a failed show request must never crash PCO.
+                    }
+                }, null, Timeout.Infinite, executeOnlyOnce: false);
+            }
+            catch (Exception ex)
+            {
+                LoggerService.Instance.Debug($"Show-request listener unavailable: {ex.Message}");
+            }
         }
 
         /// <summary>
@@ -148,6 +223,13 @@ namespace ProcessCoreOptimizer.WPF
                     // Ignore shutdown cleanup errors.
                 }
             }
+
+            try
+            {
+                _showRequestWait?.Unregister(null);
+                _showRequestEvent?.Dispose();
+            }
+            catch { }
 
             LoggerService.Shared.Dispose();
             base.OnExit(e);

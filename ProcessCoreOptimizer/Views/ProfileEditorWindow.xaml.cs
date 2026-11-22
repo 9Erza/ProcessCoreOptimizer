@@ -30,7 +30,9 @@ namespace ProcessCoreOptimizer.WPF.Views
             NameBox.Text = draft.ProcessName ?? string.Empty;
             NameBox.IsEnabled = isNew;
             PathBox.Text = draft.ExecutablePath ?? string.Empty;
-            MaskBox.Text = ProfileStudioValidator.FormatMaskHex(draft.AffinityMask == 0 ? 0xFF : draft.AffinityMask);
+            MaskBox.Text = ProfileStudioValidator.FormatMaskHex(draft.AffinityMask == 0
+                ? ProcessService.KnownProcessorMask(new Dictionary<int, uint>())
+                : draft.AffinityMask);
             if (!draft.ApplyCoreOptimization) MaskBox.Text = ProfileStudioValidator.FormatMaskHex(0);
 
             PriorityBox.ItemsSource = allowRealtime
@@ -79,7 +81,9 @@ namespace ProcessCoreOptimizer.WPF.Views
         {
             var result = ProfileStudioValidator.Validate(
                 NameBox.Text, MaskBox.Text,
-                ApplyCoresBox.IsChecked == true, ApplyPriorityBox.IsChecked == true);
+                ApplyCoresBox.IsChecked == true, ApplyPriorityBox.IsChecked == true,
+                ecoQosRequested: EcoQosBox.IsChecked.HasValue,
+                knownProcessorMask: ProcessService.KnownProcessorMask(new Dictionary<int, uint>()));
             if (!result.Ok)
             {
                 ShowError(_isPolish ? result.ErrorPl : result.ErrorEn);

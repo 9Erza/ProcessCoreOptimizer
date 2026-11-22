@@ -82,15 +82,7 @@ namespace ProcessCoreOptimizer.WPF.Services
                     return false;
                 }
 
-                string? livePath;
-                try
-                {
-                    livePath = process.MainModule?.FileName;
-                }
-                catch
-                {
-                    livePath = null;
-                }
+                string? livePath = TryGetProcessPath(process);
 
                 // Snapshot name must still match (cheap pre-check before path logic).
                 if (!string.Equals(
@@ -109,8 +101,22 @@ namespace ProcessCoreOptimizer.WPF.Services
             }
         }
 
+        /// <summary>
+        /// Full EXE path of a live process, or null when the OS refuses.
+        /// Uses QueryFullProcessImageName (PROCESS_QUERY_LIMITED_INFORMATION),
+        /// which also succeeds for elevated or anti-cheat protected games where
+        /// Process.MainModule throws "Access denied". MainModule used to make
+        /// every path-bound profile silently skip such games.
+        /// </summary>
         public static string? TryGetProcessPath(Process process)
         {
+            if (process == null) return null;
+            int pid;
+            try { pid = process.Id; } catch { return null; }
+
+            string? path = TryGetProcessPath(pid);
+            if (path != null) return path;
+
             try
             {
                 return process.MainModule?.FileName;
@@ -118,6 +124,36 @@ namespace ProcessCoreOptimizer.WPF.Services
             catch
             {
                 return null;
+            }
+        }
+
+        public static string? TryGetProcessPath(int processId)
+        {
+            if (processId <= 4) return null;
+            IntPtr handle = IntPtr.Zero;
+            try
+            {
+                handle = Helpers.NativeMethods.OpenProcess(Helpers.NativeMethods.PROCESS_QUERY_LIMITED_INFORMATION, false, processId);
+                if (handle == IntPtr.Zero) return null;
+
+                var buffer = new char[1024];
+                uint size = (uint)buffer.Length;
+                if (!Helpers.NativeMethods.QueryFullProcessImageName(handle, 0, buffer, ref size))
+                {
+                    buffer = new char[32768];
+                    size = (uint)buffer.Length;
+                    if (!Helpers.NativeMethods.QueryFullProcessImageName(handle, 0, buffer, ref size)) return null;
+                }
+
+                return size == 0 ? null : new string(buffer, 0, (int)size);
+            }
+            catch
+            {
+                return null;
+            }
+            finally
+            {
+                if (handle != IntPtr.Zero) Helpers.NativeMethods.CloseHandle(handle);
             }
         }
 

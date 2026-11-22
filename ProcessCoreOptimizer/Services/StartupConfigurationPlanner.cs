@@ -76,7 +76,8 @@ namespace ProcessCoreOptimizer.WPF.Services
         }
 
         private static bool IsValidRegistry(RegistryStartupSnapshot item) =>
-            item.Exists && item.ExecutableExists && item.IsExpectedExecutable && item.IsExpectedArguments;
+            item.Exists && item.ExecutableExists && item.IsExpectedExecutable && item.IsExpectedArguments
+            && !item.DisabledInStartupApps;
 
         private static bool IsValidTask(ScheduledTaskStartupSnapshot item) =>
             item.Exists && item.Enabled && item.ExecutableExists && item.HasLogonTrigger
@@ -93,6 +94,39 @@ namespace ProcessCoreOptimizer.WPF.Services
             if (!item.ExecutableExists) yield return StartupReason.ExecutableMissing;
             if (!item.IsExpectedExecutable) yield return StartupReason.WrongExecutable;
             if (!item.IsExpectedArguments) yield return StartupReason.WrongArguments;
+            if (item.DisabledInStartupApps) yield return StartupReason.DisabledInStartupApps;
+        }
+
+        /// <summary>
+        /// True when an operation needs administrator rights (Task Scheduler
+        /// writes). Used to avoid surprise UAC prompts during unattended repair.
+        /// </summary>
+        public static bool RequiresElevation(StartupOperation operation) =>
+            operation is StartupOperation.CreateOrUpdateScheduledTask or StartupOperation.RemoveScheduledTask;
+
+        /// <summary>
+        /// True when the evaluation already matches the desired configuration.
+        /// </summary>
+        public static bool IsHealthy(DesiredStartupConfiguration desired, StartupConfigurationEvaluation evaluation)
+        {
+            if (evaluation.Reasons.Contains(StartupReason.ReadFailed)) return false;
+            if (!desired.StartWithWindows) return evaluation.State == StartupState.Disabled;
+            return desired.RunElevated
+                ? evaluation.State == StartupState.ElevatedTask
+                : evaluation.State == StartupState.Registry;
+        }
+
+        /// <summary>
+        /// Decides whether a drifted registration may be repaired silently at
+        /// launch: only when something is actually wrong, the state is readable,
+        /// and no step would raise a UAC prompt for a non-elevated process.
+        /// </summary>
+        public static bool CanAutoRepair(DesiredStartupConfiguration desired, StartupConfigurationEvaluation evaluation, bool isElevated)
+        {
+            if (IsHealthy(desired, evaluation)) return false;
+            if (evaluation.Reasons.Contains(StartupReason.ReadFailed)) return false;
+            if (evaluation.RequiredOperations.Count == 0) return false;
+            return isElevated || !evaluation.RequiredOperations.Any(RequiresElevation);
         }
 
         private static IEnumerable<StartupReason> TaskReasons(ScheduledTaskStartupSnapshot item)

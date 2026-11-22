@@ -118,6 +118,7 @@ namespace ProcessCoreOptimizer.WPF.Services
                 OptimizationMode = source.OptimizationMode,
                 ApplyPriority = source.ApplyPriority,
                 ApplyCoreOptimization = source.ApplyCoreOptimization,
+                EcoQos = source.EcoQos,
                 IsEnabled = false,
                 Notes = source.Notes,
                 CreatedAt = DateTime.UtcNow,
@@ -260,7 +261,9 @@ namespace ProcessCoreOptimizer.WPF.Services
                 // Priority-only profiles (ApplyCoreOptimization=false) legitimately have Mask==0.
                 // Only core-bound profiles require a non-zero mask.
                 .Where(p => !p.ApplyCoreOptimization || p.AffinityMask != 0)
-                .Where(p => p.ApplyPriority || p.ApplyCoreOptimization)
+                // EcoQoS-only profiles are valid too: dropping them here silently
+                // deleted them from profiles.json on the next load.
+                .Where(p => p.ApplyPriority || p.ApplyCoreOptimization || p.EcoQos.HasValue)
                 .GroupBy(p => BuildDedupKey(p), StringComparer.OrdinalIgnoreCase)
                 .Select(g => g.OrderBy(p => p.UpdatedAt).Last())
                 .OrderBy(p => p.ProcessName, StringComparer.OrdinalIgnoreCase);
