@@ -237,4 +237,15 @@
     <system:String x:Key="StrWinMaximize">Maksymalizuj</system:String>
     <system:String x:Key="StrWinRestore">Przywróć</system:String>
     <system:String x:Key="StrWinClose">Zamknij</system:String>
+    <system:String x:Key="StrOpFullyApplied">Zastosowano</system:String>
+    <system:String x:Key="StrOpPartiallyApplied">Częściowo</system:String>
+    <system:String x:Key="StrOpSkippedSuspended">Wstrzymano</system:String>
+    <system:String x:Key="StrOpFailed">Błąd</system:String>
+    <system:String x:Key="StrOpSkippedAlreadyApplied">Już zastosowane</system:String>
+    <system:String x:Key="StrOpSkippedIdentityMismatch">Inny proces (PID)</system:String>
+    <system:String x:Key="StrOpSkippedProtected">Proces chroniony</system:String>
+    <system:String x:Key="StrOpSkippedSystemLocation">Składnik Windows</system:String>
+    <system:String x:Key="StrOpSkippedNoPermission">Brak uprawnień</system:String>
+    <system:String x:Key="StrOpUnsupported">Nieobsługiwane</system:String>
+    <system:String x:Key="StrOpCancelled">Anulowano</system:String>
 </ResourceDictionary>

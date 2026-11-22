@@ -1,4 +1,6 @@
-; Process Core Optimizer 2.0.0 — Inno Setup script.
+; Process Core Optimizer — Inno Setup script (version from version.txt).
+; 2.1.0+ keeps the 2.0.0 AppId and install dir, so a newer Setup upgrades an
+; existing 2.x install in place (CloseApplications stops a running PCO first).
 ; Identity note: the historical 1.3.0 Setup.exe identity (AppId/ProductCode)
 ; is NOT recoverable from this repository (built externally, no .iss archived).
 ; This installer therefore uses a deliberate NEW identity documented here and in

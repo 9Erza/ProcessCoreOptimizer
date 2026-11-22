@@ -329,7 +329,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
 
         public string AppVersion { get; } = FormatDisplayVersion(Assembly.GetExecutingAssembly()
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-            .InformationalVersion ?? "2.0.0");
+            .InformationalVersion ?? "2.1.0");
 
         private static string FormatDisplayVersion(string informationalVersion)
         {
@@ -1281,7 +1281,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             // Kick the first scan immediately instead of waiting a full interval:
             // the scan runs async and the list fills as soon as data is ready.
             _ = RefreshStatisticsAsync();
-            AddLog($"System initialized. App Version v{AppVersion}");
+            AddLog(L($"System initialized. App Version v{AppVersion}", $"System uruchomiony. Wersja aplikacji v{AppVersion}"));
             if (AppSettings.CheckForUpdates && !ProcessCoreOptimizer.WPF.App.StartupOptions.DisableUpdateCheck)
             {
                 _ = CheckForUpdatesAsync();
@@ -1393,7 +1393,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             }
             catch (Exception ex)
             {
-                AddLog($"Refresh failed: {ex.Message}");
+                AddLog(L($"Refresh failed: {ex.Message}", $"Odświeżanie nie powiodło się: {ex.Message}"));
             }
             finally
             {
@@ -1547,7 +1547,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             }
             catch (Exception ex)
             {
-                AddLog($"Hardware monitor failed: {ex.Message}");
+                AddLog(L($"Hardware monitor failed: {ex.Message}", $"Monitor sprzętu nie działa: {ex.Message}"));
                 StopHardwareMonitor(closeSensors: true, resetMetrics: false);
             }
         }
@@ -1645,7 +1645,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             long mask = BuildSelectedCoreMask();
             if (mask == 0)
             {
-                AddLog("No CPU cores selected. Optimization was not applied.");
+                AddLog(L("No CPU cores selected. Optimization was not applied.", "Nie wybrano rdzeni CPU. Optymalizacja nie została zastosowana."));
                 return;
             }
 
@@ -1674,7 +1674,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             SelectedProcess.ModeTag = affected > 0 ? GetModeTag(mode) : string.Empty;
             SelectedProcess.Priority = TranslatePriority(priority);
 
-            AddLog($"Applied '{SelectedProcess.Name}' optimization: {GetModeTag(mode)}, {CountSelectedCores()} cores, priority {TranslatePriority(priority)} ({affected} process instance(s)).");
+            AddLog(L($"Applied '{SelectedProcess.Name}' optimization: {GetModeTag(mode)}, {CountSelectedCores()} cores, priority {TranslatePriority(priority)} ({affected} process instance(s)).", $"Zastosowano optymalizację '{SelectedProcess.Name}': {GetModeTag(mode)}, rdzenie: {CountSelectedCores()}, priorytet {TranslatePriority(priority)} (instancje procesu: {affected})."));
 
             // A one-off manual apply used to be reverted by the watcher within
             // seconds whenever an enabled saved profile for the same process
@@ -1701,7 +1701,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             long mask = BuildSelectedCoreMask();
             if (mask == 0)
             {
-                AddLog("Profile was not saved because no CPU cores are selected.");
+                AddLog(L("Profile was not saved because no CPU cores are selected.", "Profil nie został zapisany, bo nie wybrano rdzeni CPU."));
                 return;
             }
 
@@ -1736,7 +1736,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             SelectedProcess.ModeTag = GetModeTag(mode);
             SelectedProcess.Priority = TranslatePriority(rawPriority);
 
-            AddLog($"Saved and applied profile for '{SelectedProcess.Name}': {GetModeTag(mode)}, priority {TranslatePriority(rawPriority)} ({affected} process instance(s)).");
+            AddLog(L($"Saved and applied profile for '{SelectedProcess.Name}': {GetModeTag(mode)}, priority {TranslatePriority(rawPriority)} ({affected} process instance(s)).", $"Zapisano i zastosowano profil '{SelectedProcess.Name}': {GetModeTag(mode)}, priorytet {TranslatePriority(rawPriority)} (instancje procesu: {affected})."));
         }
 
         private void UpdateSelectedProfile()
@@ -1746,7 +1746,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             long mask = BuildSelectedCoreMask();
             if (mask == 0)
             {
-                AddLog("Profile was not updated because no CPU cores are selected.");
+                AddLog(L("Profile was not updated because no CPU cores are selected.", "Profil nie został zaktualizowany, bo nie wybrano rdzeni CPU."));
                 return;
             }
 
@@ -1793,7 +1793,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 activeProcess.Priority = TranslatePriority(rawPriority);
             }
 
-            AddLog($"Updated and applied profile for '{processName}': {GetModeTag(mode)}, priority {TranslatePriority(rawPriority)} ({affected} process instance(s)).");
+            AddLog(L($"Updated and applied profile for '{processName}': {GetModeTag(mode)}, priority {TranslatePriority(rawPriority)} ({affected} process instance(s)).", $"Zaktualizowano i zastosowano profil '{processName}': {GetModeTag(mode)}, priorytet {TranslatePriority(rawPriority)} (instancje procesu: {affected})."));
         }
 
         private void DeleteSelectedProfile()
@@ -1818,7 +1818,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 activeProcess.ModeTag = string.Empty;
             }
 
-            AddLog($"Deleted profile: '{name}'");
+            AddLog(L($"Deleted profile: '{name}'", $"Usunięto profil: '{name}'"));
             SelectedSavedProfile = null;
         }
 
@@ -1827,7 +1827,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             if (SelectedProcess == null) return;
             if (IsSafeMode)
             {
-                AddLog("Safe mode: session restore blocked, OS mutations disabled (--safe-mode).");
+                AddLog(L("Safe mode: session restore blocked, OS mutations disabled (--safe-mode).", "Tryb bezpieczny: przywracanie sesji zablokowane, zmiany w systemie wyłączone (--safe-mode)."));
                 return;
             }
             var result = _sessionRestore.RestoreForProcess(SelectedProcess.Name, _processService, _cpuSetMap);
@@ -1836,7 +1836,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             // Suspensions expire on their own; nothing persists.
             _optimizationService.SuspendLiveInstances(SelectedProcess.Name, TimeSpan.FromMinutes(5), "manual session restore");
             ClearAppliedProfileCache(SelectedProcess.Name);
-            AddLog($"Session restore for '{SelectedProcess.Name}': {result.Message} Automatic re-apply suspended for 5 minutes.");
+            AddLog(L($"Session restore for '{SelectedProcess.Name}': {result.Message} Automatic re-apply suspended for 5 minutes.", $"Przywrócenie sesji '{SelectedProcess.Name}': {result.Message} Automatyczne ponowne stosowanie wstrzymane na 5 minut."));
             RefreshWatcherStatus();
         }
 
@@ -1868,7 +1868,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             }
             catch (Exception ex)
             {
-                AddLog($"Could not read current affinity for '{processName}': {ex.Message}");
+                AddLog(L($"Could not read current affinity for '{processName}': {ex.Message}", $"Nie udało się odczytać bieżącej affinity '{processName}': {ex.Message}"));
             }
             finally
             {
@@ -1909,7 +1909,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             if (_safeModeNoticeShown) return;
             _safeModeNoticeShown = true;
             LoggerService.Instance.Info("Safe mode active: OS mutations disabled (--safe-mode).");
-            AddLog("Safe mode: observing only, OS mutations disabled (--safe-mode).");
+            AddLog(L("Safe mode: observing only, OS mutations disabled (--safe-mode).", "Tryb bezpieczny: tylko obserwacja, zmiany w systemie wyłączone (--safe-mode)."));
         }
 
         private bool _pausedNoticeShown;
@@ -1995,7 +1995,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             }
             catch (Exception ex)
             {
-                AddLog($"Diagnostics export failed: {ex.Message}");
+                AddLog(L($"Diagnostics export failed: {ex.Message}", $"Eksport diagnostyki nie powiódł się: {ex.Message}"));
             }
         }
 
@@ -2076,7 +2076,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             }
             catch (Exception ex)
             {
-                AddLog($"Rules evaluation failed: {ex.Message}");
+                AddLog(L($"Rules evaluation failed: {ex.Message}", $"Ocena reguł nie powiodła się: {ex.Message}"));
             }
         }
 
@@ -2114,25 +2114,25 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                     {
                         case OperationStatus.FullyApplied:
                             _ruleEngine.MarkApplied(rule.Id, d.Key, now);
-                            AddLog($"Rule '{rule.Name}' applied '{profile.DisplayName}' to PID {d.Key.ProcessId} via {source} ({d.Reason}).");
+                            AddLog(L($"Rule '{rule.Name}' applied '{profile.DisplayName}' to PID {d.Key.ProcessId} via {source} ({d.Reason}).", $"Reguła '{rule.Name}' zastosowała '{profile.DisplayName}' do PID {d.Key.ProcessId} ({source}, {d.Reason})."));
                             break;
                         case OperationStatus.PartiallyApplied:
                             // Half done; the remainder rides the watcher (partial results
                             // are never cached). Cooldown starts so the rule does not
                             // re-apply the successful half.
                             _ruleEngine.MarkApplied(rule.Id, d.Key, now);
-                            AddLog($"Rule '{rule.Name}' partially applied '{profile.DisplayName}' to PID {d.Key.ProcessId} via {source} ({d.Reason}): {first.Message}. Remainder via watcher.");
+                            AddLog(L($"Rule '{rule.Name}' partially applied '{profile.DisplayName}' to PID {d.Key.ProcessId} via {source} ({d.Reason}): {first.Message}. Remainder via watcher.", $"Reguła '{rule.Name}' częściowo zastosowała '{profile.DisplayName}' do PID {d.Key.ProcessId} ({source}, {d.Reason}): {first.Message}. Resztę dokończy watcher."));
                             break;
                         case OperationStatus.Failed:
                             _ruleEngine.ReportAttempt(rule.Id, d.Key, now,
                                 first.Status.IsRetryable() ? Services.RuleAttemptOutcome.FailedRetryable : Services.RuleAttemptOutcome.FailedPermanent);
-                            AddLog($"Rule '{rule.Name}' failed on PID {d.Key.ProcessId} via {source} ({d.Reason}): {first.Message}.");
+                            AddLog(L($"Rule '{rule.Name}' failed on PID {d.Key.ProcessId} via {source} ({d.Reason}): {first.Message}.", $"Reguła '{rule.Name}' nie powiodła się dla PID {d.Key.ProcessId} ({source}, {d.Reason}): {first.Message}."));
                             break;
                         default:
                             // Skips (identity mismatch, no permission, unsupported, suspended...):
                             // never present as applied; never hot-looped.
                             _ruleEngine.ReportAttempt(rule.Id, d.Key, now, Services.RuleAttemptOutcome.FailedPermanent);
-                            AddLog($"Rule '{rule.Name}' skipped PID {d.Key.ProcessId} via {source} ({d.Reason}): {first.Status} — {first.Message}.");
+                            AddLog(L($"Rule '{rule.Name}' skipped PID {d.Key.ProcessId} via {source} ({d.Reason}): {first.Status} — {first.Message}.", $"Reguła '{rule.Name}' pominęła PID {d.Key.ProcessId} ({source}, {d.Reason}): {first.Status} — {first.Message}."));
                             break;
                     }
                 }
@@ -2145,17 +2145,17 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                         // P1-1: suspend only this instance, not its same-name siblings.
                         _optimizationService.SuspendInstance(d.Key, TimeSpan.FromMinutes(5), "smart rule session restore");
                         _optimizationService.ClearProfileCacheForKey(d.Key);
-                        AddLog($"Rule '{rule.Name}' restored session for PID {d.Key.ProcessId} via {source} ({d.Reason}): {result.Message}");
+                        AddLog(L($"Rule '{rule.Name}' restored session for PID {d.Key.ProcessId} via {source} ({d.Reason}): {result.Message}", $"Reguła '{rule.Name}' przywróciła sesję PID {d.Key.ProcessId} ({source}, {d.Reason}): {result.Message}"));
                     }
                     else if (result.Failed > 0)
                     {
                         _ruleEngine.ReportAttempt(rule.Id, d.Key, now, Services.RuleAttemptOutcome.FailedRetryable);
-                        AddLog($"Rule '{rule.Name}' restore failed for PID {d.Key.ProcessId} via {source} ({d.Reason}): {result.Message}");
+                        AddLog(L($"Rule '{rule.Name}' restore failed for PID {d.Key.ProcessId} via {source} ({d.Reason}): {result.Message}", $"Reguła '{rule.Name}' nie przywróciła sesji PID {d.Key.ProcessId} ({source}, {d.Reason}): {result.Message}"));
                     }
                     else
                     {
                         _ruleEngine.ReportAttempt(rule.Id, d.Key, now, Services.RuleAttemptOutcome.FailedPermanent);
-                        AddLog($"Rule '{rule.Name}' restore skipped for PID {d.Key.ProcessId} via {source} ({d.Reason}): {result.Message}");
+                        AddLog(L($"Rule '{rule.Name}' restore skipped for PID {d.Key.ProcessId} via {source} ({d.Reason}): {result.Message}", $"Reguła '{rule.Name}' pominęła przywracanie PID {d.Key.ProcessId} ({source}, {d.Reason}): {result.Message}"));
                     }
                 }
             }
@@ -2172,7 +2172,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         {
             if (IsSafeMode)
             {
-                AddLog("Safe mode: manual apply blocked, OS mutations disabled (--safe-mode).");
+                AddLog(L("Safe mode: manual apply blocked, OS mutations disabled (--safe-mode).", "Tryb bezpieczny: ręczne stosowanie zablokowane, zmiany w systemie wyłączone (--safe-mode)."));
                 return 0;
             }
 
@@ -2254,7 +2254,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 IsClassificationUnknown = c.IsClassificationUnknown
             }).ToList();
 
-            foreach (var preset in Services.CorePresets.Build(dtos))
+            foreach (var preset in Services.CorePresets.Build(dtos, IsPolishLanguage))
             {
                 CorePresets.Add(preset);
             }
@@ -2279,7 +2279,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             var preset = CorePresets.FirstOrDefault(p => p.Id == presetId);
             if (preset == null || !preset.IsAvailable)
             {
-                AddLog($"Core preset '{presetId}' is not available on this CPU.");
+                AddLog(L($"Core preset '{presetId}' is not available on this CPU.", $"Preset rdzeni '{presetId}' nie jest dostępny na tym CPU."));
                 return;
             }
 
@@ -2289,7 +2289,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 core.IsChecked = wanted.Contains(core.Index);
             }
 
-            AddLog($"Core preset '{preset.DisplayName}' applied: {wanted.Count} logical processor(s) selected.");
+            AddLog(L($"Core preset '{preset.DisplayName}' applied: {wanted.Count} logical processor(s) selected.", $"Zastosowano preset '{preset.DisplayName}': wybrane procesory logiczne: {wanted.Count}."));
         }
 
         /// <summary>
@@ -2312,7 +2312,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             var preset = CorePresets.FirstOrDefault(p => p.Id == presetId);
             if (preset == null || !preset.IsAvailable)
             {
-                AddLog($"Core preset '{presetId}' is not available on this CPU.");
+                AddLog(L($"Core preset '{presetId}' is not available on this CPU.", $"Preset rdzeni '{presetId}' nie jest dostępny na tym CPU."));
                 return;
             }
 
@@ -2320,7 +2320,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             PreviewLogicalProcessors = preset.LogicalProcessors.ToList();
             OnPropertyChanged(nameof(PreviewLogicalProcessors));
             OnPropertyChanged(nameof(PreviewPresetSummary));
-            AddLog($"Preset preview '{preset.DisplayName}': {PreviewLogicalProcessors.Count} logical processor(s) highlighted (no changes applied).");
+            AddLog(L($"Preset preview '{preset.DisplayName}': {PreviewLogicalProcessors.Count} logical processor(s) highlighted (no changes applied).", $"Podgląd presetu '{preset.DisplayName}': podświetlone procesory logiczne: {PreviewLogicalProcessors.Count} (bez zmian)."));
         }
 
         public string PreviewPresetSummary
@@ -2346,7 +2346,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             RefreshSavedProfilesView();
             RefreshProfileConflicts();
             SelectedSavedProfile = SavedProfiles.FirstOrDefault(p => p.Id == copy.Id);
-            AddLog($"Duplicated profile '{copy.ProcessName}' (starts disabled).");
+            AddLog(L($"Duplicated profile '{copy.ProcessName}' (starts disabled).", $"Zduplikowano profil '{copy.ProcessName}' (domyślnie wyłączony)."));
         }
 
         private void ExportProfilesToFile()
@@ -2362,11 +2362,11 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
 
                 if (dialog.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
                 ProfileService.ExportProfiles(dialog.FileName, _profiles);
-                AddLog($"Exported {_profiles.Count} profile(s) to '{dialog.FileName}'.");
+                AddLog(L($"Exported {_profiles.Count} profile(s) to '{dialog.FileName}'.", $"Wyeksportowano profile ({_profiles.Count}) do '{dialog.FileName}'."));
             }
             catch (Exception ex)
             {
-                AddLog($"Profile export failed: {ex.Message}");
+                AddLog(L($"Profile export failed: {ex.Message}", $"Eksport profili nie powiódł się: {ex.Message}"));
             }
         }
 
@@ -2387,12 +2387,12 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 RefreshProfileConflicts();
                 ClearAllAppliedProfileCache();
 
-                if (result.Success) AddLog($"Imported {result.Imported} profile(s).");
-                else AddLog($"Profile import: {result.Imported} imported, {result.SkippedInvalid} invalid. {string.Join("; ", result.Errors)}");
+                if (result.Success) AddLog(L($"Imported {result.Imported} profile(s).", $"Zaimportowano profile: {result.Imported}."));
+                else AddLog(L($"Profile import: {result.Imported} imported, {result.SkippedInvalid} invalid. {string.Join("; ", result.Errors)}", $"Import profili: zaimportowano {result.Imported}, nieprawidłowe: {result.SkippedInvalid}. {string.Join("; ", result.Errors)}"));
             }
             catch (Exception ex)
             {
-                AddLog($"Profile import failed: {ex.Message}");
+                AddLog(L($"Profile import failed: {ex.Message}", $"Import profili nie powiódł się: {ex.Message}"));
             }
         }
 
@@ -2401,18 +2401,18 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             int? pid = SelectedInstanceRow?.ProcessId ?? SelectedProcessDetails?.RepresentativePid;
             if (pid == null || pid == 0)
             {
-                AddLog("Copy PID: no process selected.");
+                AddLog(L("Copy PID: no process selected.", "Kopiuj PID: nie wybrano procesu."));
                 return;
             }
 
             try
             {
                 System.Windows.Clipboard.SetText(pid.Value.ToString());
-                AddLog($"Copied PID {pid.Value} to clipboard.");
+                AddLog(L($"Copied PID {pid.Value} to clipboard.", $"Skopiowano PID {pid.Value} do schowka."));
             }
             catch (Exception ex)
             {
-                AddLog($"Copy PID failed: {ex.Message}");
+                AddLog(L($"Copy PID failed: {ex.Message}", $"Kopiowanie PID nie powiodło się: {ex.Message}"));
             }
         }
 
@@ -2421,18 +2421,18 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             string? path = SelectedInstanceRow?.ExecutablePath ?? SelectedProcessDetails?.ExecutablePath;
             if (string.IsNullOrWhiteSpace(path))
             {
-                AddLog("Copy EXE path: unavailable for the selected process (OS refused the read).");
+                AddLog(L("Copy EXE path: unavailable for the selected process (OS refused the read).", "Kopiuj ścieżkę EXE: niedostępne dla wybranego procesu (system odmówił odczytu)."));
                 return;
             }
 
             try
             {
                 System.Windows.Clipboard.SetText(path);
-                AddLog($"Copied EXE path to clipboard: {path}");
+                AddLog(L($"Copied EXE path to clipboard: {path}", $"Skopiowano ścieżkę EXE do schowka: {path}"));
             }
             catch (Exception ex)
             {
-                AddLog($"Copy EXE path failed: {ex.Message}");
+                AddLog(L($"Copy EXE path failed: {ex.Message}", $"Kopiowanie ścieżki EXE nie powiodło się: {ex.Message}"));
             }
         }
 
@@ -2441,7 +2441,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             string? path = SelectedInstanceRow?.ExecutablePath ?? SelectedProcessDetails?.ExecutablePath;
             if (string.IsNullOrWhiteSpace(path))
             {
-                AddLog("Open file location: unavailable for the selected process (OS refused the read).");
+                AddLog(L("Open file location: unavailable for the selected process (OS refused the read).", "Otwórz lokalizację pliku: niedostępne dla wybranego procesu (system odmówił odczytu)."));
                 return;
             }
 
@@ -2450,11 +2450,11 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             {
                 string target = File.Exists(path) ? $"/select,\"{path}\"" : $"\"{Path.GetDirectoryName(path)}\"";
                 Process.Start(new ProcessStartInfo("explorer.exe", target) { UseShellExecute = true });
-                AddLog($"Opened file location: {path}");
+                AddLog(L($"Opened file location: {path}", $"Otwarto lokalizację pliku: {path}"));
             }
             catch (Exception ex)
             {
-                AddLog($"Open file location failed: {ex.Message}");
+                AddLog(L($"Open file location failed: {ex.Message}", $"Otwieranie lokalizacji pliku nie powiodło się: {ex.Message}"));
             }
         }
 
@@ -2464,12 +2464,12 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             string? name = SelectedInstanceRow?.Name ?? SelectedProcess?.Name;
             if (string.IsNullOrWhiteSpace(name))
             {
-                AddLog("Details: no process selected.");
+                AddLog(L("Details: no process selected.", "Szczegóły: nie wybrano procesu."));
                 return;
             }
 
             SelectedProcessDetails = BuildProcessDetails(name);
-            AddLog($"Details refreshed for '{name}' (see panel below).");
+            AddLog(L($"Details refreshed for '{name}' (see panel below).", $"Odświeżono szczegóły '{name}' (panel poniżej)."));
         }
 
         private void PreviewSelectedChanges()
@@ -2493,18 +2493,18 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
 
                 if (profile == null)
                 {
-                    AddLog("Preview: no enabled profile matches the selection. Create one first.");
+                    AddLog(L("Preview: no enabled profile matches the selection. Create one first.", "Podgląd: żaden włączony profil nie pasuje do zaznaczenia. Najpierw utwórz profil."));
                     return;
                 }
 
                 var preview = ProfilePreviewService.Compare(profile, pid, _cpuSetMap, _processService, AppSettings.AllowRealtimePriority);
-                AddLog($"Preview '{profile.DisplayName}' vs PID {pid}: {preview.Summary}");
+                AddLog(L($"Preview '{profile.DisplayName}' vs PID {pid}: {preview.Summary}", $"Podgląd '{profile.DisplayName}' dla PID {pid}: {preview.Summary}"));
                 foreach (var row in preview.Rows)
                     AddLog($"  {row.Action}: requested {row.Requested}, current {row.Current} — {(row.Matches ? "already matches" : "differs")}. {row.Detail}");
             }
             catch (Exception ex)
             {
-                AddLog($"Preview failed: {ex.Message}");
+                AddLog(L($"Preview failed: {ex.Message}", $"Podgląd nie powiódł się: {ex.Message}"));
             }
         }
 
@@ -2513,7 +2513,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             var row = SelectedInstanceRow;
             if (row == null)
             {
-                AddLog("Create profile: select a single instance (Instances view) first.");
+                AddLog(L("Create profile: select a single instance (Instances view) first.", "Utwórz profil: najpierw wybierz pojedynczą instancję (widok Instancje)."));
                 return;
             }
 
@@ -2522,7 +2522,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 var draft = ProfilePreviewService.CaptureFromLive(row.ProcessId, _cpuSetMap, _processService);
                 if (draft == null)
                 {
-                    AddLog($"Create profile failed: the OS refused to read PID {row.ProcessId}.");
+                    AddLog(L($"Create profile failed: the OS refused to read PID {row.ProcessId}.", $"Tworzenie profilu nie powiodło się: system odmówił odczytu PID {row.ProcessId}."));
                     return;
                 }
 
@@ -2534,11 +2534,11 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 _profiles = _profileService.LoadProfiles();
                 RefreshSavedProfilesView();
                 RefreshProfileConflicts();
-                AddLog($"Created disabled profile draft from PID {row.ProcessId} ('{row.Name}').");
+                AddLog(L($"Created disabled profile draft from PID {row.ProcessId} ('{row.Name}').", $"Utworzono wyłączony szkic profilu z PID {row.ProcessId} ('{row.Name}')."));
             }
             catch (Exception ex)
             {
-                AddLog($"Create profile failed: {ex.Message}");
+                AddLog(L($"Create profile failed: {ex.Message}", $"Tworzenie profilu nie powiodło się: {ex.Message}"));
             }
         }
 
@@ -2549,7 +2549,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             if (row == null) return;
             if (IsSafeMode)
             {
-                AddLog("Safe mode: apply blocked, OS mutations disabled (--safe-mode).");
+                AddLog(L("Safe mode: apply blocked, OS mutations disabled (--safe-mode).", "Tryb bezpieczny: stosowanie zablokowane, zmiany w systemie wyłączone (--safe-mode)."));
                 return;
             }
 
@@ -2562,7 +2562,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                     .FirstOrDefault();
                 if (profile == null)
                 {
-                    AddLog($"Apply: no enabled profile matches PID {row.ProcessId} ('{row.Name}').");
+                    AddLog(L($"Apply: no enabled profile matches PID {row.ProcessId} ('{row.Name}').", $"Zastosuj: żaden włączony profil nie pasuje do PID {row.ProcessId} ('{row.Name}')."));
                     return;
                 }
 
@@ -2570,12 +2570,12 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                     profile, row.Name, new[] { row.Key }, AppSettings.AllowRealtimePriority, force: true);
                 var first = batch.Results.FirstOrDefault();
                 row.LastStatus = first?.Status.ToString() ?? "Skipped";
-                AddLog($"Applied '{profile.DisplayName}' to PID {row.ProcessId} only: {row.LastStatus} ({batch.Successful}/{batch.Total} applied).");
+                AddLog(L($"Applied '{profile.DisplayName}' to PID {row.ProcessId} only: {row.LastStatus} ({batch.Successful}/{batch.Total} applied).", $"Zastosowano '{profile.DisplayName}' tylko do PID {row.ProcessId}: {row.LastStatus} (zastosowano {batch.Successful}/{batch.Total})."));
                 RefreshWatcherStatus();
             }
             catch (Exception ex)
             {
-                AddLog($"Apply to instance failed: {ex.Message}");
+                AddLog(L($"Apply to instance failed: {ex.Message}", $"Stosowanie do instancji nie powiodło się: {ex.Message}"));
             }
         }
 
@@ -2701,7 +2701,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             }
             catch (Exception ex)
             {
-                AddLog($"Profile editor failed: {ex.Message}");
+                AddLog(L($"Profile editor failed: {ex.Message}", $"Błąd edytora profilu: {ex.Message}"));
                 return false;
             }
         }
@@ -2852,7 +2852,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             }
             catch (Exception ex)
             {
-                AddLog($"Rule editor failed: {ex.Message}");
+                AddLog(L($"Rule editor failed: {ex.Message}", $"Błąd edytora reguł: {ex.Message}"));
                 return false;
             }
         }
@@ -2868,14 +2868,14 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                     var live = candidates.FirstOrDefault();
                     if (live == null)
                     {
-                        AddLog($"Capture failed: '{SelectedProcess.Name}' is no longer running.");
+                        AddLog(L($"Capture failed: '{SelectedProcess.Name}' is no longer running.", $"Przechwycenie nie powiodło się: '{SelectedProcess.Name}' już nie działa."));
                         return;
                     }
 
                     var draft = ProfilePreviewService.CaptureFromLive(live.Id, _cpuSetMap, _processService);
                     if (draft == null)
                     {
-                        AddLog($"Capture failed: the OS refused to read '{SelectedProcess.Name}'.");
+                        AddLog(L($"Capture failed: the OS refused to read '{SelectedProcess.Name}'.", $"Przechwycenie nie powiodło się: system odmówił odczytu '{SelectedProcess.Name}'."));
                         return;
                     }
 
@@ -2886,7 +2886,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                     _profiles = _profileService.LoadProfiles();
                     RefreshSavedProfilesView();
                     RefreshProfileConflicts();
-                    AddLog($"Captured live settings of '{draft.ProcessName}' as a new disabled profile.");
+                    AddLog(L($"Captured live settings of '{draft.ProcessName}' as a new disabled profile.", $"Przechwycono bieżące ustawienia '{draft.ProcessName}' jako nowy wyłączony profil."));
                 }
                 finally
                 {
@@ -2895,7 +2895,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             }
             catch (Exception ex)
             {
-                AddLog($"Capture failed: {ex.Message}");
+                AddLog(L($"Capture failed: {ex.Message}", $"Przechwycenie nie powiodło się: {ex.Message}"));
             }
         }
 
@@ -2935,10 +2935,11 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             }
 
             string time = last.AtUtc.ToLocalTime().ToString("HH:mm:ss");
-            WatcherStatusText = IsPolishLanguage
-                ? $"Ostatni przebieg {time} ({last.Source}): {last.FullyApplied}/{last.Total} zastosowano, {last.Failed} błędów, {last.Skipped} pominięto w {last.Duration.TotalMilliseconds:F0} ms."
-                : $"Last pass {time} ({last.Source}): {last.FullyApplied}/{last.Total} applied, {last.Failed} failed, {last.Skipped} skipped in {last.Duration.TotalMilliseconds:F0} ms."
-                + (string.IsNullOrWhiteSpace(last.Error) ? string.Empty : $" Error: {last.Error}");
+            string source = LocalizeSource(last.Source);
+            WatcherStatusText = (IsPolishLanguage
+                ? $"Ostatni przebieg {time} ({source}): {last.FullyApplied}/{last.Total} zastosowano, {last.Failed} błędów, {last.Skipped} pominięto w {last.Duration.TotalMilliseconds:F0} ms."
+                : $"Last pass {time} ({source}): {last.FullyApplied}/{last.Total} applied, {last.Failed} failed, {last.Skipped} skipped in {last.Duration.TotalMilliseconds:F0} ms.")
+                + (string.IsNullOrWhiteSpace(last.Error) ? string.Empty : (IsPolishLanguage ? $" Błąd: {last.Error}" : $" Error: {last.Error}"));
         }
 
         private void RefreshRecentOperations()
@@ -3110,7 +3111,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             {
                 string message = BuildOptimizationLogMessage(result, source, success: true);
                 LoggerService.Instance.Info(message);
-                AddLog(message);
+                AddLog(IsPolishLanguage ? BuildOptimizationLogMessagePl(result, source, success: true) : message);
             }
 
             foreach (var result in batch.Results.Where(IsActionableOptimizationFailure))
@@ -3119,7 +3120,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
 
                 string message = BuildOptimizationLogMessage(result, source, success: false);
                 LoggerService.Instance.Warn(message);
-                AddLog(message);
+                AddLog(IsPolishLanguage ? BuildOptimizationLogMessagePl(result, source, success: false) : message);
             }
         }
 
@@ -3165,6 +3166,39 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             return $"Failed to apply profile '{profileName}' via {source}: PID={result.ProcessId}, mode={GetModeTag(result.Mode)}, priority={TranslatePriority(result.Priority)}, status={result.Status}, reason={result.Message}.{adminHint}";
         }
 
+        /// <summary>UI label for an internal pass source (file logs keep the English tag).</summary>
+        private string LocalizeSource(string? source)
+        {
+            if (!IsPolishLanguage || string.IsNullOrEmpty(source)) return source ?? string.Empty;
+            return source switch
+            {
+                "background profile watcher" => "watcher profili w tle",
+                "manual profile action" => "ręczna akcja profilu",
+                _ => source
+            };
+        }
+
+        /// <summary>Polish UI variant of <see cref="BuildOptimizationLogMessage"/>; the file log stays English.</summary>
+        private string BuildOptimizationLogMessagePl(OptimizationResult result, string source, bool success)
+        {
+            string profileName = string.IsNullOrWhiteSpace(result.ProcessName) ? "nieznany" : result.ProcessName;
+            string sourcePl = LocalizeSource(source);
+            string coreStatus = result.CoreApplied ? "rdzenie=zastosowane" : "rdzenie=niezastosowane";
+            string priorityStatus = result.PriorityApplied ? "priorytet=zastosowany" : "priorytet=niezastosowany";
+            string adminHint = result.RequiresAdmin ? " Wymaga uprawnień administratora albo chroniony proces odmówił dostępu." : string.Empty;
+
+            if (success)
+            {
+                string qualifier = result.Status == OperationStatus.PartiallyApplied ? " (częściowo: jedna część się nie powiodła, ponowię)" : string.Empty;
+                return $"Zastosowano profil '{profileName}' ({sourcePl}): PID={result.ProcessId}, tryb={GetModeTag(result.Mode)}, priorytet={TranslatePriority(result.Priority)}, {coreStatus}, {priorityStatus}{qualifier}.";
+            }
+
+            return $"Nie udało się zastosować profilu '{profileName}' ({sourcePl}): PID={result.ProcessId}, tryb={GetModeTag(result.Mode)}, priorytet={TranslatePriority(result.Priority)}, status={result.Status}, powód={result.Message}.{adminHint}";
+        }
+
+        /// <summary>Picks the UI-language variant of a user-facing log line.</summary>
+        private string L(string en, string pl) => IsPolishLanguage ? pl : en;
+
         private void AddLog(string message)
         {
             WpfApplication.Current.Dispatcher.Invoke(() =>
@@ -3186,12 +3220,12 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 if (update == null) return;
                 if (UpdateCheckSession.ShouldPresentUpdateDialog(update))
                 {
-                    AddLog($"Update available: v{update.LatestVersion}");
+                    AddLog(L($"Update available: v{update.LatestVersion}", $"Dostępna aktualizacja: v{update.LatestVersion}"));
                     PresentOrDeferUpdate(update.LatestVersion, update.ReleaseUrl);
                 }
                 else if (string.IsNullOrWhiteSpace(update.Error))
                 {
-                    AddLog("App is up to date.");
+                    AddLog(L("App is up to date.", "Program jest aktualny."));
                 }
                 // Automatic errors stay silent; the manual check reports them.
             }
@@ -3255,7 +3289,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 }
                 if (update.IsUpdateAvailable)
                 {
-                    AddLog($"Update available: v{update.LatestVersion}");
+                    AddLog(L($"Update available: v{update.LatestVersion}", $"Dostępna aktualizacja: v{update.LatestVersion}"));
                     ShowUpdateDialog(update.LatestVersion, update.ReleaseUrl);
                     return;
                 }
@@ -3281,8 +3315,10 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             OnPropertyChanged(nameof(TargetScopeLabel));
             OnPropertyChanged(nameof(TargetPanelTitle));
             OnPropertyChanged(nameof(SelectedCoreSummary));
+            if (Cores.Count > 0) RefreshCorePresets();
             OnPropertyChanged(nameof(PreviewPresetSummary));
             OnPropertyChanged(nameof(UpdateStatusText));
+            RefreshRecentOperations();
             RefreshAvailablePriorities();
             RefreshDisplayedPriorities();
             RefreshProfileConflicts();
@@ -3412,11 +3448,11 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 UpdateStartupStatus(result.FinalEvaluation, result.Error ?? (result.WasElevationCancelled ? StartupUacCancelledText() : null));
                 if (!string.IsNullOrWhiteSpace(result.Error) || result.WasElevationCancelled)
                 {
-                    AddLog($"Startup apply: {result.Error ?? StartupUacCancelledText()}");
+                    AddLog(L($"Startup apply: {result.Error ?? StartupUacCancelledText()}", $"Autostart: {result.Error ?? StartupUacCancelledText()}"));
                 }
                 else if (result.Success)
                 {
-                    AddLog($"Startup configured: {result.FinalEvaluation.State}.");
+                    AddLog(L($"Startup configured: {result.FinalEvaluation.State}.", $"Autostart skonfigurowany: {result.FinalEvaluation.State}."));
                 }
             }
             catch (Exception ex)
@@ -3447,7 +3483,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 if (IsSafeMode) return;
                 if (!StartupConfigurationPlanner.CanAutoRepair(desired, evaluation, _isElevated)) return;
 
-                AddLog($"Startup registration out of sync ({string.Join(", ", evaluation.Reasons)}); repairing.");
+                AddLog(L($"Startup registration out of sync ({string.Join(", ", evaluation.Reasons)}); repairing.", $"Wpis autostartu niezgodny ({string.Join(", ", evaluation.Reasons)}); naprawiam."));
                 await ApplyStartupAsync().ConfigureAwait(true);
             }
             catch (Exception ex)

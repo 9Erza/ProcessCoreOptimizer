@@ -253,6 +253,17 @@ namespace ProcessCoreOptimizer.WPF.Services
                 res["StrWinMaximize"] = isPl ? "Maksymalizuj" : "Maximize";
                 res["StrWinRestore"] = isPl ? "Przywróć" : "Restore down";
                 res["StrWinClose"] = isPl ? "Zamknij" : "Close";
+                res["StrOpFullyApplied"] = isPl ? "Zastosowano" : "Applied";
+                res["StrOpPartiallyApplied"] = isPl ? "Częściowo" : "Partially applied";
+                res["StrOpSkippedSuspended"] = isPl ? "Wstrzymano" : "Suspended";
+                res["StrOpFailed"] = isPl ? "Błąd" : "Failed";
+                res["StrOpSkippedAlreadyApplied"] = isPl ? "Już zastosowane" : "Already applied";
+                res["StrOpSkippedIdentityMismatch"] = isPl ? "Inny proces (PID)" : "Identity mismatch";
+                res["StrOpSkippedProtected"] = isPl ? "Proces chroniony" : "Protected process";
+                res["StrOpSkippedSystemLocation"] = isPl ? "Składnik Windows" : "Windows component";
+                res["StrOpSkippedNoPermission"] = isPl ? "Brak uprawnień" : "No permission";
+                res["StrOpUnsupported"] = isPl ? "Nieobsługiwane" : "Unsupported";
+                res["StrOpCancelled"] = isPl ? "Anulowano" : "Cancelled";
             }
             catch (Exception ex)
             {

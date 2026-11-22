@@ -1,5 +1,66 @@
 # Changelog
 
+## Process Core Optimizer 2.1.0
+
+**Release date: 2026-11-22** · Windows 10/11 x64 · Installer: `ProcessCoreOptimizer_Setup_2.1.0.exe`
+
+A redesigned, faster interface with a complete Polish translation, a reliable
+autostart, and fixes across the CPU affinity / CPU Sets engine. Installing 2.1.0
+over 2.0.0 upgrades it in place; profiles and settings are kept.
+
+### Highlights
+
+- **Interface 2.1** — minimal dark design, icon sidebar, cards and page headers.
+- **Native Windows 11 window** — rounded corners, Snap Layouts, dark frame, GPU composition.
+- **Autostart fixed** — registered after the first-run wizard, self-repairing, Repair button.
+- **CPU engine fixes** — protected games, CPU Sets vs. stale affinity, drift re-apply.
+- **Full Polish translation** — core presets, statuses, activity log and window controls.
+
+### Added
+
+- Settings → Startup: **Repair** button that re-registers the startup entry.
+- Drift check: applied instances are re-verified every 10 s and re-applied (bounded)
+  when a game or launcher resets priority, affinity or CPU Sets.
+- Snap Layouts flyout on the maximize button (Windows 11) and Aero Snap.
+- Localized Diagnostics statuses, Processes status column and window-button names.
+
+### Changed
+
+- Whole UI rebuilt: new palette with one accent color, primary / secondary / subtle
+  buttons, toggle switches in Settings, filter chips, search box with placeholder,
+  dark tooltips and context menus, slim scrollbars, focus ring.
+- Window uses native WindowChrome instead of a software-rendered layered window
+  (lower CPU/GPU use while the window is open).
+- CPU & Topology: stat tiles, two-column preset / core map layout, live core loads.
+- Hardware: metric cards; RAM shows used / total; missing temperature shows "—".
+- Strings switched to sentence case in English and Polish.
+- The elevated logon task runs at normal priority instead of below normal.
+
+### Fixed
+
+- PCO did not start with Windows: first-run wizard startup choices were
+  saved but never registered; a stale Run entry or the Task Manager "Startup apps"
+  disabled flag kept Windows from launching it.
+- Second launch brings the running window forward; autostart duplicates exit silently.
+- Path-bound profiles now work for elevated / anti-cheat protected games
+  (EXE path via QueryFullProcessImageName).
+- CPU Sets had no effect when an earlier Affinity profile left a restricted hard affinity.
+- Manual Apply was reverted by the watcher when an enabled profile differed.
+- Update profile deleted profiles hidden by the list filter.
+- EcoQoS-only profiles were dropped on load; duplicate lost EcoQoS.
+- Priority-only profiles cleared the core selection.
+- Profile editor accepted masks beyond this CPU; the default mask now covers all cores.
+- CPU & Topology core loads froze on that tab; preset preview summary never appeared.
+- Untranslated labels in process details, Diagnostics column titles, the Smart Rules
+  "New" button, clipped Diagnostics and Settings labels.
+
+### Installation
+
+Download `ProcessCoreOptimizer_Setup_2.1.0.exe` from GitHub Releases and verify the
+SHA-256 shown in the release notes. Installing over 2.0.0 upgrades in place: the setup
+closes a running PCO, replaces the program files and keeps
+`%APPDATA%\ProcessCoreOptimizer` (profiles, settings, rules) untouched.
+
 ## Process Core Optimizer 2.0.0
 
 **Release date: 2026-11-04** · Windows 10/11 x64 · Installer: `ProcessCoreOptimizer_Setup_2.0.0.exe`

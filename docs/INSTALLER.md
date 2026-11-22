@@ -1,4 +1,4 @@
-# Installer & distribution (2.0.0)
+# Installer & distribution (2.1.0)
 
 ## Phase 2 investigation result (verified 2026-11-02)
 
@@ -17,6 +17,17 @@
 
 Conclusion unchanged: the 1.3.0 installer identity is **not reproducible**.
 No identifiers were invented to fake upgrade compatibility.
+
+## 2.1.0 installer (in-place upgrade of 2.x)
+
+- Same script, AppId `{6AA13087-A3D7-4501-9AAD-52D4CAC7668F}` and default
+  folder as 2.0.0, so `ProcessCoreOptimizer_Setup_2.1.0.exe` upgrades an
+  existing 2.0.0 install in place (one Programs entry, files replaced).
+- `CloseApplications=yes` stops a running PCO (tray included) before files are
+  replaced; `%APPDATA%\ProcessCoreOptimizer` is untouched.
+- Build: `tools/Build-Installer.ps1` (version from `version.txt`), then
+  `tools/Validate-Release.ps1 -Version 2.1.0`. The SHA-256 published in the
+  GitHub Release notes is the authoritative digest.
 
 ## 2.0.0 installer (new identity)
 

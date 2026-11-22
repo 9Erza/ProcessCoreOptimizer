@@ -1,8 +1,10 @@
 <UserControl x:Class="ProcessCoreOptimizer.WPF.Views.ProcessesView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:ap="clr-namespace:System.Windows.Automation;assembly=PresentationCore">
+             xmlns:ap="clr-namespace:System.Windows.Automation;assembly=PresentationCore"
+             xmlns:conv="clr-namespace:ProcessCoreOptimizer.WPF.Converters">
     <UserControl.Resources>
+        <conv:OperationStatusTextConverter x:Key="OpStatusText"/>
         <!-- Priority emphasis: color only, no bold slabs. Matches EN + PL labels. -->
         <Style x:Key="PriorityCellText" TargetType="TextBlock">
             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -194,7 +196,7 @@
                                 <DataTemplate><TextBlock Text="{DynamicResource StrColProfile}"/></DataTemplate>
                             </DataGridTextColumn.HeaderTemplate>
                         </DataGridTextColumn>
-                        <DataGridTextColumn Binding="{Binding LastStatus}" SortMemberPath="LastStatus" Width="90">
+                        <DataGridTextColumn Binding="{Binding LastStatus, Converter={StaticResource OpStatusText}}" SortMemberPath="LastStatus" Width="110">
                             <DataGridTextColumn.HeaderTemplate>
                                 <DataTemplate><TextBlock Text="{DynamicResource StrColStatus}"/></DataTemplate>
                             </DataGridTextColumn.HeaderTemplate>
@@ -291,7 +293,7 @@
 
                     <TextBlock Grid.Row="4" Grid.Column="0" Text="{DynamicResource StrDetailLast}" Style="{StaticResource PcoKeyText}"/>
                     <TextBlock Grid.Row="4" Grid.Column="1" Style="{StaticResource PcoValueText}" Foreground="{StaticResource PcoMutedBrush}">
-                        <Run Text="{Binding LastStatus, TargetNullValue=—, Mode=OneWay}"/><Run Text=" "/><Run Text="{Binding LastMessage, Mode=OneWay}"/>
+                        <Run Text="{Binding LastStatus, Converter={StaticResource OpStatusText}, Mode=OneWay}"/><Run Text=" "/><Run Text="{Binding LastMessage, Mode=OneWay}"/>
                     </TextBlock>
 
                     <TextBlock Grid.Row="5" Grid.Column="0" Text="{DynamicResource StrWhyThis}" Style="{StaticResource PcoKeyText}" MaxWidth="140" TextWrapping="Wrap"/>

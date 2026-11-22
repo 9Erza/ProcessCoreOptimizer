@@ -1,6 +1,6 @@
 #Requires -Version 5.1
 <#
-  Repeatable 2.0.0 installer build:
+  Repeatable installer build (version from version.txt):
   1. dotnet publish (self-contained single-file win-x64, FolderProfile)
   2. ISCC.exe on installer/ProcessCoreOptimizer.iss with PCO_VERSION from version.txt
   3. SHA-256 + size report into .evidence/installer

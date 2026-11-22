@@ -1,4 +1,4 @@
-# Process Core Optimizer — Architecture (2.0.0)
+# Process Core Optimizer — Architecture (2.1.0)
 
 One owner per responsibility. Cached observations never authorize mutations.
 
