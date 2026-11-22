@@ -69,6 +69,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         private string? _cachedCpuVendor;
         private bool _realtimeCacheFlag;
         private string _lastStartupSignature = string.Empty;
+        private int _startupApplyInFlight;
         private readonly StartupService _startupService = new();
         private readonly StartupApplyCoordinator _startupCoordinator;
         private string _startupStatusText = string.Empty;
@@ -257,6 +258,8 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         public ICommand ToggleSettingCommand { get; }
         public ICommand RestartAsAdministratorCommand { get; }
         public ICommand RefreshStartupStatusCommand { get; }
+        /// <summary>Re-applies the desired startup registration (plan → execute → verify).</summary>
+        public ICommand RepairStartupCommand { get; }
         public string? ExternalLinkErrorText
         {
             get => _externalLinkErrorText;
@@ -667,16 +670,25 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 _insightsSampler.Reset();
                 SelectedProcessDetails = BuildProcessDetails(value.Name);
                 UpdateProfileWhy();
+                OnPropertyChanged(nameof(HasProcessTarget));
+                OnPropertyChanged(nameof(TargetScopeLabel));
 
-                var savedProfile = _profiles.FirstOrDefault(p => p.ProcessName.Equals(value.Name, StringComparison.OrdinalIgnoreCase));
+                // Same precedence as the engine: enabled first, path-bound (matching
+                // this EXE) before name-only, newest wins.
+                var savedProfile = ResolveProfileForUi(value.Name, value.ExecutablePath);
                 if (savedProfile != null)
                 {
                     string effectivePriority = NormalizePriority(savedProfile.Priority);
                     _selectedPriority = TranslatePriority(effectivePriority);
                     OnPropertyChanged(nameof(SelectedPriority));
 
-                    SelectedOptimizationMode = savedProfile.OptimizationMode;
-                    ApplyMaskToCoreSelection(savedProfile.AffinityMask);
+                    SelectedOptimizationMode = NormalizeOptimizationMode(savedProfile.OptimizationMode);
+                    // Priority-only profiles carry mask 0: show the live cores
+                    // instead of unchecking everything (which blocked Apply/Save).
+                    if (savedProfile.ApplyCoreOptimization && savedProfile.AffinityMask != 0)
+                        ApplyMaskToCoreSelection(savedProfile.AffinityMask);
+                    else
+                        UpdateCoreSelectionFromAffinity(value.Name);
                     return;
                 }
 
@@ -714,7 +726,10 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 OnPropertyChanged(nameof(SelectedPriority));
 
                 SelectedOptimizationMode = value.OptimizationMode;
-                ApplyMaskToCoreSelection(value.AffinityMask);
+                if (value.ApplyCoreOptimization && value.AffinityMask != 0)
+                    ApplyMaskToCoreSelection(value.AffinityMask);
+                else
+                    SetAllCores(true);
                 OnPropertyChanged(nameof(HasSavedProfileTarget));
             }
         }
@@ -764,7 +779,22 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             RefreshSavedProfilesView();
             OnPropertyChanged(nameof(SelectedLanguageName));
             OnPropertyChanged(nameof(CpuVendorText));
-            _ = RefreshStartupStatusAsync();
+            OnPropertyChanged(nameof(AppSettings));
+            OnPropertyChanged(nameof(SelectedStartupWindowMode));
+
+            // The first-run wizard writes startup choices straight to disk. They
+            // were never registered with Windows (only the status was refreshed),
+            // so "Start with Windows" looked enabled but nothing launched at logon.
+            string signature = StartupSignature(_appSettings);
+            if (!string.Equals(signature, _lastStartupSignature, StringComparison.Ordinal))
+            {
+                _lastStartupSignature = signature;
+                TriggerStartupApply();
+            }
+            else
+            {
+                _ = ReconcileStartupAsync();
+            }
         }
 
         public string CpuVendor => _cachedCpuVendor ??= _hardwareService.GetCpuVendor();
@@ -1121,7 +1151,10 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             _isElevated = _startupService.IsRunAsAdmin();
             OnPropertyChanged(nameof(IsRunningAsAdministrator));
             OnPropertyChanged(nameof(CurrentPrivilegesText));
-            _ = RefreshStartupStatusAsync();
+            // Self-heal: settings may say "start with Windows" while the real
+            // registration is missing or stale (EXE moved/updated, entry disabled
+            // in Startup apps, choice made in the first-run wizard).
+            _ = ReconcileStartupAsync();
 
             _cpuSetMap = _hardwareService.GetLogicalCoreToCpuSetIdMap();
             foreach (var core in _hardwareService.GetCoreTopology())
@@ -1207,6 +1240,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             ToggleSettingCommand = new RelayCommand(_ => SaveAndApplySettings(restartAsAdminIfNeeded: false));
             RestartAsAdministratorCommand = new RelayCommand(_ => RestartElevated());
             RefreshStartupStatusCommand = new RelayCommand(_ => { _ = RefreshStartupStatusAsync(); });
+            RepairStartupCommand = new RelayCommand(_ => TriggerStartupApply());
             OpenWizardCommand = new RelayCommand(_ => OpenFirstRunWizard());
             RestoreDefaultsCommand = new RelayCommand(_ => { _ = RestoreDefaultSettingsAsync(); });
             FactoryResetCommand = new RelayCommand(_ => { _ = RunFactoryResetAsync(); });
@@ -1617,12 +1651,32 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 UpdatedAt = DateTime.UtcNow
             };
 
+            // An explicit click must not be skipped by an earlier suspension
+            // (e.g. a session restore a minute ago).
+            _optimizationService.ClearSuspensionsForProcess(SelectedProcess.Name);
             int affected = ApplyProfileToRunningProcesses(temporaryProfile, force: true);
             SelectedProcess.IsOptimized = affected > 0;
             SelectedProcess.ModeTag = affected > 0 ? GetModeTag(mode) : string.Empty;
             SelectedProcess.Priority = TranslatePriority(priority);
 
             AddLog($"Applied '{SelectedProcess.Name}' optimization: {GetModeTag(mode)}, {CountSelectedCores()} cores, priority {TranslatePriority(priority)} ({affected} process instance(s)).");
+
+            // A one-off manual apply used to be reverted by the watcher within
+            // seconds whenever an enabled saved profile for the same process
+            // differed. Keep the manual choice for the running instances; the
+            // saved profile applies again to the next launch (or on Save/Update).
+            string manualSignature = OptimizationService.BuildProfileSignature(temporaryProfile, priority, mode, AppSettings.AllowRealtimePriority);
+            bool conflictsWithProfile = _profiles.Any(p => p.IsEnabled
+                && string.Equals(ProfileService.NormalizeProcessName(p.ProcessName), ProfileService.NormalizeProcessName(SelectedProcess.Name), StringComparison.OrdinalIgnoreCase)
+                && OptimizationService.BuildProfileSignature(p, NormalizePriority(p.Priority), NormalizeOptimizationMode(p.OptimizationMode), AppSettings.AllowRealtimePriority) != manualSignature);
+            if (affected > 0 && conflictsWithProfile)
+            {
+                _optimizationService.SuspendLiveInstances(SelectedProcess.Name, TimeSpan.FromHours(12), "manual apply overrides saved profile");
+                AddLog(IsPolishLanguage
+                    ? $"'{SelectedProcess.Name}' ma zapisany profil z innymi ustawieniami. Ręczne ustawienia zostają dla działających instancji; użyj „Zapisz/Aktualizuj profil”, aby je zapamiętać."
+                    : $"'{SelectedProcess.Name}' has a saved profile with different settings. The manual settings stay for running instances; use Save/Update profile to keep them.");
+                RefreshWatcherStatus();
+            }
         }
 
         private void SaveCurrentAsProfile()
@@ -1660,6 +1714,8 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             _profiles = _profileService.LoadProfiles();
             RefreshSavedProfilesView();
 
+            _optimizationService.ClearSuspensionsForProcess(newProfile.ProcessName);
+            ClearAppliedProfileCache(newProfile.ProcessName);
             int affected = ApplyProfileToRunningProcesses(newProfile, force: true);
             SelectedProcess.IsOptimized = true;
             SelectedProcess.ModeTag = GetModeTag(mode);
@@ -1685,18 +1741,29 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
 
             var mode = NormalizeOptimizationMode(SelectedOptimizationMode);
 
-            SelectedSavedProfile.AffinityMask = mask;
-            SelectedSavedProfile.Priority = rawPriority;
-            SelectedSavedProfile.DisplayPriority = TranslatePriority(rawPriority);
-            SelectedSavedProfile.OptimizationMode = mode;
-            SelectedSavedProfile.IsEnabled = true;
-            SelectedSavedProfile.UpdatedAt = DateTime.UtcNow;
+            // Write back by stable Id into the full list. Rebuilding from the
+            // filtered SavedProfiles view used to delete every profile hidden by
+            // the active filter.
+            var target = ProfileService.FindById(_profiles, SelectedSavedProfile.Id) ?? SelectedSavedProfile;
+            // A priority-only profile stays priority-only unless the user really
+            // narrowed the cores (all cores selected = no core restriction).
+            if (target.ApplyCoreOptimization || mask != ProcessService.KnownProcessorMask(_cpuSetMap))
+            {
+                target.AffinityMask = mask;
+                target.ApplyCoreOptimization = true;
+            }
+            target.Priority = rawPriority;
+            target.DisplayPriority = TranslatePriority(rawPriority);
+            target.OptimizationMode = mode;
+            target.IsEnabled = true;
+            target.UpdatedAt = DateTime.UtcNow;
+            if (!_profiles.Contains(target)) _profiles.Add(target);
 
-            _profiles = SavedProfiles.ToList();
             _profileService.SaveProfiles(_profiles);
             _profiles = _profileService.LoadProfiles();
             RefreshSavedProfilesView();
             ClearAppliedProfileCache(processName);
+            _optimizationService.ClearSuspensionsForProcess(processName);
 
             // P0: re-resolve by stable Id — several path-bound profiles may share one name.
             var profileToApply = ProfileService.FindById(_profiles, SelectedSavedProfile.Id)
@@ -2100,6 +2167,25 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             return result.Successful;
         }
 
+        /// <summary>
+        /// Picks the profile the engine would use for a process row: enabled
+        /// before disabled, a path-bound profile matching the EXE before
+        /// name-only, newest first.
+        /// </summary>
+        private ProcessProfile? ResolveProfileForUi(string processName, string? executablePath)
+        {
+            string name = ProfileService.NormalizeProcessName(processName);
+            return _profiles
+                .Where(p => string.Equals(ProfileService.NormalizeProcessName(p.ProcessName), name, StringComparison.OrdinalIgnoreCase))
+                .Where(p => string.IsNullOrWhiteSpace(p.ExecutablePath)
+                    || string.IsNullOrWhiteSpace(executablePath)
+                    || ProfileService.MatchesIdentity(p, processName, executablePath))
+                .OrderByDescending(p => p.IsEnabled)
+                .ThenByDescending(p => !string.IsNullOrWhiteSpace(p.ExecutablePath) && !string.IsNullOrWhiteSpace(executablePath))
+                .ThenByDescending(p => p.UpdatedAt)
+                .FirstOrDefault();
+        }
+
         private void ClearAppliedProfileCache(string processName)
         {
             _optimizationService.ClearProfileCacheForProcess(processName);
@@ -2454,8 +2540,11 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
 
             try
             {
-                var profile = _profiles.FirstOrDefault(p => p.IsEnabled
-                    && ProfileService.MatchesIdentity(p, row.Name, row.ExecutablePath));
+                var profile = _profiles
+                    .Where(p => p.IsEnabled && ProfileService.MatchesIdentity(p, row.Name, row.ExecutablePath))
+                    .OrderByDescending(p => !string.IsNullOrWhiteSpace(p.ExecutablePath))
+                    .ThenByDescending(p => p.UpdatedAt)
+                    .FirstOrDefault();
                 if (profile == null)
                 {
                     AddLog($"Apply: no enabled profile matches PID {row.ProcessId} ('{row.Name}').");
@@ -2481,7 +2570,9 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             {
                 ProcessName = SelectedProcess?.Name ?? SelectedInstanceRow?.Name ?? string.Empty,
                 ExecutablePath = SelectedInstanceRow?.ExecutablePath,
-                AffinityMask = 0xFF,
+                // All visible logical processors (0xFF was out of range on CPUs
+                // with fewer than 8 threads and failed validation at apply time).
+                AffinityMask = ProcessService.KnownProcessorMask(_cpuSetMap),
                 Priority = "Normal",
                 OptimizationMode = OptimizationMode.Affinity,
                 ApplyPriority = true,
@@ -2559,6 +2650,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             RefreshSavedProfilesView();
             RefreshProfileConflicts();
             ClearAppliedProfileCache(existing.ProcessName);
+            _optimizationService.ClearSuspensionsForProcess(existing.ProcessName);
             AddLog(IsPolishLanguage
                 ? $"Zaktualizowano profil '{existing.ProcessName}'."
                 : $"Updated profile '{existing.ProcessName}'.");
@@ -3293,7 +3385,11 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
 
         private async Task ApplyStartupAsync()
         {
-            if (IsStartupBusy) return;
+            // No early return while busy: the coordinator serializes requests and
+            // converges on the newest desired state. Dropping a request here used
+            // to lose quick follow-up changes (e.g. enable + elevated) forever,
+            // because the settings signature had already been consumed.
+            _startupApplyInFlight++;
             IsStartupBusy = true;
             try
             {
@@ -3314,7 +3410,34 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             }
             finally
             {
-                IsStartupBusy = false;
+                _startupApplyInFlight--;
+                IsStartupBusy = _startupApplyInFlight > 0;
+            }
+        }
+
+        /// <summary>
+        /// Reads the real registration and repairs it silently when that needs no
+        /// UAC prompt (registry entry, or any change while already elevated).
+        /// Repairs needing elevation are only reported, never prompted at logon.
+        /// </summary>
+        private async Task ReconcileStartupAsync()
+        {
+            try
+            {
+                var desired = AppSettings.DesiredStartup;
+                var actual = await _startupService.ReadActualAsync(desired).ConfigureAwait(true);
+                var evaluation = StartupConfigurationPlanner.Evaluate(desired, actual);
+                UpdateStartupStatus(evaluation, null);
+
+                if (IsSafeMode) return;
+                if (!StartupConfigurationPlanner.CanAutoRepair(desired, evaluation, _isElevated)) return;
+
+                AddLog($"Startup registration out of sync ({string.Join(", ", evaluation.Reasons)}); repairing.");
+                await ApplyStartupAsync().ConfigureAwait(true);
+            }
+            catch (Exception ex)
+            {
+                UpdateStartupStatus(null, ex.Message);
             }
         }
 
@@ -3420,6 +3543,9 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             StartupReason.UnexpectedRegistryEntry => IsPolishLanguage ? "Nieoczekiwany wpis rejestru." : "Unexpected registry entry.",
             StartupReason.UnexpectedScheduledTask => IsPolishLanguage ? "Nieoczekiwane zadanie harmonogramu." : "Unexpected scheduled task.",
             StartupReason.ReadFailed => IsPolishLanguage ? "Odczyt stanu niemożliwy." : "State could not be read.",
+            StartupReason.DisabledInStartupApps => IsPolishLanguage
+                ? "Wpis wyłączony w Menedżerze zadań → Aplikacje autostartu (Windows go pomija)."
+                : "Entry is disabled in Task Manager → Startup apps (Windows skips it).",
             _ => string.Empty
         };
 
