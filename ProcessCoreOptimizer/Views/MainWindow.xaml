@@ -237,11 +237,11 @@
             <Grid Grid.Row="0" Grid.Column="1">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
                     <Button Style="{StaticResource WindowBtnStyle}" Content="&#xE921;" Click="MinimizeButton_Click"
-                            WindowChrome.IsHitTestVisibleInChrome="True" ap:AutomationProperties.Name="Minimize"/>
+                            WindowChrome.IsHitTestVisibleInChrome="True" ap:AutomationProperties.Name="{DynamicResource StrWinMinimize}" ToolTip="{DynamicResource StrWinMinimize}"/>
                     <Button x:Name="MaximizeIconBtn" Style="{StaticResource WindowBtnStyle}" Content="&#xE922;" Click="MaximizeButton_Click"
-                            WindowChrome.IsHitTestVisibleInChrome="True" ap:AutomationProperties.Name="Maximize"/>
+                            WindowChrome.IsHitTestVisibleInChrome="True" ap:AutomationProperties.Name="{DynamicResource StrWinMaximize}" ToolTip="{DynamicResource StrWinMaximize}"/>
                     <Button Style="{StaticResource WindowCloseBtnStyle}" Content="&#xE8BB;" Click="CloseButton_Click"
-                            WindowChrome.IsHitTestVisibleInChrome="True" ap:AutomationProperties.Name="Close"/>
+                            WindowChrome.IsHitTestVisibleInChrome="True" ap:AutomationProperties.Name="{DynamicResource StrWinClose}" ToolTip="{DynamicResource StrWinClose}"/>
                 </StackPanel>
             </Grid>
 

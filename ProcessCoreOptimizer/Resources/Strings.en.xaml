@@ -233,4 +233,8 @@
     <system:String x:Key="StrColMessage">Message</system:String>
     <system:String x:Key="StrStartupRepair">Repair</system:String>
     <system:String x:Key="StrStartupRepairHint">Re-applies the startup entry (e.g. when it was disabled in Task Manager → Startup apps).</system:String>
+    <system:String x:Key="StrWinMinimize">Minimize</system:String>
+    <system:String x:Key="StrWinMaximize">Maximize</system:String>
+    <system:String x:Key="StrWinRestore">Restore down</system:String>
+    <system:String x:Key="StrWinClose">Close</system:String>
 </ResourceDictionary>

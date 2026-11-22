@@ -217,6 +217,7 @@ namespace ProcessCoreOptimizer.WPF.Services
         public double RamUsagePct { get; set; }
         public double RamUsedGB { get; set; }
         public double RamAvailableGB { get; set; }
+        public double RamTotalGB => RamUsedGB + RamAvailableGB;
         public string StorageInfo { get; set; } = "No data";
     }
 }

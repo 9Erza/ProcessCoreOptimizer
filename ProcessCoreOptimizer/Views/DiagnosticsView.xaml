@@ -90,7 +90,7 @@
                                     <DataTemplate><TextBlock Text="{DynamicResource StrColName}"/></DataTemplate>
                                 </DataGridTextColumn.HeaderTemplate>
                             </DataGridTextColumn>
-                            <DataGridTextColumn Binding="{Binding Status}" Width="150">
+                            <DataGridTextColumn Binding="{Binding Status}" Width="Auto" MinWidth="150">
                                 <DataGridTextColumn.HeaderTemplate>
                                     <DataTemplate><TextBlock Text="{DynamicResource StrColStatus}"/></DataTemplate>
                                 </DataGridTextColumn.HeaderTemplate>

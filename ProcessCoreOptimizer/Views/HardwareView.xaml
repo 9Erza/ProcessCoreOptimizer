@@ -119,14 +119,40 @@
                     <Border Style="{StaticResource MetricCard}">
                         <StackPanel>
                             <TextBlock Text="{DynamicResource StrCpuTemp}" Style="{StaticResource MetricLabel}"/>
-                            <TextBlock Text="{Binding FullMetrics.CpuTemp, StringFormat={}{0:N1}°C}" Style="{StaticResource MetricValue}"/>
+                            <TextBlock>
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource MetricValue}">
+                                        <Setter Property="Text" Value="{Binding FullMetrics.CpuTemp, StringFormat={}{0:N1}°C}"/>
+                                        <Style.Triggers>
+                                            <!-- 0 means no sensor reading (e.g. not elevated): show a dash, not a fake 0 °C. -->
+                                            <DataTrigger Binding="{Binding FullMetrics.CpuTemp}" Value="0">
+                                                <Setter Property="Text" Value="—"/>
+                                                <Setter Property="ToolTip" Value="{DynamicResource StrNoData}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
                             <ProgressBar Value="{Binding FullMetrics.CpuTemp}" Maximum="100" Foreground="{StaticResource PcoOrangeBrush}"/>
                         </StackPanel>
                     </Border>
                     <Border Style="{StaticResource MetricCard}">
                         <StackPanel>
                             <TextBlock Text="{DynamicResource StrGpuTemp}" Style="{StaticResource MetricLabel}"/>
-                            <TextBlock Text="{Binding FullMetrics.GpuTemp, StringFormat={}{0:N1}°C}" Style="{StaticResource MetricValue}"/>
+                            <TextBlock>
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource MetricValue}">
+                                        <Setter Property="Text" Value="{Binding FullMetrics.GpuTemp, StringFormat={}{0:N1}°C}"/>
+                                        <Style.Triggers>
+                                            <!-- 0 means no sensor reading (e.g. not elevated): show a dash, not a fake 0 °C. -->
+                                            <DataTrigger Binding="{Binding FullMetrics.GpuTemp}" Value="0">
+                                                <Setter Property="Text" Value="—"/>
+                                                <Setter Property="ToolTip" Value="{DynamicResource StrNoData}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
                             <ProgressBar Value="{Binding FullMetrics.GpuTemp}" Maximum="100" Foreground="{StaticResource PcoOrangeBrush}"/>
                         </StackPanel>
                     </Border>
@@ -135,7 +161,7 @@
                             <TextBlock Text="{DynamicResource StrRamUsedAvail}" Style="{StaticResource MetricLabel}"/>
                             <StackPanel Orientation="Horizontal" Margin="0,6,0,10">
                                 <TextBlock Text="{Binding FullMetrics.RamUsedGB, StringFormat={}{0:N1}}" Style="{StaticResource MetricValue}" Margin="0"/>
-                                <TextBlock Text="{Binding FullMetrics.RamAvailableGB, StringFormat='/ {0:N0} GB'}" Foreground="{StaticResource PcoDimBrush}" FontSize="16" Margin="8,0,0,4" VerticalAlignment="Bottom"/>
+                                <TextBlock Text="{Binding FullMetrics.RamTotalGB, StringFormat='/ {0:N0} GB'}" Foreground="{StaticResource PcoDimBrush}" FontSize="16" Margin="8,0,0,4" VerticalAlignment="Bottom"/>
                             </StackPanel>
                             <ProgressBar Value="{Binding FullMetrics.RamUsagePct}" Maximum="100" Foreground="{StaticResource PcoGreenBrush}"/>
                         </StackPanel>

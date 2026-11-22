@@ -233,4 +233,8 @@
     <system:String x:Key="StrColMessage">Komunikat</system:String>
     <system:String x:Key="StrStartupRepair">Napraw</system:String>
     <system:String x:Key="StrStartupRepairHint">Ponownie zapisuje wpis autostartu (np. gdy został wyłączony w Menedżerze zadań → Aplikacje autostartu).</system:String>
+    <system:String x:Key="StrWinMinimize">Minimalizuj</system:String>
+    <system:String x:Key="StrWinMaximize">Maksymalizuj</system:String>
+    <system:String x:Key="StrWinRestore">Przywróć</system:String>
+    <system:String x:Key="StrWinClose">Zamknij</system:String>
 </ResourceDictionary>

@@ -373,7 +373,11 @@ namespace ProcessCoreOptimizer.WPF.Views
             // Update maximize/restore icon based on current window state
             if (MaximizeIconBtn != null)
             {
-                MaximizeIconBtn.Content = this.WindowState == WindowState.Maximized ? "\uE923" : "\uE922";
+                bool maximized = this.WindowState == WindowState.Maximized;
+                MaximizeIconBtn.Content = maximized ? "\uE923" : "\uE922";
+                string nameKey = maximized ? "StrWinRestore" : "StrWinMaximize";
+                MaximizeIconBtn.SetResourceReference(System.Windows.Automation.AutomationProperties.NameProperty, nameKey);
+                MaximizeIconBtn.SetResourceReference(System.Windows.FrameworkElement.ToolTipProperty, nameKey);
             }
 
             UpdateMaximizedInset();

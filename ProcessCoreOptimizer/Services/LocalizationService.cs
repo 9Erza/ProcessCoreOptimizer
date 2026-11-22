@@ -249,6 +249,10 @@ namespace ProcessCoreOptimizer.WPF.Services
                 res["StrColMessage"] = isPl ? "Komunikat" : "Message";
                 res["StrStartupRepair"] = isPl ? "Napraw" : "Repair";
                 res["StrStartupRepairHint"] = isPl ? "Ponownie zapisuje wpis autostartu (np. gdy został wyłączony w Menedżerze zadań → Aplikacje autostartu)." : "Re-applies the startup entry (e.g. when it was disabled in Task Manager → Startup apps).";
+                res["StrWinMinimize"] = isPl ? "Minimalizuj" : "Minimize";
+                res["StrWinMaximize"] = isPl ? "Maksymalizuj" : "Maximize";
+                res["StrWinRestore"] = isPl ? "Przywróć" : "Restore down";
+                res["StrWinClose"] = isPl ? "Zamknij" : "Close";
             }
             catch (Exception ex)
             {
