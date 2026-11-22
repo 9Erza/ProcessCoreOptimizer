@@ -189,6 +189,13 @@ namespace ProcessCoreOptimizer.WPF.Views
             if (PresentationSource.FromVisual(this) is HwndSource source)
             {
                 source.AddHook(SnapLayoutHook);
+                // Clear color for the swap chain: areas exposed before WPF repaints
+                // (restore, resize, a busy GPU while a game runs) show the app
+                // background instead of pure black.
+                if (source.CompositionTarget != null)
+                {
+                    source.CompositionTarget.BackgroundColor = System.Windows.Media.Color.FromRgb(0x13, 0x10, 0x0F);
+                }
             }
         }
 
@@ -303,6 +310,8 @@ namespace ProcessCoreOptimizer.WPF.Views
                 ProcessCoreOptimizer.WPF.App.StartupOptions.StartToTray))
             {
                 case Services.StartupWindowAction.HideToTray:
+                    // Minimized first so nothing flashes at logon; BringToFront
+                    // normalizes the state while still hidden before showing.
                     this.WindowState = WindowState.Minimized;
                     this.Hide();
                     break;
@@ -337,8 +346,7 @@ namespace ProcessCoreOptimizer.WPF.Views
                 // main window forward first so the modal has a visible owner.
                 if (!IsVisible)
                 {
-                    Show();
-                    WindowState = WindowState.Normal;
+                    BringToFront(this);
                 }
 
                 LoggerService.Instance.Info("First-run: creating wizard window.");
@@ -413,9 +421,26 @@ namespace ProcessCoreOptimizer.WPF.Views
 
         private void ShowApplication()
         {
-            this.Show();
-            this.WindowState = WindowState.Normal;
-            this.Activate();
+            BringToFront(this);
+        }
+
+        /// <summary>
+        /// Shows the window from the tray without the minimized → restore round
+        /// trip: the state is normalized while still hidden, then the window is
+        /// shown, laid out and repainted in one go so no stale/black frame appears.
+        /// </summary>
+        internal static void BringToFront(Window window)
+        {
+            if (window.WindowState == WindowState.Minimized && !window.IsVisible)
+            {
+                window.WindowState = WindowState.Normal;
+            }
+
+            window.Show();
+            if (window.WindowState == WindowState.Minimized) window.WindowState = WindowState.Normal;
+            window.UpdateLayout();
+            window.InvalidateVisual();
+            window.Activate();
         }
 
         private void CloseApplication()

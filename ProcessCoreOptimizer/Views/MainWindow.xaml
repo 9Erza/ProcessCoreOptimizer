@@ -152,6 +152,14 @@
                             </Expander.ToolTip>
                             <Border Background="{StaticResource PcoBg2Brush}" BorderBrush="{StaticResource PcoBorderSoftBrush}" BorderThickness="1" CornerRadius="8" Padding="4">
                                 <StackPanel>
+                                    <Button Style="{StaticResource PcoFooterRowButton}" Command="{Binding OpenStudioCommand}"
+                                            ToolTip="{DynamicResource StrStudioTooltip}"
+                                            ap:AutomationProperties.Name="{DynamicResource StrStudioTooltip}">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Grid Width="18"><ContentControl Content="{StaticResource IconGlobe}" Focusable="False" HorizontalAlignment="Center" VerticalAlignment="Center"/></Grid>
+                                            <TextBlock Text="erza.studio" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" FontSize="12" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                        </StackPanel>
+                                    </Button>
                                     <Button Style="{StaticResource PcoFooterRowButton}" Command="{Binding OpenRepositoryCommand}"
                                             ToolTip="{DynamicResource StrRepoTooltip}"
                                             ap:AutomationProperties.Name="{DynamicResource StrRepoTooltip}">

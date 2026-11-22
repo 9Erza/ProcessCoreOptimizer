@@ -10,11 +10,12 @@ namespace ProcessCoreOptimizer.WPF.Services
         Author,
         Repository,
         Website,
-        Support
+        Support,
+        Studio
     }
 
     /// <summary>
-    /// Central gate for the four official outbound links. Only exact allowlisted
+    /// Central gate for the official outbound links. Only exact allowlisted
     /// HTTPS URLs can ever be opened; nothing is built from user data, nothing is
     /// tracked, no network requests are made by the app itself.
     /// </summary>
@@ -24,6 +25,7 @@ namespace ProcessCoreOptimizer.WPF.Services
         public const string RepositoryUrl = "https://github.com/9Erza/ProcessCoreOptimizer";
         public const string WebsiteUrl = "https://dobrypc.pl";
         public const string SupportUrl = "https://buymeacoffee.com/9erza";
+        public const string StudioUrl = "https://erza.studio/pco/";
 
         private static readonly IReadOnlyDictionary<PcoExternalLink, string> OwnedLinks =
             new Dictionary<PcoExternalLink, string>
@@ -31,7 +33,8 @@ namespace ProcessCoreOptimizer.WPF.Services
                 [PcoExternalLink.Author] = AuthorUrl,
                 [PcoExternalLink.Repository] = RepositoryUrl,
                 [PcoExternalLink.Website] = WebsiteUrl,
-                [PcoExternalLink.Support] = SupportUrl
+                [PcoExternalLink.Support] = SupportUrl,
+                [PcoExternalLink.Studio] = StudioUrl
             };
 
         /// <summary>Test seam: receives the start info, returns process-started.</summary>
@@ -44,7 +47,8 @@ namespace ProcessCoreOptimizer.WPF.Services
             (string.Equals(url.Trim(), AuthorUrl, StringComparison.Ordinal)
                 || string.Equals(url.Trim(), RepositoryUrl, StringComparison.Ordinal)
                 || string.Equals(url.Trim(), WebsiteUrl, StringComparison.Ordinal)
-                || string.Equals(url.Trim(), SupportUrl, StringComparison.Ordinal));
+                || string.Equals(url.Trim(), SupportUrl, StringComparison.Ordinal)
+                || string.Equals(url.Trim(), StudioUrl, StringComparison.Ordinal));
 
         public static bool TryOpen(PcoExternalLink link)
         {

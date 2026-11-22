@@ -292,6 +292,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         public ICommand OpenAuthorCommand { get; }
         public ICommand OpenRepositoryCommand { get; }
         public ICommand OpenWebsiteCommand { get; }
+        public ICommand OpenStudioCommand { get; }
         public ICommand OpenSupportCommand { get; }
         public ICommand OpenAboutCommand { get; }
 
@@ -1248,6 +1249,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             OpenAuthorCommand = new RelayCommand(_ => OpenExternalLink(PcoExternalLink.Author));
             OpenRepositoryCommand = new RelayCommand(_ => OpenExternalLink(PcoExternalLink.Repository));
             OpenWebsiteCommand = new RelayCommand(_ => OpenExternalLink(PcoExternalLink.Website));
+            OpenStudioCommand = new RelayCommand(_ => OpenExternalLink(PcoExternalLink.Studio));
             OpenSupportCommand = new RelayCommand(_ => OpenExternalLink(PcoExternalLink.Support));
             OpenAboutCommand = new RelayCommand(_ => NavigateToAbout());
             ApplyCorePresetCommand = new RelayCommand(preset => ApplyCorePreset(preset?.ToString()));

@@ -165,6 +165,8 @@ namespace ProcessCoreOptimizer.WPF.Services
                 res["StrSupportTooltip"] = isPl ? "Postaw kawę — wesprzyj rozwój" : "Buy Me a Coffee — support development";
                 res["StrFooterRepoLabel"] = isPl ? "Repozytorium projektu" : "Project repository";
                 res["StrFooterWebsiteTooltip"] = isPl ? "Strona autora — DobryPC.pl" : "Author website — DobryPC.pl";
+                res["StrStudioTooltip"] = isPl ? "Erza Studio — strona PCO na erza.studio" : "Erza Studio — PCO page on erza.studio";
+                res["StrStudioCaption"] = isPl ? "Tworzy" : "Made by";
                 res["StrFooterSupportLabel"] = isPl ? "Wesprzyj projekt" : "Support the project";
                 res["StrWebsiteCaption"] = isPl ? "Strona internetowa" : "Website";
                 res["StrLinkOpenFailed"] = isPl ? "Nie udało się otworzyć strony w przeglądarce." : "Could not open the link in your browser.";

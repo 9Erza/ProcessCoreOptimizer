@@ -153,6 +153,8 @@
     <system:String x:Key="StrSupportTooltip">Buy Me a Coffee — support development</system:String>
     <system:String x:Key="StrFooterRepoLabel">Project repository</system:String>
     <system:String x:Key="StrFooterWebsiteTooltip">Author website — DobryPC.pl</system:String>
+    <system:String x:Key="StrStudioTooltip">Erza Studio — PCO page on erza.studio</system:String>
+    <system:String x:Key="StrStudioCaption">Made by</system:String>
     <system:String x:Key="StrFooterSupportLabel">Support the project</system:String>
     <system:String x:Key="StrWebsiteCaption">Website</system:String>
     <system:String x:Key="StrLinkOpenFailed">Could not open the link in your browser.</system:String>
