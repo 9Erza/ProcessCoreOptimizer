@@ -5,8 +5,13 @@
         Icon="/Images/processcoreoptimizer.ico"
         WindowStartupLocation="CenterOwner"
         ResizeMode="CanResizeWithGrip"
-        ShowInTaskbar="False">
-    <Border Background="{StaticResource PcoBg0Brush}" CornerRadius="8" BorderBrush="{StaticResource PcoBorderSoftBrush}" BorderThickness="1" Padding="28" SnapsToDevicePixels="True">
+        ShowInTaskbar="False"
+        Background="{StaticResource PcoBg1Brush}"
+        Foreground="{StaticResource PcoTextBrush}"
+        FontFamily="{StaticResource PcoFontFamily}"
+        FontSize="13"
+        UseLayoutRounding="True">
+    <Border Padding="28" SnapsToDevicePixels="True">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"/>
@@ -25,7 +30,7 @@
                         </Style.Triggers>
                     </Style>
                 </StackPanel.Style>
-                <TextBlock Text="{DynamicResource StrWizardWelcome}" FontSize="24" FontWeight="Bold" Foreground="White" Margin="0,0,0,12" TextWrapping="Wrap"/>
+                <TextBlock Text="{DynamicResource StrWizardWelcome}" Style="{StaticResource PcoTitle}" TextTrimming="None" Margin="0,0,0,12" TextWrapping="Wrap"/>
                 <TextBlock Text="{DynamicResource StrWizardWelcomeBody}" Foreground="{StaticResource PcoTextBrush}" FontSize="14" Margin="0,0,0,20" TextWrapping="Wrap"/>
                 <TextBlock Text="{DynamicResource StrLanguage}" Foreground="{StaticResource PcoTextBrush}" FontWeight="SemiBold" FontSize="14" Margin="0,0,0,8"/>
                 <StackPanel Orientation="Horizontal">
@@ -47,7 +52,7 @@
                     </Style>
                 </ScrollViewer.Style>
                 <StackPanel>
-                    <TextBlock Text="{DynamicResource StrWizardModesTitle}" FontSize="24" FontWeight="Bold" Foreground="White" Margin="0,0,0,12" TextWrapping="Wrap"/>
+                    <TextBlock Text="{DynamicResource StrWizardModesTitle}" Style="{StaticResource PcoTitle}" TextTrimming="None" Margin="0,0,0,12" TextWrapping="Wrap"/>
                     <TextBlock Text="{DynamicResource StrWizardModesBody}" Foreground="{StaticResource PcoTextBrush}" FontSize="14" Margin="0,0,0,12" TextWrapping="Wrap"/>
                     <TextBlock Text="{DynamicResource StrWizardModesNote}" Style="{StaticResource PcoMutedText}" TextWrapping="Wrap"/>
                 </StackPanel>
@@ -66,19 +71,11 @@
                     </Style>
                 </ScrollViewer.Style>
                 <StackPanel>
-                    <TextBlock Text="{DynamicResource StrWizardStartupTitle}" FontSize="24" FontWeight="Bold" Foreground="White" Margin="0,0,0,12" TextWrapping="Wrap"/>
-                    <CheckBox Content="{DynamicResource StrStartWindows}" IsChecked="{Binding StartWithWindows}" Margin="0,0,0,12">
-                        <CheckBox.LayoutTransform>
-                            <ScaleTransform ScaleX="1.15" ScaleY="1.15"/>
-                        </CheckBox.LayoutTransform>
-                    </CheckBox>
+                    <TextBlock Text="{DynamicResource StrWizardStartupTitle}" Style="{StaticResource PcoTitle}" TextTrimming="None" Margin="0,0,0,12" TextWrapping="Wrap"/>
+                    <CheckBox Content="{DynamicResource StrStartWindows}" IsChecked="{Binding StartWithWindows}" Margin="0,0,0,12"/>
                     <TextBlock Text="{DynamicResource StrStartupWindowBehavior}" Foreground="{StaticResource PcoTextBrush}" FontWeight="SemiBold" FontSize="14" Margin="0,0,0,8"/>
                     <ComboBox ItemsSource="{Binding StartupWindowModes}" SelectedItem="{Binding WindowMode, Mode=TwoWay}" Width="220" HorizontalAlignment="Left" Style="{StaticResource ModernComboBox}" Margin="0,0,0,12"/>
-                    <CheckBox Content="{DynamicResource StrStartupRunElevated}" IsChecked="{Binding RunElevated}" Margin="0,0,0,8">
-                        <CheckBox.LayoutTransform>
-                            <ScaleTransform ScaleX="1.15" ScaleY="1.15"/>
-                        </CheckBox.LayoutTransform>
-                    </CheckBox>
+                    <CheckBox Content="{DynamicResource StrStartupRunElevated}" IsChecked="{Binding RunElevated}" Margin="0,0,0,8"/>
                     <TextBlock Text="{DynamicResource StrWizardNoAdminNote}" Style="{StaticResource PcoMutedText}" TextWrapping="Wrap"/>
                 </StackPanel>
             </ScrollViewer>
@@ -99,7 +96,7 @@
                 </Button>
                 <Button Content="{DynamicResource StrWizardNext}" Command="{Binding NextCommand}" Padding="16,0" Height="36" Margin="0,0,8,0">
                     <Button.Style>
-                        <Style TargetType="Button" BasedOn="{StaticResource SmallFilterButton}">
+                        <Style TargetType="Button" BasedOn="{StaticResource PcoPrimaryButton}">
                             <Setter Property="Visibility" Value="Visible"/>
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding IsLastPage}" Value="True">

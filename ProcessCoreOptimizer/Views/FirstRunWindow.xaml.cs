@@ -8,6 +8,7 @@ namespace ProcessCoreOptimizer.WPF.Views
         public FirstRunWindow()
         {
             InitializeComponent();
+            ProcessCoreOptimizer.WPF.Helpers.WindowTheme.Attach(this);
             var vm = new FirstRunViewModel();
             vm.RequestClose += Close;
             DataContext = vm;
@@ -16,6 +17,7 @@ namespace ProcessCoreOptimizer.WPF.Views
         public FirstRunWindow(FirstRunViewModel viewModel)
         {
             InitializeComponent();
+            ProcessCoreOptimizer.WPF.Helpers.WindowTheme.Attach(this);
             viewModel.RequestClose += Close;
             DataContext = viewModel;
         }

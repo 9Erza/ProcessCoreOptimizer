@@ -1296,6 +1296,14 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 && window.WindowState != WindowState.Minimized;
         }
 
+        private bool IsCoreMapUiActive()
+        {
+            var window = WpfApplication.Current.MainWindow;
+            return ActiveTab == "Cpu"
+                && window?.IsVisible == true
+                && window.WindowState != WindowState.Minimized;
+        }
+
         private async Task RefreshStatisticsAsync()
         {
             if (_isRefreshing || _disposed) return;
@@ -1310,9 +1318,16 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 bool fullUiScan = !_firstRefreshDone || IsProcessListUiActive();
                 _refreshTimer.Interval = TimeSpan.FromSeconds(fullUiScan ? AppSettings.ProcessListRefreshSeconds : AppSettings.ProfileWatcherSeconds);
 
-                if (!fullUiScan)
+                // The CPU & Topology tab shows live per-core load: keep sampling it
+                // (cheap PDH read, off the UI thread) instead of freezing the tiles.
+                bool coreMapVisible = !fullUiScan && IsCoreMapUiActive();
+                if (!fullUiScan && !coreMapVisible)
                 {
                     _hardwareService.ReleaseCpuLoadCounters();
+                }
+                else if (coreMapVisible)
+                {
+                    _ = UpdateCoreLoadsAsync();
                 }
 
                 // Snapshot the profile list: the UI thread may add/remove profiles concurrently.
@@ -1617,7 +1632,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                 StopHardwareMonitor(closeSensors: true, resetMetrics: false);
             }
 
-            if (tabName != "Processes")
+            if (tabName != "Processes" && tabName != "Cpu")
             {
                 _hardwareService.ReleaseCpuLoadCounters();
             }

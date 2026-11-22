@@ -2,208 +2,161 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:views="clr-namespace:ProcessCoreOptimizer.WPF.Views"
+        xmlns:conv="clr-namespace:ProcessCoreOptimizer.WPF.Converters"
         xmlns:ap="clr-namespace:System.Windows.Automation;assembly=PresentationCore"
-        Title="Process Core Optimizer" Height="750" Width="1100" MinWidth="1000" MinHeight="700"
+        Title="Process Core Optimizer" Height="760" Width="1180" MinWidth="1000" MinHeight="680"
         Icon="/Images/processcoreoptimizer.ico"
         WindowStartupLocation="CenterScreen"
-        WindowStyle="None"
-        AllowsTransparency="True"
-        Background="Transparent"
-        ResizeMode="CanResizeWithGrip">
+        Background="{StaticResource PcoBg0Brush}"
+        Foreground="{StaticResource PcoTextBrush}"
+        FontFamily="{StaticResource PcoFontFamily}"
+        FontSize="13"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        ResizeMode="CanResize">
+
+    <!-- Native, non-layered chrome: the window stays GPU-composed (no
+         AllowsTransparency software path), keeps Aero Snap, min/max animations
+         and the system resize border. DWM supplies rounded corners on Windows 11. -->
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="40" ResizeBorderThickness="6" GlassFrameThickness="0"
+                      CornerRadius="0" UseAeroCaptionButtons="False"/>
+    </WindowChrome.WindowChrome>
 
     <Window.Resources>
-        <!-- Theme dictionaries live in Application.Resources (global); window-level
-             resources intentionally left empty to avoid duplicate instances. -->
+        <conv:StringEqualsMultiConverter x:Key="StringEquals"/>
+
+        <!-- One nav style for every tab: active when ActiveTab == CommandParameter. -->
+        <Style x:Key="PcoNavButton" TargetType="Button" BasedOn="{StaticResource SidebarButton}">
+            <Style.Triggers>
+                <DataTrigger Value="True">
+                    <DataTrigger.Binding>
+                        <MultiBinding Converter="{StaticResource StringEquals}">
+                            <Binding Path="ActiveTab"/>
+                            <Binding Path="CommandParameter" RelativeSource="{RelativeSource Self}"/>
+                        </MultiBinding>
+                    </DataTrigger.Binding>
+                    <Setter Property="Background" Value="{StaticResource PcoHoverBrush}"/>
+                    <Setter Property="Foreground" Value="{StaticResource PcoTextBrightBrush}"/>
+                    <Setter Property="BorderBrush" Value="{StaticResource PcoAccentBrush}"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
     </Window.Resources>
 
-    <Border Background="{StaticResource PcoBg0Brush}" CornerRadius="8" BorderBrush="{StaticResource PcoBorderSoftBrush}" BorderThickness="1" SnapsToDevicePixels="True">
+    <Border x:Name="RootBorder" Background="{StaticResource PcoBg0Brush}">
         <Grid>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="230"/>
+                <ColumnDefinition Width="232"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
-                <RowDefinition Height="32"/>
+                <RowDefinition Height="40"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <Border Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Background="{StaticResource PcoBg1Brush}" BorderThickness="0,0,1,0" BorderBrush="{StaticResource PcoBorderBrush}">
+            <!-- ===================== Sidebar ===================== -->
+            <Border Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Background="{StaticResource PcoBg1Brush}"
+                    BorderThickness="0,0,1,0" BorderBrush="{StaticResource PcoBorderSoftBrush}">
                 <Border.Resources>
                     <Style TargetType="ScrollBar" BasedOn="{StaticResource PcoSlimScrollBar}"/>
                 </Border.Resources>
                 <Grid>
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="56"/>
                         <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <Grid Grid.Row="0">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="*"/>
-                        </Grid.RowDefinitions>
-                        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                        <StackPanel VerticalAlignment="Top">
-
-                            <TextBlock Text="Process Core Optimizer" FontWeight="Bold" FontSize="17" Foreground="{StaticResource PcoAccentBrush}" TextWrapping="Wrap" HorizontalAlignment="Center" Margin="0,20,0,8"/>
-
-                            <Border Width="56" Height="56" Margin="0,0,0,16" CornerRadius="12" HorizontalAlignment="Center" ClipToBounds="True">
-                                <Image Source="/Images/processcoreoptimizer.ico" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
-                            </Border>
-
-                            <Button Content="{DynamicResource StrSystemProcesses}" Command="{Binding SwitchTabCommand}" CommandParameter="Processes">
-                                <Button.Style>
-                                    <Style TargetType="{x:Type Button}" BasedOn="{StaticResource SidebarButton}">
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ActiveTab}" Value="Processes">
-                                                <Setter Property="Background" Value="{StaticResource PcoSelectedBrush}"/>
-                                                <Setter Property="Foreground" Value="White"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Button.Style>
-                            </Button>
-
-                            <Button Content="{DynamicResource StrNavCpuTopology}" Command="{Binding SwitchTabCommand}" CommandParameter="Cpu">
-                                <Button.Style>
-                                    <Style TargetType="{x:Type Button}" BasedOn="{StaticResource SidebarButton}">
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ActiveTab}" Value="Cpu">
-                                                <Setter Property="Background" Value="{StaticResource PcoSelectedBrush}"/>
-                                                <Setter Property="Foreground" Value="White"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Button.Style>
-                            </Button>
-
-                            <Button Content="{DynamicResource StrSavedProfiles}" Command="{Binding SwitchTabCommand}" CommandParameter="Profiles">
-                                <Button.Style>
-                                    <Style TargetType="{x:Type Button}" BasedOn="{StaticResource SidebarButton}">
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ActiveTab}" Value="Profiles">
-                                                <Setter Property="Background" Value="{StaticResource PcoSelectedBrush}"/>
-                                                <Setter Property="Foreground" Value="White"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Button.Style>
-                            </Button>
-
-                            <Button Content="{DynamicResource StrSmartRules}" Command="{Binding SwitchTabCommand}" CommandParameter="Rules">
-                                <Button.Style>
-                                    <Style TargetType="{x:Type Button}" BasedOn="{StaticResource SidebarButton}">
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ActiveTab}" Value="Rules">
-                                                <Setter Property="Background" Value="{StaticResource PcoSelectedBrush}"/>
-                                                <Setter Property="Foreground" Value="White"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Button.Style>
-                            </Button>
-
-                            <Button Content="{DynamicResource StrHardwareMonitor}" Command="{Binding SwitchTabCommand}" CommandParameter="Hardware">
-                                <Button.Style>
-                                    <Style TargetType="{x:Type Button}" BasedOn="{StaticResource SidebarButton}">
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ActiveTab}" Value="Hardware">
-                                                <Setter Property="Background" Value="{StaticResource PcoSelectedBrush}"/>
-                                                <Setter Property="Foreground" Value="White"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Button.Style>
-                            </Button>
-
-                            <Button Content="{DynamicResource StrDiagnostics}" Command="{Binding SwitchTabCommand}" CommandParameter="Diagnostics">
-                                <Button.Style>
-                                    <Style TargetType="{x:Type Button}" BasedOn="{StaticResource SidebarButton}">
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ActiveTab}" Value="Diagnostics">
-                                                <Setter Property="Background" Value="{StaticResource PcoSelectedBrush}"/>
-                                                <Setter Property="Foreground" Value="White"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Button.Style>
-                            </Button>
-
-                            <Button Content="{DynamicResource StrSettings}" Command="{Binding SwitchTabCommand}" CommandParameter="Settings" Margin="10,8,10,15">
-                                <Button.Style>
-                                    <Style TargetType="Button" BasedOn="{StaticResource SidebarButton}">
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ActiveTab}" Value="Settings">
-                                                <Setter Property="Background" Value="{StaticResource PcoSelectedBrush}"/>
-                                                <Setter Property="Foreground" Value="White"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Button.Style>
-                            </Button>
+                    <!-- Brand (also a drag area: it sits inside the caption height). -->
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="18,6,12,0">
+                        <Image Source="/Images/processcoreoptimizer.ico" Width="26" Height="26" RenderOptions.BitmapScalingMode="HighQuality" VerticalAlignment="Center"/>
+                        <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="Process Core" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource PcoTextBrightBrush}" LineHeight="16" LineStackingStrategy="BlockLineHeight"/>
+                            <TextBlock Text="Optimizer" FontSize="12" Foreground="{StaticResource PcoMutedBrush}" LineHeight="15" LineStackingStrategy="BlockLineHeight"/>
                         </StackPanel>
-                        </ScrollViewer>
-                    </Grid>
+                    </StackPanel>
 
-                    <!-- Mini activity console (~60 DIP): status dot + latest message.
-                         Click opens Diagnostics with the full log history. -->
-                    <Button Grid.Row="1" Margin="12,0,12,6" Style="{StaticResource PcoMiniConsoleButton}"
+                    <!-- Primary navigation -->
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="0,8,0,0" Focusable="False">
+                        <StackPanel VerticalAlignment="Top">
+                            <Button Style="{StaticResource PcoNavButton}" Content="{DynamicResource StrSystemProcesses}" Tag="&#xE8FD;"
+                                    Command="{Binding SwitchTabCommand}" CommandParameter="Processes"/>
+                            <Button Style="{StaticResource PcoNavButton}" Content="{DynamicResource StrNavCpuTopology}" Tag="&#xE950;"
+                                    Command="{Binding SwitchTabCommand}" CommandParameter="Cpu"/>
+                            <Button Style="{StaticResource PcoNavButton}" Content="{DynamicResource StrSavedProfiles}" Tag="&#xE728;"
+                                    Command="{Binding SwitchTabCommand}" CommandParameter="Profiles"/>
+                            <Button Style="{StaticResource PcoNavButton}" Content="{DynamicResource StrSmartRules}" Tag="&#xE945;"
+                                    Command="{Binding SwitchTabCommand}" CommandParameter="Rules"/>
+                            <Button Style="{StaticResource PcoNavButton}" Content="{DynamicResource StrHardwareMonitor}" Tag="&#xE9D9;"
+                                    Command="{Binding SwitchTabCommand}" CommandParameter="Hardware"/>
+                            <Button Style="{StaticResource PcoNavButton}" Content="{DynamicResource StrDiagnostics}" Tag="&#xEBE8;"
+                                    Command="{Binding SwitchTabCommand}" CommandParameter="Diagnostics"/>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <Button Grid.Row="2" Style="{StaticResource PcoNavButton}" Content="{DynamicResource StrSettings}" Tag="&#xE713;"
+                            Command="{Binding SwitchTabCommand}" CommandParameter="Settings" Margin="8,4,8,8"/>
+
+                    <!-- Activity line: status dot + latest message. Click opens Diagnostics with the full log. -->
+                    <Button Grid.Row="3" Margin="12,0,12,8" Style="{StaticResource PcoMiniConsoleButton}"
                             Command="{Binding SwitchTabCommand}" CommandParameter="Diagnostics"
                             ToolTip="{DynamicResource StrConsoleLog}"
                             ap:AutomationProperties.Name="{Binding ActivitySummary, Mode=OneWay}">
-                        <StackPanel>
-                            <Grid Margin="0,0,0,4">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Text="{DynamicResource StrActivity}" FontSize="11" FontWeight="Bold" Foreground="{StaticResource PcoDimBrush}" VerticalAlignment="Center"/>
-                                <Ellipse Grid.Column="1" Width="8" Height="8" VerticalAlignment="Center" Margin="8,0,2,0">
-                                    <Ellipse.Style>
-                                        <Style TargetType="Ellipse">
-                                            <Setter Property="Fill" Value="{StaticResource PcoGreenBrush}"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding ActivityStatus}" Value="Attention">
-                                                    <Setter Property="Fill" Value="{StaticResource PcoOrangeBrush}"/>
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding ActivityStatus}" Value="Error">
-                                                    <Setter Property="Fill" Value="{StaticResource PcoRedBrush}"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Ellipse.Style>
-                                </Ellipse>
-                            </Grid>
-                            <TextBlock Text="{Binding ActivitySummary, Mode=OneWay}" Foreground="#A0A0A0" FontSize="11" FontFamily="Consolas"
-                                       TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" MaxHeight="16"/>
-                        </StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Ellipse Grid.Column="0" Width="7" Height="7" VerticalAlignment="Top" Margin="0,5,8,0">
+                                <Ellipse.Style>
+                                    <Style TargetType="Ellipse">
+                                        <Setter Property="Fill" Value="{StaticResource PcoGreenBrush}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ActivityStatus}" Value="Attention">
+                                                <Setter Property="Fill" Value="{StaticResource PcoOrangeBrush}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding ActivityStatus}" Value="Error">
+                                                <Setter Property="Fill" Value="{StaticResource PcoRedBrush}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Ellipse.Style>
+                            </Ellipse>
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Text="{DynamicResource StrActivity}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource PcoDimBrush}"/>
+                                <TextBlock Text="{Binding ActivitySummary, Mode=OneWay}" Foreground="{StaticResource PcoMuted2Brush}" FontSize="11.5"
+                                           TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Grid>
                     </Button>
 
-                    <Grid Grid.Row="2" Margin="12,0,12,12">
+                    <!-- Footer: Developer / Project Hub (opens upward), quick links and language. -->
+                    <Grid Grid.Row="4" Margin="12,0,12,12">
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
-                        <!-- Developer / Project Hub: compact version card when collapsed,
-                             full link list when expanded (same commands as About). -->
-                        <Expander Grid.Row="0" x:Name="FooterExpander" Style="{StaticResource PcoFooterExpander}" Margin="0,0,0,8">
+                        <Expander Grid.Row="0" x:Name="FooterExpander" Style="{StaticResource PcoFooterExpander}" Margin="0,0,0,6">
                             <Expander.Header>
-                                <TextBlock Text="{Binding FooterTitle}" FontWeight="SemiBold" FontSize="12.5" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding FooterTitle}" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center"/>
                             </Expander.Header>
                             <Expander.ToolTip>
                                 <TextBlock>
                                     <Run Text="Process Core Optimizer v"/><Run Text="{Binding AppVersion, Mode=OneWay}"/>
                                 </TextBlock>
                             </Expander.ToolTip>
-                            <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                                <StackPanel Margin="0,4,0,0">
+                            <Border Background="{StaticResource PcoBg2Brush}" BorderBrush="{StaticResource PcoBorderSoftBrush}" BorderThickness="1" CornerRadius="8" Padding="4">
+                                <StackPanel>
                                     <Button Style="{StaticResource PcoFooterRowButton}" Command="{Binding OpenRepositoryCommand}"
                                             ToolTip="{DynamicResource StrRepoTooltip}"
                                             ap:AutomationProperties.Name="{DynamicResource StrRepoTooltip}">
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <Grid Width="20"><ContentControl Content="{StaticResource IconGitHub}" Focusable="False" HorizontalAlignment="Center" VerticalAlignment="Center"/></Grid>
+                                            <Grid Width="18"><ContentControl Content="{StaticResource IconGitHub}" Focusable="False" HorizontalAlignment="Center" VerticalAlignment="Center"/></Grid>
                                             <TextBlock Text="{DynamicResource StrFooterRepoLabel}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" FontSize="12" VerticalAlignment="Center" Margin="10,0,0,0"/>
                                         </StackPanel>
                                     </Button>
@@ -211,15 +164,15 @@
                                             ToolTip="{DynamicResource StrAuthorTooltip}"
                                             ap:AutomationProperties.Name="{DynamicResource StrAuthorTooltip}">
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <Grid Width="20"><ContentControl Content="{StaticResource IconGitHub}" Focusable="False" HorizontalAlignment="Center" VerticalAlignment="Center"/></Grid>
-                                            <TextBlock Text="9Erza" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                            <Grid Width="18"><ContentControl Content="{StaticResource IconGitHub}" Focusable="False" HorizontalAlignment="Center" VerticalAlignment="Center"/></Grid>
+                                            <TextBlock Text="9Erza" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" FontSize="12" VerticalAlignment="Center" Margin="10,0,0,0"/>
                                         </StackPanel>
                                     </Button>
                                     <Button Style="{StaticResource PcoFooterRowButton}" Command="{Binding OpenWebsiteCommand}"
                                             ToolTip="{DynamicResource StrFooterWebsiteTooltip}"
                                             ap:AutomationProperties.Name="{DynamicResource StrFooterWebsiteTooltip}">
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <Grid Width="20"><ContentControl Content="{StaticResource IconGlobe}" Focusable="False" HorizontalAlignment="Center" VerticalAlignment="Center"/></Grid>
+                                            <Grid Width="18"><ContentControl Content="{StaticResource IconGlobe}" Focusable="False" HorizontalAlignment="Center" VerticalAlignment="Center"/></Grid>
                                             <TextBlock Text="DobryPC.pl" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" FontSize="12" VerticalAlignment="Center" Margin="10,0,0,0"/>
                                         </StackPanel>
                                     </Button>
@@ -227,7 +180,7 @@
                                             ToolTip="{DynamicResource StrSupportTooltip}"
                                             ap:AutomationProperties.Name="{DynamicResource StrSupportTooltip}">
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <Grid Width="20"><Image Source="/Images/buymeacoffee.png" Width="17" Height="17" Stretch="Uniform" VerticalAlignment="Center" HorizontalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality" Focusable="False"/></Grid>
+                                            <Grid Width="18"><Image Source="/Images/buymeacoffee.png" Width="16" Height="16" Stretch="Uniform" VerticalAlignment="Center" HorizontalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality" Focusable="False"/></Grid>
                                             <TextBlock Text="{DynamicResource StrFooterSupportLabel}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" FontSize="12" VerticalAlignment="Center" Margin="10,0,0,0"/>
                                         </StackPanel>
                                     </Button>
@@ -235,51 +188,65 @@
                                             ToolTip="{DynamicResource StrSetGroupAbout}"
                                             ap:AutomationProperties.Name="{DynamicResource StrSetGroupAbout}">
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <Grid Width="20"><TextBlock Text="&#xE946;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" VerticalAlignment="Center" HorizontalAlignment="Center"/></Grid>
-                                            <TextBlock Text="{DynamicResource StrSetGroupAbout}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                            <Grid Width="18"><TextBlock Text="&#xE946;" FontFamily="{StaticResource PcoIconFont}" FontSize="14" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" VerticalAlignment="Center" HorizontalAlignment="Center"/></Grid>
+                                            <TextBlock Text="{DynamicResource StrSetGroupAbout}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" FontSize="12" VerticalAlignment="Center" Margin="10,0,0,0"/>
                                         </StackPanel>
                                     </Button>
                                 </StackPanel>
-                            </ScrollViewer>
+                            </Border>
                         </Expander>
 
-                        <!-- Slim quick links: repo + support while the hub is collapsed. -->
-                        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
-                            <StackPanel.Style>
-                                <Style TargetType="StackPanel">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsExpanded, ElementName=FooterExpander}" Value="False">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </StackPanel.Style>
-                            <Button Style="{StaticResource IconLinkButton}" Command="{Binding OpenRepositoryCommand}"
-                                    ToolTip="{DynamicResource StrRepoTooltip}"
-                                    ap:AutomationProperties.Name="{DynamicResource StrRepoTooltip}"
-                                    Margin="0,0,8,0">
-                                <ContentControl Content="{StaticResource IconGitHub}" Focusable="False"/>
-                            </Button>
-                            <Button Style="{StaticResource IconLinkButton}" Command="{Binding OpenSupportCommand}"
-                                    ToolTip="{DynamicResource StrSupportTooltip}"
-                                    ap:AutomationProperties.Name="{DynamicResource StrSupportTooltip}">
-                                <Image Source="/Images/buymeacoffee.png" Width="17" Height="17" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality" Focusable="False"/>
-                            </Button>
-                        </StackPanel>
-
-                        <Grid Grid.Row="2">
+                        <Grid Grid.Row="1">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <ToggleButton Grid.Column="0" Style="{StaticResource FlagSwitchStyle}" IsChecked="{Binding IsPolishLanguage}"/>
+                            <ToggleButton Grid.Column="0" Style="{StaticResource FlagSwitchStyle}" IsChecked="{Binding IsPolishLanguage}"
+                                          ToolTip="{DynamicResource StrLanguage}" ap:AutomationProperties.Name="{DynamicResource StrLanguage}"/>
+
+                            <!-- Quick links (repo + support) while the hub is collapsed. -->
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                                <StackPanel.Style>
+                                    <Style TargetType="StackPanel">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsExpanded, ElementName=FooterExpander}" Value="False">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
+                                <Button Style="{StaticResource IconLinkButton}" Command="{Binding OpenRepositoryCommand}"
+                                        ToolTip="{DynamicResource StrRepoTooltip}"
+                                        ap:AutomationProperties.Name="{DynamicResource StrRepoTooltip}"
+                                        Margin="0,0,2,0">
+                                    <ContentControl Content="{StaticResource IconGitHub}" Focusable="False"/>
+                                </Button>
+                                <Button Style="{StaticResource IconLinkButton}" Command="{Binding OpenSupportCommand}"
+                                        ToolTip="{DynamicResource StrSupportTooltip}"
+                                        ap:AutomationProperties.Name="{DynamicResource StrSupportTooltip}">
+                                    <Image Source="/Images/buymeacoffee.png" Width="16" Height="16" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality" Focusable="False"/>
+                                </Button>
+                            </StackPanel>
                         </Grid>
                     </Grid>
                 </Grid>
             </Border>
 
-            <Grid Grid.Row="1" Grid.Column="1" Margin="25,5,25,25">
+            <!-- ===================== Caption (drag area + window buttons) ===================== -->
+            <Grid Grid.Row="0" Grid.Column="1">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+                    <Button Style="{StaticResource WindowBtnStyle}" Content="&#xE921;" Click="MinimizeButton_Click"
+                            WindowChrome.IsHitTestVisibleInChrome="True" ap:AutomationProperties.Name="{DynamicResource StrWinMinimize}" ToolTip="{DynamicResource StrWinMinimize}"/>
+                    <Button x:Name="MaximizeIconBtn" Style="{StaticResource WindowBtnStyle}" Content="&#xE922;" Click="MaximizeButton_Click"
+                            WindowChrome.IsHitTestVisibleInChrome="True" ap:AutomationProperties.Name="{DynamicResource StrWinMaximize}" ToolTip="{DynamicResource StrWinMaximize}"/>
+                    <Button Style="{StaticResource WindowCloseBtnStyle}" Content="&#xE8BB;" Click="CloseButton_Click"
+                            WindowChrome.IsHitTestVisibleInChrome="True" ap:AutomationProperties.Name="{DynamicResource StrWinClose}" ToolTip="{DynamicResource StrWinClose}"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- ===================== Content ===================== -->
+            <Grid Grid.Row="1" Grid.Column="1" Margin="24,0,24,24">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
@@ -295,11 +262,12 @@
 
                 <!-- Contextual target panel: only with a live selection, never without a target.
                      Narrow windows overlay it as a right-side drawer (IsNarrowLayout). -->
-                <Border Grid.Column="1" MaxWidth="400">
+                <Border Grid.Column="1" Margin="16,0,0,0">
                     <Border.Style>
                         <Style TargetType="Border" BasedOn="{StaticResource PcoCard}">
                             <Setter Property="Visibility" Value="Collapsed"/>
-                            <Setter Property="Width" Value="380"/>
+                            <Setter Property="Width" Value="348"/>
+                            <Setter Property="Padding" Value="18"/>
                             <Setter Property="HorizontalAlignment" Value="Stretch"/>
                             <Style.Triggers>
                                 <MultiDataTrigger>
@@ -317,9 +285,11 @@
                                     <Setter Property="Visibility" Value="Visible"/>
                                 </MultiDataTrigger>
                                 <DataTrigger Binding="{Binding IsNarrowLayout}" Value="True">
-                                    <Setter Property="Width" Value="340"/>
+                                    <Setter Property="Width" Value="328"/>
                                     <Setter Property="HorizontalAlignment" Value="Right"/>
                                     <Setter Property="Panel.ZIndex" Value="5"/>
+                                    <Setter Property="Background" Value="{StaticResource PcoBg2Brush}"/>
+                                    <Setter Property="BorderBrush" Value="{StaticResource PcoBorderStrongBrush}"/>
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
@@ -335,41 +305,57 @@
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
-                        <Grid Grid.Row="0">
+                        <!-- Header: what is targeted -->
+                        <Grid Grid.Row="0" Margin="0,0,0,12">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0">
-                                <TextBlock Text="{Binding TargetPanelTitle, Mode=OneWay}" Style="{StaticResource PcoTitle}"/>
-                                <TextBlock Text="{Binding TargetScopeLabel, Mode=OneWay}" Foreground="{StaticResource PcoAccentBrush}" FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,6"/>
-                                <TextBlock Text="{DynamicResource StrSystemTargetWarning}" Foreground="{StaticResource PcoOrangeBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,6">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsSystemTarget}" Value="True">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
+                                <TextBlock Text="{Binding TargetPanelTitle, Mode=OneWay}" Style="{StaticResource PcoCaption}" Margin="0,0,0,2"/>
+                                <TextBlock Text="{Binding TargetScopeLabel, Mode=OneWay}" Foreground="{StaticResource PcoTextBrightBrush}" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap"/>
                             </StackPanel>
-                            <Button Grid.Column="1" Content="&#xE711;" Style="{StaticResource WindowBtnStyle}" Width="32" Height="32"
+                            <Button Grid.Column="1" Content="&#xE711;" Style="{StaticResource PcoIconButton}" Margin="8,-4,-6,0"
                                     Command="{Binding CloseProcessTargetCommand}" ToolTip="{DynamicResource StrClosePanel}"
                                     ap:AutomationProperties.Name="{DynamicResource StrClosePanel}" VerticalAlignment="Top"/>
                         </Grid>
 
-                        <UniformGrid Grid.Row="1" Columns="2" Margin="0,0,0,6">
-                            <Button Content="{DynamicResource StrSelectAll}" Command="{Binding SelectAllCommand}" Style="{StaticResource SmallFilterButton}" Height="30" FontSize="12" Margin="0,0,4,4"/>
-                            <Button Content="{DynamicResource StrClearAll}" Command="{Binding ClearAllCommand}" Style="{StaticResource SmallFilterButton}" Height="30" FontSize="12" Margin="4,0,0,4"/>
-                            <Button Content="{Binding CpuVendorText}" Command="{Binding DisableSmtCommand}" Style="{StaticResource SmallFilterButton}" Height="30" FontSize="12" Margin="0,0,4,0"/>
-                            <Button Content="{DynamicResource StrDisableECores}" Command="{Binding DisableECoresCommand}" IsEnabled="{Binding HasECores}" Style="{StaticResource SmallFilterButton}" Height="30" FontSize="12" Margin="4,0,0,0"/>
-                        </UniformGrid>
-                        <StackPanel Grid.Row="2" Margin="0,0,0,6">
-                            <TextBlock Text="{Binding SelectedCoreSummary, Mode=OneWay}" Foreground="{StaticResource PcoMutedBrush}" FontSize="11"/>
-                            <TextBlock Text="{DynamicResource StrEmptyMaskWarning}" Foreground="{StaticResource PcoRedBrush}" FontSize="11" FontWeight="SemiBold" TextWrapping="Wrap">
+                        <Border Grid.Row="1" Margin="0,0,0,12" Padding="10,8">
+                            <Border.Style>
+                                <Style TargetType="Border" BasedOn="{StaticResource PcoWarningInset}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsSystemTarget}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <TextBlock Text="{DynamicResource StrSystemTargetWarning}" Foreground="{StaticResource PcoOrangeBrush}" FontSize="11.5" TextWrapping="Wrap"/>
+                        </Border>
+
+                        <!-- Core selection toolbar -->
+                        <StackPanel Grid.Row="2" Margin="0,0,0,8">
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="{DynamicResource StrCpuCores}" Style="{StaticResource PcoFieldLabel}" Margin="0"/>
+                                <TextBlock Grid.Column="1" Text="{Binding SelectedCoreSummary, Mode=OneWay}" Foreground="{StaticResource PcoMutedBrush}" FontSize="11.5"
+                                           HorizontalAlignment="Right" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="8,0,0,0"/>
+                            </Grid>
+                            <UniformGrid Columns="4">
+                                <Button Content="{DynamicResource StrSelectAll}" Command="{Binding SelectAllCommand}" Style="{StaticResource SmallFilterButton}" Height="28" Padding="4,0" FontSize="11.5" Margin="0,0,3,0"
+                                        ToolTip="{DynamicResource StrSelectAll}"/>
+                                <Button Content="{DynamicResource StrClearAll}" Command="{Binding ClearAllCommand}" Style="{StaticResource SmallFilterButton}" Height="28" Padding="4,0" FontSize="11.5" Margin="3,0,3,0"
+                                        ToolTip="{DynamicResource StrClearAll}"/>
+                                <Button Content="{Binding CpuVendorText}" Command="{Binding DisableSmtCommand}" Style="{StaticResource SmallFilterButton}" Height="28" Padding="4,0" FontSize="11.5" Margin="3,0,3,0"
+                                        ToolTip="{Binding CpuVendorText}"/>
+                                <Button Content="{DynamicResource StrDisableECores}" Command="{Binding DisableECoresCommand}" IsEnabled="{Binding HasECores}" Style="{StaticResource SmallFilterButton}" Height="28" Padding="4,0" FontSize="11.5" Margin="3,0,0,0"
+                                        ToolTip="{DynamicResource StrDisableECores}"/>
+                            </UniformGrid>
+                            <TextBlock Text="{DynamicResource StrEmptyMaskWarning}" Foreground="{StaticResource PcoRedBrush}" FontSize="11.5" TextWrapping="Wrap" Margin="0,8,0,0">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">
                                         <Setter Property="Visibility" Value="Collapsed"/>
@@ -383,116 +369,117 @@
                             </TextBlock>
                         </StackPanel>
 
-                        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" Margin="0,0,0,8"
-                                      VerticalAlignment="Top" MaxHeight="280">
+                        <!-- Core chips: fixed height, top aligned, scroll for large CPUs. -->
+                        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" Margin="0,0,-8,12" Padding="0,0,8,0" VerticalAlignment="Top" MaxHeight="280">
                             <ItemsControl ItemsSource="{Binding Cores}" VerticalAlignment="Top">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <UniformGrid Columns="2"/>
+                                        <UniformGrid Columns="3" VerticalAlignment="Top"/>
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <!-- Fixed compact height: the tile never grows with a maximized window.
-                                             The surrounding ScrollViewer is top-aligned, so spare space stays
-                                             below the selector instead of stretching each tile. -->
-                                        <Border Margin="3" Padding="7,4" Height="38" VerticalAlignment="Top"
-                                                Background="{StaticResource PcoBg3Brush}" CornerRadius="4" BorderThickness="1" BorderBrush="{StaticResource PcoBorderSoftBrush}">
+                                        <CheckBox Style="{StaticResource PcoCoreChip}" Margin="0,0,6,6" Height="38" VerticalAlignment="Top"
+                                                  IsChecked="{Binding IsChecked, Mode=TwoWay}"
+                                                  ap:AutomationProperties.Name="{Binding DisplayName, Mode=OneWay}">
                                             <Grid>
                                                 <Grid.RowDefinitions>
                                                     <RowDefinition Height="Auto"/>
                                                     <RowDefinition Height="Auto"/>
                                                 </Grid.RowDefinitions>
-                                                <CheckBox Grid.Row="0" IsChecked="{Binding IsChecked, Mode=TwoWay}" VerticalContentAlignment="Center"
-                                                          ap:AutomationProperties.Name="{Binding DisplayName, Mode=OneWay}">
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Text="{Binding DisplayName, Mode=OneWay}" Foreground="{StaticResource PcoTextBrightBrush}" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center"/>
-                                                        <TextBlock Foreground="{StaticResource PcoMutedBrush}" FontSize="11" VerticalAlignment="Center"
-                                                                   Text="{Binding LoadUsage, Mode=OneWay, StringFormat=' {0:F0}%'}">
-                                                            <TextBlock.Style>
-                                                                <Style TargetType="TextBlock">
-                                                                    <Style.Triggers>
-                                                                        <!-- Unknown sample: em dash, never a fake 0%. -->
-                                                                        <DataTrigger Binding="{Binding LoadAvailable, Mode=OneWay}" Value="False">
-                                                                            <Setter Property="Text" Value=" —"/>
-                                                                            <Setter Property="ToolTip" Value="{DynamicResource StrNoData}"/>
-                                                                        </DataTrigger>
-                                                                    </Style.Triggers>
-                                                                </Style>
-                                                            </TextBlock.Style>
-                                                        </TextBlock>
-                                                    </StackPanel>
-                                                </CheckBox>
-                                                <ProgressBar Grid.Row="1" Value="{Binding LoadUsage, Mode=OneWay}" Maximum="100" Height="3" Margin="0,3,0,0" Foreground="{StaticResource PcoAccentBrush}" Background="#111" BorderThickness="0">
-                                                    <ProgressBar.Style>
-                                                        <Style TargetType="ProgressBar">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Text="{Binding DisplayName, Mode=OneWay}" FontSize="11.5" FontWeight="SemiBold"
+                                                           Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=CheckBox}}"
+                                                           TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Column="1" Foreground="{StaticResource PcoDimBrush}" FontSize="10.5" VerticalAlignment="Center" Margin="4,0,0,0">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Text" Value="{Binding LoadUsage, Mode=OneWay, StringFormat={}{0:F0}%}"/>
                                                             <Style.Triggers>
-                                                                                <!-- No verified sample: dim the bar instead of showing 0%. -->
-                                                                                <DataTrigger Binding="{Binding LoadAvailable, Mode=OneWay}" Value="False">
-                                                                                    <Setter Property="Opacity" Value="0.25"/>
-                                                                                    <Setter Property="ToolTip" Value="{DynamicResource StrNoData}"/>
-                                                                                </DataTrigger>
+                                                                <!-- Unknown sample: em dash, never a fake 0%. -->
+                                                                <DataTrigger Binding="{Binding LoadAvailable, Mode=OneWay}" Value="False">
+                                                                    <Setter Property="Text" Value=" —"/>
+                                                                    <Setter Property="ToolTip" Value="{DynamicResource StrNoData}"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                                <ProgressBar Grid.Row="1" Grid.ColumnSpan="2" Value="{Binding LoadUsage, Mode=OneWay}" Maximum="100" Height="3" Margin="0,5,0,0">
+                                                    <ProgressBar.Style>
+                                                        <Style TargetType="ProgressBar" BasedOn="{StaticResource {x:Type ProgressBar}}">
+                                                            <Style.Triggers>
+                                                                <!-- No verified sample: dim the bar instead of showing 0%. -->
+                                                                <DataTrigger Binding="{Binding LoadAvailable, Mode=OneWay}" Value="False">
+                                                                    <Setter Property="Opacity" Value="0.25"/>
+                                                                </DataTrigger>
                                                             </Style.Triggers>
                                                         </Style>
                                                     </ProgressBar.Style>
                                                 </ProgressBar>
                                             </Grid>
-                                        </Border>
+                                        </CheckBox>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                         </ScrollViewer>
 
-                        <StackPanel Grid.Row="4">
-                            <TextBlock Text="{DynamicResource StrOptimizationMode}" FontWeight="Bold" FontSize="16" Margin="0,10,0,10" Foreground="{StaticResource PcoAccentBrush}"/>
-                            <ComboBox ItemsSource="{Binding AvailableOptimizationModes}" SelectedItem="{Binding SelectedOptimizationMode, Mode=TwoWay}" Style="{StaticResource ModernComboBox}" Margin="0,0,0,15">
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBlock>
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Foreground" Value="{StaticResource PcoTextBrush}"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding}" Value="Affinity">
-                                                            <Setter Property="Text" Value="{DynamicResource ModeAffinity}"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding}" Value="CpuSets">
-                                                            <Setter Property="Text" Value="{DynamicResource ModeCpuSets}"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
+                        <!-- Mode + priority -->
+                        <Grid Grid.Row="4" Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="10"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="{DynamicResource StrOptimizationMode}" Style="{StaticResource PcoFieldLabel}" TextTrimming="CharacterEllipsis"/>
+                                <ComboBox ItemsSource="{Binding AvailableOptimizationModes}" SelectedItem="{Binding SelectedOptimizationMode, Mode=TwoWay}" Style="{StaticResource ModernComboBox}"
+                                          ap:AutomationProperties.Name="{DynamicResource StrOptimizationMode}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock TextTrimming="CharacterEllipsis">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding}" Value="Affinity">
+                                                                <Setter Property="Text" Value="{DynamicResource ModeAffinity}"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding}" Value="CpuSets">
+                                                                <Setter Property="Text" Value="{DynamicResource ModeCpuSets}"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="{DynamicResource StrSetPriority}" Style="{StaticResource PcoFieldLabel}" TextTrimming="CharacterEllipsis"/>
+                                <ComboBox ItemsSource="{Binding AvailablePriorities}" SelectedItem="{Binding SelectedPriority, Mode=TwoWay}" Style="{StaticResource ModernComboBox}"
+                                          ap:AutomationProperties.Name="{DynamicResource StrSetPriority}"/>
+                            </StackPanel>
+                        </Grid>
 
-                            <TextBlock Text="{DynamicResource StrSetPriority}" FontWeight="Bold" FontSize="16" Margin="0,0,0,10" Foreground="{StaticResource PcoRedBrush}"/>
-                            <ComboBox ItemsSource="{Binding AvailablePriorities}" SelectedItem="{Binding SelectedPriority, Mode=TwoWay}" Style="{StaticResource ModernComboBox}" Margin="0,0,0,20"/>
-
-                            <Separator Background="#333" Margin="0,5,0,20"/>
-                        </StackPanel>
-
+                        <!-- Actions: one primary, the rest secondary / quiet. -->
                         <StackPanel Grid.Row="5" Visibility="{Binding ViewProcesses}">
-                            <Button Content="{DynamicResource StrSetAffinity}" Command="{Binding ApplySettingsCommand}" Background="{StaticResource PcoAccentBrush}" Margin="0,0,0,10" Style="{StaticResource StandardButton}"/>
-                            <Button Content="{DynamicResource StrSaveProfile}" Command="{Binding SaveProfileCommand}" Background="{StaticResource PcoGreenBrush}" Margin="0,0,0,10" Style="{StaticResource StandardButton}"/>
-                            <Button Content="{DynamicResource StrRestoreSettings}" Command="{Binding RestoreSettingsCommand}" Background="{StaticResource PcoControlBrush}" Style="{StaticResource StandardButton}"/>
+                            <Button Content="{DynamicResource StrSetAffinity}" Command="{Binding ApplySettingsCommand}" Style="{StaticResource PcoPrimaryButton}" Margin="0,0,0,8"/>
+                            <UniformGrid Columns="2">
+                                <Button Content="{DynamicResource StrSaveProfile}" Command="{Binding SaveProfileCommand}" Style="{StaticResource PcoSecondaryButton}" Margin="0,0,4,0"/>
+                                <Button Content="{DynamicResource StrRestoreSettings}" Command="{Binding RestoreSettingsCommand}" Style="{StaticResource PcoSecondaryButton}" Margin="4,0,0,0"/>
+                            </UniformGrid>
                         </StackPanel>
 
                         <StackPanel Grid.Row="5" Visibility="{Binding ViewProfiles}">
-                            <Button Content="{DynamicResource StrUpdateProfile}" Command="{Binding UpdateProfileCommand}" Background="{StaticResource PcoOrangeBrush}" Margin="0,0,0,10" Style="{StaticResource StandardButton}"/>
-                            <Button Content="{DynamicResource StrDeleteProfile}" Command="{Binding DeleteProfileCommand}" Background="{StaticResource PcoRedBrush}" Style="{StaticResource StandardButton}"/>
+                            <Button Content="{DynamicResource StrUpdateProfile}" Command="{Binding UpdateProfileCommand}" Style="{StaticResource PcoPrimaryButton}" Margin="0,0,0,8"/>
+                            <Button Content="{DynamicResource StrDeleteProfile}" Command="{Binding DeleteProfileCommand}" Style="{StaticResource PcoDangerButton}" Height="36"/>
                         </StackPanel>
                     </Grid>
                 </Border>
-            </Grid>
-
-            <Grid Grid.Row="0" Grid.Column="1" Background="Transparent" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Style="{StaticResource WindowBtnStyle}" Content="&#xE921;" Click="MinimizeButton_Click"/>
-                    <Button x:Name="MaximizeIconBtn" Style="{StaticResource WindowBtnStyle}" Content="&#xE922;" Click="MaximizeButton_Click"/>
-                    <Button Style="{StaticResource WindowCloseBtnStyle}" Content="&#xE8BB;" Click="CloseButton_Click"/>
-                </StackPanel>
             </Grid>
         </Grid>
     </Border>

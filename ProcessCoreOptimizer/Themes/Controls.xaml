@@ -1,29 +1,186 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
+    <!-- Process Core Optimizer 2.1 control styles.
+         Principles: one accent, neutral surfaces, 6px control radius, 32-36px
+         control height, visible keyboard focus, no animations or bitmap effects
+         on hot paths (cheap to render, nothing ticking while idle). -->
+
     <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="Colors.xaml"/>
     </ResourceDictionary.MergedDictionaries>
 
-    <Style x:Key="FlagSwitchStyle" TargetType="ToggleButton">
-        <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Cursor" Value="Hand"/>
+    <!-- Shared keyboard focus ring (replaces the dotted system rectangle). -->
+    <Style x:Key="PcoFocusVisual">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Border Margin="-2" CornerRadius="8" BorderThickness="2" BorderBrush="{StaticResource PcoAccentLightBrush}" SnapsToDevicePixels="True"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===================== Text primitives ===================== -->
+
+    <Style x:Key="PcoTitle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource PcoDisplayFontFamily}"/>
+        <Setter Property="FontSize" Value="22"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource PcoTextBrightBrush}"/>
+        <Setter Property="Margin" Value="0,0,0,16"/>
+        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+    </Style>
+
+    <Style x:Key="PcoSectionHeader" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource PcoTextBrightBrush}"/>
+        <Setter Property="Margin" Value="0,18,0,8"/>
+    </Style>
+
+    <!-- Small uppercase-style caption used above groups of controls. -->
+    <Style x:Key="PcoCaption" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource PcoDimBrush}"/>
+        <Setter Property="Margin" Value="0,0,0,6"/>
+    </Style>
+
+    <Style x:Key="PcoFieldLabel" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource PcoTextBrush}"/>
+        <Setter Property="Margin" Value="0,0,0,6"/>
+    </Style>
+
+    <Style x:Key="PcoMutedText" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource PcoMutedBrush}"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+        <Setter Property="LineHeight" Value="18"/>
+    </Style>
+
+    <Style x:Key="PcoIcon" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource PcoIconFont}"/>
+        <Setter Property="FontSize" Value="16"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+    </Style>
+
+    <!-- ===================== Surfaces ===================== -->
+
+    <Style x:Key="PcoCard" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource PcoBg1Brush}"/>
+        <Setter Property="CornerRadius" Value="10"/>
+        <Setter Property="Padding" Value="20"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="BorderBrush" Value="{StaticResource PcoBorderSoftBrush}"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+    </Style>
+
+    <!-- Nested panel inside a card (details, notes, empty states). -->
+    <Style x:Key="PcoInset" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource PcoBg2Brush}"/>
+        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="Padding" Value="14,12"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="BorderBrush" Value="{StaticResource PcoBorderSoftBrush}"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+    </Style>
+
+    <Style x:Key="PcoWarningInset" TargetType="Border" BasedOn="{StaticResource PcoInset}">
+        <Setter Property="Background" Value="{StaticResource PcoOrangeSubtleBrush}"/>
+        <Setter Property="BorderBrush" Value="#4A3A1E"/>
+    </Style>
+
+    <Style x:Key="PcoDangerInset" TargetType="Border" BasedOn="{StaticResource PcoInset}">
+        <Setter Property="Background" Value="{StaticResource PcoRedSubtleBrush}"/>
+        <Setter Property="BorderBrush" Value="#4D2426"/>
+    </Style>
+
+    <Style x:Key="PcoDivider" TargetType="Border">
+        <Setter Property="Height" Value="1"/>
+        <Setter Property="Background" Value="{StaticResource PcoBorderSoftBrush}"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+    </Style>
+
+    <Style TargetType="Separator">
+        <Setter Property="Height" Value="1"/>
+        <Setter Property="Margin" Value="0,8"/>
         <Setter Property="Template">
             <Setter.Value>
-                <ControlTemplate TargetType="ToggleButton">
-                    <Border Background="{TemplateBinding Background}" CornerRadius="6" Padding="4,2">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <Image x:Name="UsFlag" Source="/Images/us_flag.png" Width="24" Height="16" Stretch="UniformToFill" Opacity="1" VerticalAlignment="Center" Margin="0,0,8,0" RenderOptions.BitmapScalingMode="HighQuality"/>
-                            <Image x:Name="PlFlag" Source="/Images/pl_flag.png" Width="24" Height="16" Stretch="UniformToFill" Opacity="0.3" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"/>
-                        </StackPanel>
+                <ControlTemplate TargetType="Separator">
+                    <Border Height="1" Background="{StaticResource PcoBorderBrush}" SnapsToDevicePixels="True"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===================== Tooltip / context menu ===================== -->
+
+    <Style TargetType="ToolTip">
+        <Setter Property="Background" Value="{StaticResource PcoBg3Brush}"/>
+        <Setter Property="Foreground" Value="{StaticResource PcoTextBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource PcoBorderStrongBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Padding" Value="10,6"/>
+        <Setter Property="HasDropShadow" Value="False"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToolTip">
+                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" Padding="{TemplateBinding Padding}" MaxWidth="360">
+                        <ContentPresenter>
+                            <ContentPresenter.Resources>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                </Style>
+                            </ContentPresenter.Resources>
+                        </ContentPresenter>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="ContextMenu">
+        <Setter Property="Background" Value="{StaticResource PcoBg2Brush}"/>
+        <Setter Property="Foreground" Value="{StaticResource PcoTextBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource PcoBorderStrongBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="HasDropShadow" Value="False"/>
+        <Setter Property="Grid.IsSharedSizeScope" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContextMenu">
+                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" Padding="4" MinWidth="200">
+                        <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="MenuItem">
+        <Setter Property="Foreground" Value="{StaticResource PcoTextBrush}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Padding" Value="10,7"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="MenuItem">
+                    <Border x:Name="Bd" Background="Transparent" CornerRadius="4" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+                        <ContentPresenter ContentSource="Header" RecognizesAccessKey="True" VerticalAlignment="Center"/>
                     </Border>
                     <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" Value="{StaticResource PcoControlBrush}"/>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource PcoHoverBrush}"/>
+                            <Setter Property="Foreground" Value="{StaticResource PcoTextBrightBrush}"/>
                         </Trigger>
-                        <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="UsFlag" Property="Opacity" Value="0.3"/>
-                            <Setter TargetName="PlFlag" Property="Opacity" Value="1"/>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{StaticResource PcoFaintBrush}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -31,17 +188,32 @@
         </Setter>
     </Style>
 
+    <Style x:Key="{x:Static MenuItem.SeparatorStyleKey}" TargetType="Separator">
+        <Setter Property="Margin" Value="6,4"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Separator">
+                    <Border Height="1" Background="{StaticResource PcoBorderBrush}" SnapsToDevicePixels="True"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===================== Window caption buttons ===================== -->
+
     <Style x:Key="WindowBtnStyle" TargetType="Button">
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="Foreground" Value="{StaticResource PcoMutedBrush}"/>
-        <Setter Property="Width" Value="45"/>
+        <Setter Property="Width" Value="46"/>
+        <Setter Property="Height" Value="32"/>
         <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
+        <Setter Property="FontFamily" Value="{StaticResource PcoIconFont}"/>
         <Setter Property="FontSize" Value="10"/>
+        <Setter Property="Focusable" Value="False"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border Background="{TemplateBinding Background}">
+                    <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="0">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                 </ControlTemplate>
@@ -49,8 +221,11 @@
         </Setter>
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Background" Value="#333333"/>
-                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="Background" Value="{StaticResource PcoHoverBrush}"/>
+                <Setter Property="Foreground" Value="{StaticResource PcoTextBrightBrush}"/>
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background" Value="{StaticResource PcoPressedBrush}"/>
             </Trigger>
         </Style.Triggers>
     </Style>
@@ -58,56 +233,595 @@
     <Style x:Key="WindowCloseBtnStyle" TargetType="Button" BasedOn="{StaticResource WindowBtnStyle}">
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Background" Value="#E81123"/>
+                <Setter Property="Background" Value="#C42B1C"/>
                 <Setter Property="Foreground" Value="White"/>
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background" Value="#A32419"/>
             </Trigger>
         </Style.Triggers>
     </Style>
 
-    <Style TargetType="Expander">
-        <Setter Property="Foreground" Value="{StaticResource PcoAccentBrush}"/>
-        <Setter Property="FontSize" Value="16"/>
-        <Setter Property="FontWeight" Value="SemiBold"/>
+    <!-- Small square icon button (panel close, inline actions). -->
+    <Style x:Key="PcoIconButton" TargetType="Button">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{StaticResource PcoMutedBrush}"/>
+        <Setter Property="Width" Value="30"/>
+        <Setter Property="Height" Value="30"/>
+        <Setter Property="FontFamily" Value="{StaticResource PcoIconFont}"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource PcoFocusVisual}"/>
         <Setter Property="Template">
             <Setter.Value>
-                <ControlTemplate TargetType="Expander">
-                    <DockPanel>
-                        <ToggleButton x:Name="HeaderSite" ContentTemplate="{TemplateBinding HeaderTemplate}" ContentTemplateSelector="{TemplateBinding HeaderTemplateSelector}" Content="{TemplateBinding Header}" DockPanel.Dock="Top" Foreground="{TemplateBinding Foreground}" FontWeight="{TemplateBinding FontWeight}" FontSize="{TemplateBinding FontSize}" Padding="5" Margin="0,0,0,10" IsChecked="{Binding IsExpanded, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
-                            <ToggleButton.Template>
-                                <ControlTemplate TargetType="ToggleButton">
-                                    <Border Background="Transparent" Cursor="Hand">
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock x:Name="Arrow" Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="{StaticResource PcoAccentBrush}" RenderTransformOrigin="0.5,0.5">
-                                                <TextBlock.RenderTransform>
-                                                    <RotateTransform Angle="-90"/>
-                                                </TextBlock.RenderTransform>
-                                            </TextBlock>
-                                            <ContentPresenter VerticalAlignment="Center"/>
-                                        </StackPanel>
-                                    </Border>
-                                    <ControlTemplate.Triggers>
-                                        <Trigger Property="IsChecked" Value="True">
-                                            <Setter TargetName="Arrow" Property="RenderTransform">
-                                                <Setter.Value>
-                                                    <RotateTransform Angle="0"/>
-                                                </Setter.Value>
-                                            </Setter>
-                                        </Trigger>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="Arrow" Property="Foreground" Value="{StaticResource PcoAccentLightBrush}"/>
-                                            <Setter Property="Foreground" Value="{StaticResource PcoAccentLightBrush}"/>
-                                        </Trigger>
-                                    </ControlTemplate.Triggers>
-                                </ControlTemplate>
-                            </ToggleButton.Template>
-                        </ToggleButton>
-                        <ContentPresenter x:Name="ExpandSite" DockPanel.Dock="Bottom" Focusable="false" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" Margin="{TemplateBinding Padding}" Visibility="Collapsed" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
-                    </DockPanel>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="6">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
                     <ControlTemplate.Triggers>
-                        <Trigger Property="IsExpanded" Value="true">
-                            <Setter Property="Visibility" TargetName="ExpandSite" Value="Visible"/>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource PcoHoverBrush}"/>
+                            <Setter Property="Foreground" Value="{StaticResource PcoTextBrightBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource PcoPressedBrush}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===================== Buttons ===================== -->
+
+    <!-- Base button. Background may be set locally; hover/press are drawn with a
+         translucent overlay so any background color gets consistent feedback. -->
+    <Style TargetType="Button" x:Key="StandardButton">
+        <Setter Property="Background" Value="{StaticResource PcoBg3Brush}"/>
+        <Setter Property="Foreground" Value="{StaticResource PcoTextBrightBrush}"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Height" Value="36"/>
+        <Setter Property="Padding" Value="16,0"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource PcoFocusVisual}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid SnapsToDevicePixels="True">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6"/>
+                        <Border x:Name="Overlay" Background="White" Opacity="0" CornerRadius="6"/>
+                        <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Overlay" Property="Opacity" Value="0.08"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Overlay" Property="Background" Value="Black"/>
+                            <Setter TargetName="Overlay" Property="Opacity" Value="0.15"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.4"/>
+                            <Setter Property="Cursor" Value="Arrow"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Primary action: the one accent button per surface. -->
+    <Style TargetType="Button" x:Key="PcoPrimaryButton" BasedOn="{StaticResource StandardButton}">
+        <Setter Property="Background" Value="{StaticResource PcoAccentBrush}"/>
+        <Setter Property="Foreground" Value="White"/>
+    </Style>
+
+    <!-- Secondary action: neutral surface with a hairline border. -->
+    <Style TargetType="Button" x:Key="SmallFilterButton" BasedOn="{StaticResource StandardButton}">
+        <Setter Property="Background" Value="{StaticResource PcoBg3Brush}"/>
+        <Setter Property="Foreground" Value="{StaticResource PcoTextBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource PcoBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Height" Value="32"/>
+        <Setter Property="Padding" Value="12,0"/>
+        <Setter Property="FontSize" Value="12.5"/>
+        <Setter Property="FontWeight" Value="Normal"/>
+    </Style>
+
+    <Style TargetType="Button" x:Key="PcoSecondaryButton" BasedOn="{StaticResource SmallFilterButton}">
+        <Setter Property="Height" Value="36"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+
+    <!-- Quiet action (restore, dismiss): text only until hovered. -->
+    <Style TargetType="Button" x:Key="PcoSubtleButton" BasedOn="{StaticResource StandardButton}">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{StaticResource PcoMuted2Brush}"/>
+        <Setter Property="FontWeight" Value="Normal"/>
+    </Style>
+
+    <!-- Destructive action: red text on neutral, never a full red slab. -->
+    <Style TargetType="Button" x:Key="PcoDangerButton" BasedOn="{StaticResource SmallFilterButton}">
+        <Setter Property="Foreground" Value="{StaticResource PcoRedBrush}"/>
+    </Style>
+
+    <!-- ===================== Sidebar navigation ===================== -->
+
+    <!-- Nav item. Tag = icon glyph. Active state is signalled by setting
+         BorderBrush to the accent (drawn as the left indicator pill). -->
+    <Style TargetType="Button" x:Key="SidebarButton">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{StaticResource PcoMuted2Brush}"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Height" Value="38"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="Normal"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        <Setter Property="Padding" Value="12,0,10,0"/>
+        <Setter Property="Margin" Value="8,0,8,2"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource PcoFocusVisual}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="6" SnapsToDevicePixels="True">
+                        <Grid>
+                            <Border Width="3" Height="16" CornerRadius="1.5" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                    Background="{TemplateBinding BorderBrush}"/>
+                            <StackPanel Orientation="Horizontal" Margin="{TemplateBinding Padding}" VerticalAlignment="Center">
+                                <TextBlock x:Name="Glyph" Text="{TemplateBinding Tag}" FontFamily="{StaticResource PcoIconFont}" FontSize="16"
+                                           Width="18" Margin="0,0,12,0" VerticalAlignment="Center" TextAlignment="Center"
+                                           Foreground="{TemplateBinding Foreground}"/>
+                                <ContentPresenter VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="Tag" Value="{x:Null}">
+                            <Setter TargetName="Glyph" Property="Visibility" Value="Collapsed"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{StaticResource PcoHoverBrush}"/>
+                <Setter Property="Foreground" Value="{StaticResource PcoTextBrightBrush}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="FlagSwitchStyle" TargetType="ToggleButton">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource PcoFocusVisual}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="Bd" Background="{StaticResource PcoBg3Brush}" BorderBrush="{StaticResource PcoBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="3">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Border x:Name="EnPill" CornerRadius="4" Padding="6,3" Background="{StaticResource PcoSelectedBrush}">
+                                <StackPanel Orientation="Horizontal">
+                                    <Image x:Name="UsFlag" Source="/Images/us_flag.png" Width="16" Height="11" Stretch="UniformToFill" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                    <TextBlock x:Name="EnText" Text="EN" FontSize="11" FontWeight="SemiBold" Margin="5,0,0,0" Foreground="{StaticResource PcoTextBrightBrush}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <Border x:Name="PlPill" CornerRadius="4" Padding="6,3" Background="Transparent" Margin="2,0,0,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <Image x:Name="PlFlag" Source="/Images/pl_flag.png" Width="16" Height="11" Stretch="UniformToFill" Opacity="0.45" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                    <TextBlock x:Name="PlText" Text="PL" FontSize="11" FontWeight="SemiBold" Margin="5,0,0,0" Foreground="{StaticResource PcoDimBrush}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="EnPill" Property="Background" Value="Transparent"/>
+                            <Setter TargetName="PlPill" Property="Background" Value="{StaticResource PcoSelectedBrush}"/>
+                            <Setter TargetName="UsFlag" Property="Opacity" Value="0.45"/>
+                            <Setter TargetName="PlFlag" Property="Opacity" Value="1"/>
+                            <Setter TargetName="EnText" Property="Foreground" Value="{StaticResource PcoDimBrush}"/>
+                            <Setter TargetName="PlText" Property="Foreground" Value="{StaticResource PcoTextBrightBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource PcoBorderStrongBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===================== Inputs ===================== -->
+
+    <!-- Text box. Tag = placeholder text shown while empty. -->
+    <Style x:Key="PcoFilterBox" TargetType="TextBox">
+        <Setter Property="Background" Value="{StaticResource PcoBg3Brush}"/>
+        <Setter Property="Foreground" Value="{StaticResource PcoTextBrightBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource PcoBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CaretBrush" Value="{StaticResource PcoTextBrightBrush}"/>
+        <Setter Property="SelectionBrush" Value="{StaticResource PcoAccentBrush}"/>
+        <Setter Property="Padding" Value="10,0"/>
+        <Setter Property="MinHeight" Value="34"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Margin" Value="0,0,0,10"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" SnapsToDevicePixels="True">
+                        <Grid Margin="{TemplateBinding Padding}">
+                            <TextBlock x:Name="Placeholder" Text="{TemplateBinding Tag}" Foreground="{StaticResource PcoDimBrush}"
+                                       VerticalAlignment="{TemplateBinding VerticalContentAlignment}" Margin="2,0,0,0"
+                                       IsHitTestVisible="False" Visibility="Collapsed" TextTrimming="CharacterEllipsis"/>
+                            <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" Focusable="False"/>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="Text" Value=""/>
+                                <Condition Property="IsKeyboardFocused" Value="False"/>
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Placeholder" Property="Visibility" Value="Visible"/>
+                        </MultiTrigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource PcoBorderStrongBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource PcoAccentBrush}"/>
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource PcoBg2Brush}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Search field: filter box with a leading magnifier glyph. -->
+    <Style x:Key="PcoSearchBox" TargetType="TextBox" BasedOn="{StaticResource PcoFilterBox}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" SnapsToDevicePixels="True">
+                        <Grid Margin="{TemplateBinding Padding}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="&#xE721;" FontFamily="{StaticResource PcoIconFont}" FontSize="13"
+                                       Foreground="{StaticResource PcoDimBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBlock x:Name="Placeholder" Grid.Column="1" Text="{TemplateBinding Tag}" Foreground="{StaticResource PcoDimBrush}"
+                                       VerticalAlignment="Center" Margin="2,0,0,0" IsHitTestVisible="False" Visibility="Collapsed" TextTrimming="CharacterEllipsis"/>
+                            <ScrollViewer x:Name="PART_ContentHost" Grid.Column="1" VerticalAlignment="Center" Focusable="False"/>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="Text" Value=""/>
+                                <Condition Property="IsKeyboardFocused" Value="False"/>
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Placeholder" Property="Visibility" Value="Visible"/>
+                        </MultiTrigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource PcoBorderStrongBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource PcoAccentBrush}"/>
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource PcoBg2Brush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="CheckBox">
+        <Setter Property="Foreground" Value="{StaticResource PcoTextBrush}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource PcoFocusVisual}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <Grid Background="Transparent">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border x:Name="CheckBorder" Width="18" Height="18" CornerRadius="4" VerticalAlignment="Center"
+                                BorderBrush="{StaticResource PcoFaintBrush}" BorderThickness="1.5" Background="{StaticResource PcoBg3Brush}" SnapsToDevicePixels="True">
+                            <Grid>
+                                <Path x:Name="CheckMark" Data="M 3.5,8.5 L 7,12 L 13.5,5" Stroke="White" StrokeThickness="1.8"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Visibility="Collapsed"/>
+                                <Border x:Name="IndeterminateMark" Width="8" Height="2" CornerRadius="1" Background="White" Visibility="Collapsed"/>
+                            </Grid>
+                        </Border>
+                        <ContentPresenter x:Name="Content" Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" RecognizesAccessKey="True"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="Content" Value="{x:Null}">
+                            <Setter TargetName="Content" Property="Margin" Value="0"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="CheckBorder" Property="BorderBrush" Value="{StaticResource PcoMuted2Brush}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="CheckMark" Property="Visibility" Value="Visible"/>
+                            <Setter TargetName="CheckBorder" Property="Background" Value="{StaticResource PcoAccentBrush}"/>
+                            <Setter TargetName="CheckBorder" Property="BorderBrush" Value="{StaticResource PcoAccentBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="{x:Null}">
+                            <Setter TargetName="IndeterminateMark" Property="Visibility" Value="Visible"/>
+                            <Setter TargetName="CheckBorder" Property="Background" Value="{StaticResource PcoAccentBrush}"/>
+                            <Setter TargetName="CheckBorder" Property="BorderBrush" Value="{StaticResource PcoAccentBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.45"/>
+                            <Setter Property="Cursor" Value="Arrow"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Toggle switch look for boolean settings (CheckBox semantics, bindings unchanged). -->
+    <Style x:Key="PcoToggleSwitch" TargetType="CheckBox">
+        <Setter Property="Foreground" Value="{StaticResource PcoTextBrush}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource PcoFocusVisual}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <Grid Background="Transparent">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ContentPresenter Grid.Column="0" VerticalAlignment="Center" Margin="0,0,16,0" RecognizesAccessKey="True">
+                            <ContentPresenter.Resources>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                </Style>
+                            </ContentPresenter.Resources>
+                        </ContentPresenter>
+                        <Border x:Name="Track" Grid.Column="1" Width="40" Height="20" CornerRadius="10" VerticalAlignment="Center"
+                                Background="Transparent" BorderBrush="{StaticResource PcoMutedBrush}" BorderThickness="1.5" SnapsToDevicePixels="True">
+                            <Ellipse x:Name="Knob" Width="12" Height="12" Fill="{StaticResource PcoMuted2Brush}"
+                                     HorizontalAlignment="Left" Margin="3,0,0,0"/>
+                        </Border>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Track" Property="BorderBrush" Value="{StaticResource PcoTextBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Track" Property="Background" Value="{StaticResource PcoAccentBrush}"/>
+                            <Setter TargetName="Track" Property="BorderBrush" Value="{StaticResource PcoAccentBrush}"/>
+                            <Setter TargetName="Knob" Property="Fill" Value="White"/>
+                            <Setter TargetName="Knob" Property="HorizontalAlignment" Value="Right"/>
+                            <Setter TargetName="Knob" Property="Margin" Value="0,0,3,0"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.45"/>
+                            <Setter Property="Cursor" Value="Arrow"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="RadioButton">
+        <Setter Property="Foreground" Value="{StaticResource PcoTextBrush}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource PcoFocusVisual}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Grid Background="Transparent">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid Width="20" Height="20" VerticalAlignment="Center">
+                            <Ellipse x:Name="Ring" Stroke="{StaticResource PcoFaintBrush}" StrokeThickness="1.5" Fill="{StaticResource PcoBg3Brush}"/>
+                            <Ellipse x:Name="Dot" Width="8" Height="8" Fill="White" Visibility="Collapsed"/>
+                        </Grid>
+                        <ContentPresenter Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center" RecognizesAccessKey="True"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Ring" Property="Stroke" Value="{StaticResource PcoMuted2Brush}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Ring" Property="Fill" Value="{StaticResource PcoAccentBrush}"/>
+                            <Setter TargetName="Ring" Property="Stroke" Value="{StaticResource PcoAccentBrush}"/>
+                            <Setter TargetName="Dot" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.45"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===================== ComboBox ===================== -->
+
+    <ControlTemplate x:Key="ComboBoxToggleButton" TargetType="ToggleButton">
+        <Border x:Name="templateRoot" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" SnapsToDevicePixels="True">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="32"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="arrow" Grid.Column="1" Text="&#xE70D;" FontFamily="{StaticResource PcoIconFont}" FontSize="10"
+                           Foreground="{StaticResource PcoMutedBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Grid>
+        </Border>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="templateRoot" Property="BorderBrush" Value="{StaticResource PcoBorderStrongBrush}"/>
+                <Setter TargetName="templateRoot" Property="Background" Value="{StaticResource PcoHoverBrush}"/>
+            </Trigger>
+            <Trigger Property="IsChecked" Value="True">
+                <Setter TargetName="templateRoot" Property="BorderBrush" Value="{StaticResource PcoAccentBrush}"/>
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+
+    <Style x:Key="ModernComboBox" TargetType="ComboBox">
+        <Setter Property="Foreground" Value="{StaticResource PcoTextBrightBrush}"/>
+        <Setter Property="Background" Value="{StaticResource PcoBg3Brush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource PcoBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="11,0,32,0"/>
+        <Setter Property="Height" Value="34"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource PcoFocusVisual}"/>
+        <Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ComboBox">
+                    <Grid x:Name="templateRoot" SnapsToDevicePixels="True">
+                        <ToggleButton x:Name="toggleButton" Focusable="False" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                                      Background="{TemplateBinding Background}"
+                                      IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                      Template="{StaticResource ComboBoxToggleButton}"/>
+                        <ContentPresenter x:Name="contentPresenter" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                          Content="{TemplateBinding SelectionBoxItem}" ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}"
+                                          HorizontalAlignment="Left" IsHitTestVisible="False" Margin="{TemplateBinding Padding}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                        <Popup x:Name="PART_Popup" AllowsTransparency="True" IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}"
+                               Placement="Bottom" VerticalOffset="4" PopupAnimation="None" Focusable="False">
+                            <Border x:Name="dropDownBorder" Background="{StaticResource PcoBg2Brush}" BorderBrush="{StaticResource PcoBorderStrongBrush}"
+                                    BorderThickness="1" CornerRadius="8" Padding="4" MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                                    MinWidth="{Binding ActualWidth, ElementName=templateRoot}">
+                                <ScrollViewer x:Name="DropDownScrollViewer" VerticalScrollBarVisibility="Auto">
+                                    <ItemsPresenter x:Name="ItemsPresenter" KeyboardNavigation.DirectionalNavigation="Contained"/>
+                                </ScrollViewer>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.45"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="MaxDropDownHeight" Value="300"/>
+        <Setter Property="ItemContainerStyle">
+            <Setter.Value>
+                <Style TargetType="ComboBoxItem">
+                    <Setter Property="Foreground" Value="{StaticResource PcoTextBrush}"/>
+                    <Setter Property="Padding" Value="10,7"/>
+                    <Setter Property="Cursor" Value="Hand"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ComboBoxItem">
+                                <Grid>
+                                    <Border x:Name="Bd" Background="Transparent" Padding="{TemplateBinding Padding}" CornerRadius="4" Margin="0,1">
+                                        <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <Border x:Name="Indicator" Width="3" Height="14" CornerRadius="1.5" HorizontalAlignment="Left"
+                                            Background="{StaticResource PcoAccentBrush}" Visibility="Collapsed"/>
+                                </Grid>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsHighlighted" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="{StaticResource PcoHoverBrush}"/>
+                                        <Setter Property="Foreground" Value="{StaticResource PcoTextBrightBrush}"/>
+                                    </Trigger>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="{StaticResource PcoHoverBrush}"/>
+                                        <Setter TargetName="Indicator" Property="Visibility" Value="Visible"/>
+                                        <Setter Property="Foreground" Value="{StaticResource PcoTextBrightBrush}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===================== ProgressBar ===================== -->
+
+    <!-- Static, template-light bar (the stock template carries a glow animation). -->
+    <Style TargetType="ProgressBar">
+        <Setter Property="Foreground" Value="{StaticResource PcoAccentBrush}"/>
+        <Setter Property="Background" Value="{StaticResource PcoTrackBrush}"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Height" Value="4"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ProgressBar">
+                    <Grid>
+                        <Border x:Name="PART_Track" Background="{TemplateBinding Background}" CornerRadius="2"/>
+                        <Border x:Name="PART_Indicator" Background="{TemplateBinding Foreground}" CornerRadius="2" HorizontalAlignment="Left"/>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===================== Scrollbars ===================== -->
+
+    <Style x:Key="PcoScrollThumb" TargetType="Thumb">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Thumb">
+                    <Border x:Name="Bd" Background="{StaticResource PcoBorderStrongBrush}" CornerRadius="3"/>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource PcoDimBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsDragging" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource PcoMutedBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="PcoScrollPageButton" TargetType="RepeatButton">
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="IsTabStop" Value="False"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RepeatButton">
+                    <Border Background="Transparent"/>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
@@ -116,26 +830,20 @@
     <Style TargetType="ScrollBar">
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="Width" Value="10"/>
-        <Setter Property="MinHeight" Value="10"/>
+        <Setter Property="MinWidth" Value="10"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ScrollBar">
                     <Grid Background="Transparent">
-                        <Track x:Name="PART_Track" IsDirectionReversed="true">
+                        <Track x:Name="PART_Track" IsDirectionReversed="True" Margin="3,2">
                             <Track.DecreaseRepeatButton>
-                                <RepeatButton Command="ScrollBar.PageUpCommand" Opacity="0"/>
+                                <RepeatButton Command="ScrollBar.PageUpCommand" Style="{StaticResource PcoScrollPageButton}"/>
                             </Track.DecreaseRepeatButton>
                             <Track.Thumb>
-                                <Thumb>
-                                    <Thumb.Template>
-                                        <ControlTemplate TargetType="Thumb">
-                                            <Border CornerRadius="4" Background="{StaticResource PcoSelectedBrush}" Margin="2"/>
-                                        </ControlTemplate>
-                                    </Thumb.Template>
-                                </Thumb>
+                                <Thumb Style="{StaticResource PcoScrollThumb}" MinHeight="24"/>
                             </Track.Thumb>
                             <Track.IncreaseRepeatButton>
-                                <RepeatButton Command="ScrollBar.PageDownCommand" Opacity="0"/>
+                                <RepeatButton Command="ScrollBar.PageDownCommand" Style="{StaticResource PcoScrollPageButton}"/>
                             </Track.IncreaseRepeatButton>
                         </Track>
                     </Grid>
@@ -145,26 +853,22 @@
         <Style.Triggers>
             <Trigger Property="Orientation" Value="Horizontal">
                 <Setter Property="Width" Value="Auto"/>
+                <Setter Property="MinWidth" Value="0"/>
                 <Setter Property="Height" Value="10"/>
+                <Setter Property="MinHeight" Value="10"/>
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="ScrollBar">
                             <Grid Background="Transparent">
-                                <Track x:Name="PART_Track" IsDirectionReversed="False">
+                                <Track x:Name="PART_Track" IsDirectionReversed="False" Margin="2,3">
                                     <Track.DecreaseRepeatButton>
-                                        <RepeatButton Command="ScrollBar.PageLeftCommand" Opacity="0"/>
+                                        <RepeatButton Command="ScrollBar.PageLeftCommand" Style="{StaticResource PcoScrollPageButton}"/>
                                     </Track.DecreaseRepeatButton>
                                     <Track.Thumb>
-                                        <Thumb>
-                                            <Thumb.Template>
-                                                <ControlTemplate TargetType="Thumb">
-                                                    <Border CornerRadius="4" Background="{StaticResource PcoSelectedBrush}" Margin="2"/>
-                                                </ControlTemplate>
-                                            </Thumb.Template>
-                                        </Thumb>
+                                        <Thumb Style="{StaticResource PcoScrollThumb}" MinWidth="24"/>
                                     </Track.Thumb>
                                     <Track.IncreaseRepeatButton>
-                                        <RepeatButton Command="ScrollBar.PageRightCommand" Opacity="0"/>
+                                        <RepeatButton Command="ScrollBar.PageRightCommand" Style="{StaticResource PcoScrollPageButton}"/>
                                     </Track.IncreaseRepeatButton>
                                 </Track>
                             </Grid>
@@ -175,26 +879,200 @@
         </Style.Triggers>
     </Style>
 
-    <Style TargetType="CheckBox">
+    <!-- Slim sidebar scrollbar: thin thumb, vertical only. -->
+    <Style TargetType="ScrollBar" x:Key="PcoSlimScrollBar" BasedOn="{StaticResource {x:Type ScrollBar}}">
+        <Setter Property="Width" Value="6"/>
+        <Setter Property="MinWidth" Value="6"/>
+        <Style.Triggers>
+            <Trigger Property="Orientation" Value="Horizontal">
+                <Setter Property="Visibility" Value="Collapsed"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- ===================== Expander ===================== -->
+
+    <Style TargetType="Expander">
         <Setter Property="Foreground" Value="{StaticResource PcoTextBrush}"/>
+        <Setter Property="FontSize" Value="14"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
-        <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="Template">
             <Setter.Value>
-                <ControlTemplate TargetType="CheckBox">
-                    <StackPanel Orientation="Horizontal">
-                        <Border x:Name="CheckBorder" Width="18" Height="18" BorderBrush="{StaticResource PcoFaintBrush}" BorderThickness="2" Background="{StaticResource PcoBg3Brush}" CornerRadius="4">
-                            <Path x:Name="CheckMark" Data="M 3,9 L 7,13 L 14,4" Stroke="{StaticResource PcoAccentBrush}" StrokeThickness="2.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Visibility="Collapsed"/>
-                        </Border>
-                        <ContentPresenter Margin="8,0,0,0" VerticalAlignment="Center"/>
-                    </StackPanel>
+                <ControlTemplate TargetType="Expander">
+                    <DockPanel>
+                        <ToggleButton x:Name="HeaderSite" DockPanel.Dock="Top" Content="{TemplateBinding Header}" ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                      Foreground="{TemplateBinding Foreground}" FontWeight="{TemplateBinding FontWeight}" FontSize="{TemplateBinding FontSize}"
+                                      FocusVisualStyle="{StaticResource PcoFocusVisual}"
+                                      IsChecked="{Binding IsExpanded, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                            <ToggleButton.Template>
+                                <ControlTemplate TargetType="ToggleButton">
+                                    <Border x:Name="Bd" Background="{StaticResource PcoBg2Brush}" BorderBrush="{StaticResource PcoBorderSoftBrush}" BorderThickness="1"
+                                            CornerRadius="8" Padding="14,10" Cursor="Hand">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <ContentPresenter VerticalAlignment="Center"/>
+                                            <TextBlock x:Name="Arrow" Grid.Column="1" Text="&#xE70D;" FontFamily="{StaticResource PcoIconFont}" FontSize="11"
+                                                       Foreground="{StaticResource PcoMutedBrush}" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5">
+                                                <TextBlock.RenderTransform>
+                                                    <RotateTransform Angle="0"/>
+                                                </TextBlock.RenderTransform>
+                                            </TextBlock>
+                                        </Grid>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsChecked" Value="True">
+                                            <Setter TargetName="Arrow" Property="RenderTransform">
+                                                <Setter.Value>
+                                                    <RotateTransform Angle="180"/>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource PcoHoverBrush}"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </ToggleButton.Template>
+                        </ToggleButton>
+                        <ContentPresenter x:Name="ExpandSite" DockPanel.Dock="Bottom" Focusable="False" Visibility="Collapsed"
+                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" Margin="{TemplateBinding Padding}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                    </DockPanel>
                     <ControlTemplate.Triggers>
-                        <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="CheckMark" Property="Visibility" Value="Visible"/>
-                            <Setter TargetName="CheckBorder" Property="BorderBrush" Value="{StaticResource PcoAccentBrush}"/>
+                        <Trigger Property="IsExpanded" Value="True">
+                            <Setter TargetName="ExpandSite" Property="Visibility" Value="Visible"/>
                         </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.45"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===================== DataGrid ===================== -->
+
+    <Style x:Key="PcoColumnHeaderGripper" TargetType="Thumb">
+        <Setter Property="Width" Value="8"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Cursor" Value="SizeWE"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Thumb">
+                    <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="DataGridColumnHeader">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{StaticResource PcoDimBrush}"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Padding" Value="12,0"/>
+        <Setter Property="Height" Value="34"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DataGridColumnHeader">
+                    <Grid>
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{StaticResource PcoBorderBrush}" BorderThickness="0,0,0,1" SnapsToDevicePixels="True">
+                            <Grid Margin="{TemplateBinding Padding}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}">
+                                    <ContentPresenter.Resources>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                        </Style>
+                                    </ContentPresenter.Resources>
+                                </ContentPresenter>
+                                <TextBlock x:Name="SortArrow" Grid.Column="1" FontFamily="{StaticResource PcoIconFont}" FontSize="9" Margin="6,0,0,0"
+                                           Foreground="{StaticResource PcoAccentLightBrush}" VerticalAlignment="Center" Visibility="Collapsed"/>
+                            </Grid>
+                        </Border>
+                        <Thumb x:Name="PART_LeftHeaderGripper" HorizontalAlignment="Left" Style="{StaticResource PcoColumnHeaderGripper}"/>
+                        <Thumb x:Name="PART_RightHeaderGripper" HorizontalAlignment="Right" Style="{StaticResource PcoColumnHeaderGripper}"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="CheckBorder" Property="BorderBrush" Value="{StaticResource PcoAccentBrush}"/>
+                            <Setter Property="Foreground" Value="{StaticResource PcoTextBrush}"/>
+                        </Trigger>
+                        <Trigger Property="SortDirection" Value="Ascending">
+                            <Setter TargetName="SortArrow" Property="Visibility" Value="Visible"/>
+                            <Setter TargetName="SortArrow" Property="Text" Value="&#xE70E;"/>
+                            <Setter Property="Foreground" Value="{StaticResource PcoTextBrush}"/>
+                        </Trigger>
+                        <Trigger Property="SortDirection" Value="Descending">
+                            <Setter TargetName="SortArrow" Property="Visibility" Value="Visible"/>
+                            <Setter TargetName="SortArrow" Property="Text" Value="&#xE70D;"/>
+                            <Setter Property="Foreground" Value="{StaticResource PcoTextBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="DataGridCell">
+        <Setter Property="Padding" Value="12,0"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DataGridCell">
+                    <Border Background="{TemplateBinding Background}" SnapsToDevicePixels="True">
+                        <ContentPresenter Margin="{TemplateBinding Padding}" VerticalAlignment="Center">
+                            <ContentPresenter.Resources>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                </Style>
+                            </ContentPresenter.Resources>
+                        </ContentPresenter>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Foreground" Value="{StaticResource PcoTextBrightBrush}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Row: hover tint, accent selection with a left indicator. -->
+    <Style TargetType="DataGridRow">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{StaticResource PcoTextBrush}"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DataGridRow">
+                    <Border x:Name="DGR_Border" Background="{TemplateBinding Background}" CornerRadius="6" Margin="0,1" SnapsToDevicePixels="True">
+                        <Grid>
+                            <DataGridCellsPresenter ItemsPanel="{TemplateBinding ItemsPanel}" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                            <Border x:Name="SelIndicator" Width="3" Height="16" CornerRadius="1.5" HorizontalAlignment="Left"
+                                    Background="{StaticResource PcoAccentBrush}" Visibility="Collapsed"/>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="DGR_Border" Property="Background" Value="{StaticResource PcoHoverBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="DGR_Border" Property="Background" Value="{StaticResource PcoSelectedBrush}"/>
+                            <Setter TargetName="SelIndicator" Property="Visibility" Value="Visible"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -206,230 +1084,26 @@
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="RowBackground" Value="Transparent"/>
-        <Setter Property="AlternatingRowBackground" Value="{StaticResource PcoAltRowBrush}"/>
+        <Setter Property="AlternatingRowBackground" Value="Transparent"/>
         <Setter Property="HeadersVisibility" Value="Column"/>
         <Setter Property="GridLinesVisibility" Value="None"/>
         <Setter Property="Foreground" Value="{StaticResource PcoTextBrush}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="RowHeight" Value="34"/>
+        <Setter Property="SelectionUnit" Value="FullRow"/>
+        <Setter Property="CanUserResizeRows" Value="False"/>
+        <Setter Property="CanUserReorderColumns" Value="False"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
         <Setter Property="EnableRowVirtualization" Value="True"/>
         <Setter Property="EnableColumnVirtualization" Value="True"/>
         <Setter Property="VirtualizingPanel.IsVirtualizing" Value="True"/>
         <Setter Property="VirtualizingPanel.VirtualizationMode" Value="Recycling"/>
+        <Setter Property="VirtualizingPanel.ScrollUnit" Value="Pixel"/>
+        <Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
     </Style>
 
-    <Style TargetType="DataGridColumnHeader">
-        <Setter Property="Background" Value="{StaticResource PcoControlBrush}"/>
-        <Setter Property="Foreground" Value="{StaticResource PcoMuted2Brush}"/>
-        <Setter Property="FontWeight" Value="SemiBold"/>
-        <Setter Property="Padding" Value="15,10"/>
-        <Setter Property="BorderThickness" Value="0,0,0,2"/>
-        <Setter Property="BorderBrush" Value="#333"/>
-    </Style>
-
-    <Style TargetType="DataGridCell">
-        <Setter Property="Padding" Value="15,8"/>
-        <Setter Property="BorderThickness" Value="0"/>
-        <Style.Triggers>
-            <Trigger Property="IsSelected" Value="True">
-                <Setter Property="Background" Value="{StaticResource PcoSelectedBrush}"/>
-                <Setter Property="Foreground" Value="White"/>
-            </Trigger>
-        </Style.Triggers>
-    </Style>
-
-    <Style TargetType="Button" x:Key="StandardButton">
-        <Setter Property="Background" Value="#333333"/>
-        <Setter Property="Foreground" Value="White"/>
-        <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="Height" Value="45"/>
-        <Setter Property="FontSize" Value="15"/>
-        <Setter Property="FontWeight" Value="Bold"/>
-        <Setter Property="Cursor" Value="Hand"/>
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="Button">
-                    <Border Background="{TemplateBinding Background}" CornerRadius="6">
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Border>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
-    <Style TargetType="Button" x:Key="SidebarButton">
-        <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Foreground" Value="#A0A0A0"/>
-        <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="Height" Value="42"/>
-        <Setter Property="FontSize" Value="14"/>
-        <Setter Property="FontWeight" Value="SemiBold"/>
-        <Setter Property="Cursor" Value="Hand"/>
-        <Setter Property="HorizontalContentAlignment" Value="Left"/>
-        <Setter Property="Padding" Value="20,0,0,0"/>
-        <Setter Property="Margin" Value="10,0,10,4"/>
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="Button">
-                    <Border Background="{TemplateBinding Background}" CornerRadius="6">
-                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
-                    </Border>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-        <Style.Triggers>
-            <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Background" Value="#2D2D30"/>
-                <Setter Property="Foreground" Value="White"/>
-            </Trigger>
-        </Style.Triggers>
-    </Style>
-
-    <ControlTemplate x:Key="ComboBoxToggleButton" TargetType="ToggleButton">
-        <Border x:Name="templateRoot" Background="{StaticResource PcoControlBrush}" BorderBrush="#333" BorderThickness="1" CornerRadius="6">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="30"/>
-                </Grid.ColumnDefinitions>
-                <Path x:Name="arrow" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" Data="M 0 0 L 4 4 L 8 0" Stroke="{StaticResource PcoTextBrush}" StrokeThickness="2" Fill="Transparent" Stretch="None" Margin="0,2,0,0"/>
-            </Grid>
-        </Border>
-    </ControlTemplate>
-
-    <Style x:Key="ModernComboBox" TargetType="ComboBox">
-        <Setter Property="Foreground" Value="White"/>
-        <Setter Property="Background" Value="{StaticResource PcoControlBrush}"/>
-        <Setter Property="BorderBrush" Value="#333"/>
-        <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="Padding" Value="12,10"/>
-        <Setter Property="FontSize" Value="14"/>
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="ComboBox">
-                    <Grid x:Name="templateRoot" SnapsToDevicePixels="true">
-                        <ToggleButton x:Name="toggleButton" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Background="{TemplateBinding Background}" IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" Template="{StaticResource ComboBoxToggleButton}"/>
-                        <ContentPresenter x:Name="contentPresenter" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}" Content="{TemplateBinding SelectionBoxItem}" ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" IsHitTestVisible="false" Margin="{TemplateBinding Padding}" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
-                        <Popup x:Name="PART_Popup" AllowsTransparency="true" IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}" Placement="Bottom" PopupAnimation="Slide" Margin="0,4,0,0">
-                            <Border x:Name="dropDownBorder" Background="{StaticResource PcoControlBrush}" BorderBrush="#333" BorderThickness="1" CornerRadius="6" MaxHeight="250" MinWidth="{Binding ActualWidth, ElementName=templateRoot}">
-                                <ScrollViewer x:Name="DropDownScrollViewer">
-                                    <ItemsPresenter x:Name="ItemsPresenter" KeyboardNavigation.DirectionalNavigation="Contained"/>
-                                </ScrollViewer>
-                            </Border>
-                        </Popup>
-                    </Grid>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-        <Setter Property="ItemContainerStyle">
-            <Setter.Value>
-                <Style TargetType="ComboBoxItem">
-                    <Setter Property="Foreground" Value="{StaticResource PcoTextBrush}"/>
-                    <Setter Property="Padding" Value="10,8"/>
-                    <Setter Property="Cursor" Value="Hand"/>
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="ComboBoxItem">
-                                <Border x:Name="Bd" Background="Transparent" Padding="{TemplateBinding Padding}" CornerRadius="4" Margin="4,2">
-                                    <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                                </Border>
-                                <ControlTemplate.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="Bd" Property="Background" Value="#2D2D30"/>
-                                        <Setter Property="Foreground" Value="White"/>
-                                    </Trigger>
-                                    <Trigger Property="IsHighlighted" Value="True">
-                                        <Setter TargetName="Bd" Property="Background" Value="#2D2D30"/>
-                                        <Setter Property="Foreground" Value="White"/>
-                                    </Trigger>
-                                    <Trigger Property="IsSelected" Value="True">
-                                        <Setter TargetName="Bd" Property="Background" Value="{StaticResource PcoAccentDarkBrush}"/>
-                                        <Setter Property="Foreground" Value="White"/>
-                                    </Trigger>
-                                </ControlTemplate.Triggers>
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
-                </Style>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
-    <Style TargetType="Button" x:Key="SmallFilterButton">
-        <Setter Property="Background" Value="{StaticResource PcoControlBrush}"/>
-        <Setter Property="Foreground" Value="#A0A0A0"/>
-        <Setter Property="BorderBrush" Value="#333"/>
-        <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="Height" Value="32"/>
-        <Setter Property="FontSize" Value="12"/>
-        <Setter Property="FontWeight" Value="SemiBold"/>
-        <Setter Property="Cursor" Value="Hand"/>
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="Button">
-                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4">
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Border>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-        <Style.Triggers>
-            <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Background" Value="{StaticResource PcoSelectedBrush}"/>
-                <Setter Property="Foreground" Value="White"/>
-            </Trigger>
-            <Trigger Property="IsEnabled" Value="False">
-                <Setter Property="Opacity" Value="0.4"/>
-                <Setter Property="Cursor" Value="Arrow"/>
-            </Trigger>
-        </Style.Triggers>
-    </Style>
-
-    <!-- Shared card + text primitives for views -->
-    <Style x:Key="PcoCard" TargetType="Border">
-        <Setter Property="Background" Value="{StaticResource PcoBg1Brush}"/>
-        <Setter Property="CornerRadius" Value="8"/>
-        <Setter Property="Padding" Value="20"/>
-        <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="BorderBrush" Value="{StaticResource PcoBorderBrush}"/>
-    </Style>
-
-    <Style x:Key="PcoTitle" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="22"/>
-        <Setter Property="FontWeight" Value="Bold"/>
-        <Setter Property="Foreground" Value="{StaticResource PcoTextBrightBrush}"/>
-        <Setter Property="Margin" Value="0,0,0,15"/>
-    </Style>
-
-    <Style x:Key="PcoSectionHeader" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="16"/>
-        <Setter Property="FontWeight" Value="Bold"/>
-        <Setter Property="Foreground" Value="{StaticResource PcoAccentBrush}"/>
-        <Setter Property="Margin" Value="0,10,0,10"/>
-    </Style>
-
-    <Style x:Key="PcoMutedText" TargetType="TextBlock">
-        <Setter Property="Foreground" Value="{StaticResource PcoMutedBrush}"/>
-        <Setter Property="FontSize" Value="12"/>
-        <Setter Property="TextWrapping" Value="Wrap"/>
-    </Style>
-
-    <Style x:Key="PcoFilterBox" TargetType="TextBox">
-        <Setter Property="Background" Value="{StaticResource PcoControlBrush}"/>
-        <Setter Property="Foreground" Value="{StaticResource PcoTextBrightBrush}"/>
-        <Setter Property="BorderBrush" Value="#333"/>
-        <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="Padding" Value="10,8"/>
-        <Setter Property="FontSize" Value="13"/>
-        <Setter Property="Margin" Value="0,0,0,10"/>
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="TextBox">
-                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6">
-                        <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/>
-                    </Border>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
+    <!-- ===================== Links / footer ===================== -->
 
     <!-- Compact icon link (sidebar footer, About rows). Glyphs bind to Foreground. -->
     <Style TargetType="Button" x:Key="IconLinkButton">
@@ -440,6 +1114,7 @@
         <Setter Property="Height" Value="32"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="Focusable" Value="True"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource PcoFocusVisual}"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
@@ -448,15 +1123,15 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource PcoSelectedBrush}"/>
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource PcoHoverBrush}"/>
                             <Setter Property="Foreground" Value="{StaticResource PcoTextBrightBrush}"/>
                         </Trigger>
                         <Trigger Property="IsKeyboardFocused" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource PcoSelectedBrush}"/>
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource PcoHoverBrush}"/>
                             <Setter Property="Foreground" Value="{StaticResource PcoTextBrightBrush}"/>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter Property="Foreground" Value="{StaticResource PcoAccentBrush}"/>
+                            <Setter Property="Foreground" Value="{StaticResource PcoAccentLightBrush}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -473,20 +1148,18 @@
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="Focusable" Value="True"/>
         <Setter Property="HorizontalAlignment" Value="Left"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource PcoFocusVisual}"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
                     <Border x:Name="Bd" Background="Transparent" CornerRadius="4" Padding="2,1">
-                        <ContentPresenter TextElement.Foreground="{TemplateBinding Foreground}"
-                                          TextElement.FontSize="13"/>
+                        <ContentPresenter TextElement.Foreground="{TemplateBinding Foreground}" TextElement.FontSize="13"/>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource PcoSelectedBrush}"/>
                             <Setter Property="Foreground" Value="{StaticResource PcoTextBrightBrush}"/>
                         </Trigger>
                         <Trigger Property="IsKeyboardFocused" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource PcoSelectedBrush}"/>
                             <Setter Property="Foreground" Value="{StaticResource PcoTextBrightBrush}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
@@ -494,33 +1167,28 @@
             </Setter.Value>
         </Setter>
     </Style>
-    <!-- Developer / Project Hub footer rows (sidebar). Full-width rows with
-         a 16px glyph + label; hover/focus follow the PCO dark + blue accent. -->
+
+    <!-- Developer / Project Hub rows (sidebar). Full-width rows with a 16px glyph + label. -->
     <Style TargetType="Button" x:Key="PcoFooterRowButton">
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="Foreground" Value="{StaticResource PcoMutedBrush}"/>
-        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="BorderBrush" Value="Transparent"/>
-        <Setter Property="MinHeight" Value="36"/>
+        <Setter Property="MinHeight" Value="32"/>
         <Setter Property="Padding" Value="8,4"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="Focusable" Value="True"/>
         <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource PcoFocusVisual}"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border x:Name="Bd" Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="6" Padding="{TemplateBinding Padding}">
+                    <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
                         <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource PcoSelectedBrush}"/>
-                            <Setter Property="Foreground" Value="{StaticResource PcoTextBrightBrush}"/>
-                        </Trigger>
-                        <Trigger Property="IsKeyboardFocused" Value="True">
-                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource PcoAccentBrush}"/>
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource PcoHoverBrush}"/>
                             <Setter Property="Foreground" Value="{StaticResource PcoTextBrightBrush}"/>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
@@ -532,58 +1200,49 @@
         </Setter>
     </Style>
 
-    <!-- Collapsible Developer Hub header. ToggleButton header with a title
-         and a chevron that rotates on expand; subtle border + hover, visible
-         keyboard focus. No animation: instant and stable. -->
+    <!-- Collapsible Developer Hub header: title + chevron, no animation. -->
     <Style TargetType="Expander" x:Key="PcoFooterExpander">
-        <Setter Property="Foreground" Value="{StaticResource PcoTextBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource PcoMuted2Brush}"/>
         <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="BorderBrush" Value="{StaticResource PcoBorderBrush}"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Expander">
                     <StackPanel>
+                        <ContentPresenter x:Name="ExpandSite" Visibility="Collapsed" ContentSource="Content" Margin="0,0,0,4"/>
                         <ToggleButton x:Name="HeaderButton"
                                       IsChecked="{Binding IsExpanded, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
                                       Foreground="{TemplateBinding Foreground}"
                                       Background="{TemplateBinding Background}"
-                                      BorderBrush="{TemplateBinding BorderBrush}"
                                       HorizontalContentAlignment="Stretch" Cursor="Hand"
+                                      FocusVisualStyle="{StaticResource PcoFocusVisual}"
                                       Content="{TemplateBinding Header}" ToolTip="{TemplateBinding ToolTip}"
                                       AutomationProperties.Name="{TemplateBinding AutomationProperties.Name}">
                             <ToggleButton.Template>
                                 <ControlTemplate TargetType="ToggleButton">
-                                    <Border x:Name="HeaderRoot" Background="{TemplateBinding Background}"
-                                            BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"
-                                            CornerRadius="6" Padding="8,7">
+                                    <Border x:Name="HeaderRoot" Background="{TemplateBinding Background}" CornerRadius="6" Padding="8,6">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
                                             <ContentPresenter VerticalAlignment="Center"/>
-                                            <Path x:Name="Arrow" Grid.Column="1" Data="M 0 0 L 5 5 L 0 10"
-                                                    Stroke="{StaticResource PcoMutedBrush}" StrokeThickness="1.8"
-                                                    StrokeStartLineCap="Round" StrokeLineJoin="Round" Fill="Transparent"
-                                                    Width="7" Height="11" Stretch="Uniform" Margin="8,0,0,0"
-                                                    VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5">
-                                                <Path.RenderTransform>
+                                            <TextBlock x:Name="Arrow" Grid.Column="1" Text="&#xE70E;" FontFamily="{StaticResource PcoIconFont}" FontSize="9"
+                                                       Foreground="{StaticResource PcoDimBrush}" VerticalAlignment="Center" Margin="8,0,0,0" RenderTransformOrigin="0.5,0.5">
+                                                <TextBlock.RenderTransform>
                                                     <RotateTransform Angle="0"/>
-                                                </Path.RenderTransform>
-                                            </Path>
+                                                </TextBlock.RenderTransform>
+                                            </TextBlock>
                                         </Grid>
                                     </Border>
                                     <ControlTemplate.Triggers>
                                         <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="HeaderRoot" Property="Background" Value="{StaticResource PcoSelectedBrush}"/>
-                                        </Trigger>
-                                        <Trigger Property="IsKeyboardFocused" Value="True">
-                                            <Setter TargetName="HeaderRoot" Property="BorderBrush" Value="{StaticResource PcoAccentBrush}"/>
+                                            <Setter TargetName="HeaderRoot" Property="Background" Value="{StaticResource PcoHoverBrush}"/>
                                         </Trigger>
                                         <Trigger Property="IsChecked" Value="True">
                                             <Setter TargetName="Arrow" Property="RenderTransform">
                                                 <Setter.Value>
-                                                    <RotateTransform Angle="90"/>
+                                                    <RotateTransform Angle="180"/>
                                                 </Setter.Value>
                                             </Setter>
                                         </Trigger>
@@ -591,7 +1250,6 @@
                                 </ControlTemplate>
                             </ToggleButton.Template>
                         </ToggleButton>
-                        <ContentPresenter x:Name="ExpandSite" Visibility="Collapsed" ContentSource="Content"/>
                     </StackPanel>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsExpanded" Value="True">
@@ -602,94 +1260,175 @@
             </Setter.Value>
         </Setter>
     </Style>
-    <!-- Slim sidebar scrollbar: 5px thumb, transparent track, no arrow buttons.
-         Wheel, touchpad and keyboard scrolling keep working; only visuals slim down. -->
-    <Style TargetType="ScrollBar" x:Key="PcoSlimScrollBar">
-        <Setter Property="Width" Value="5"/>
-        <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="ScrollBar">
-                    <Grid x:Name="TrackGrid" Background="Transparent">
-                        <Track x:Name="PART_Track" IsDirectionReversed="True" Focusable="False">
-                            <Track.DecreaseRepeatButton>
-                                <RepeatButton Command="ScrollBar.PageUpCommand" Focusable="False">
-                                    <RepeatButton.Template>
-                                        <ControlTemplate TargetType="RepeatButton">
-                                            <Border Background="Transparent"/>
-                                        </ControlTemplate>
-                                    </RepeatButton.Template>
-                                </RepeatButton>
-                            </Track.DecreaseRepeatButton>
-                            <Track.IncreaseRepeatButton>
-                                <RepeatButton Command="ScrollBar.PageDownCommand" Focusable="False">
-                                    <RepeatButton.Template>
-                                        <ControlTemplate TargetType="RepeatButton">
-                                            <Border Background="Transparent"/>
-                                        </ControlTemplate>
-                                    </RepeatButton.Template>
-                                </RepeatButton>
-                            </Track.IncreaseRepeatButton>
-                            <Track.Thumb>
-                                <Thumb Background="{StaticResource PcoBorderBrush}" BorderThickness="0">
-                                    <Thumb.Template>
-                                        <ControlTemplate TargetType="Thumb">
-                                            <Border Background="{TemplateBinding Background}" CornerRadius="2.5" MinHeight="28"/>
-                                        </ControlTemplate>
-                                    </Thumb.Template>
-                                </Thumb>
-                            </Track.Thumb>
-                        </Track>
-                    </Grid>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" Value="#1E1E1E" TargetName="TrackGrid"/>
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-        <Style.Triggers>
-            <Trigger Property="Orientation" Value="Horizontal">
-                <Setter Property="Visibility" Value="Collapsed"/>
-            </Trigger>
-        </Style.Triggers>
-    </Style>
 
-    <!-- Mini activity console card (sidebar). Fixed compact height, transparent
-         chrome, hover + keyboard focus states. -->
+    <!-- Sidebar activity line: status dot + latest message, opens Diagnostics. -->
     <Style TargetType="Button" x:Key="PcoMiniConsoleButton">
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="Foreground" Value="{StaticResource PcoTextBrush}"/>
-        <Setter Property="BorderBrush" Value="{StaticResource PcoBorderBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource PcoBorderSoftBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Padding" Value="10,8"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="Focusable" Value="True"/>
         <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource PcoFocusVisual}"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border x:Name="Bd" Background="{StaticResource PcoLogBgBrush}"
+                    <Border x:Name="Bd" Background="{StaticResource PcoBg2Brush}"
                             BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            CornerRadius="8" Padding="{TemplateBinding Padding}">
                         <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource PcoSelectedBrush}"/>
-                        </Trigger>
-                        <Trigger Property="IsKeyboardFocused" Value="True">
-                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource PcoAccentBrush}"/>
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource PcoHoverBrush}"/>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource PcoControlBrush}"/>
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource PcoPressedBrush}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+    </Style>
+
+    <!-- Status pill (e.g. mode / profile tags). -->
+    <Style x:Key="PcoPill" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource PcoBg3Brush}"/>
+        <Setter Property="CornerRadius" Value="10"/>
+        <Setter Property="Padding" Value="8,2"/>
+        <Setter Property="HorizontalAlignment" Value="Left"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <!-- Plain list (Settings categories) item. -->
+    <Style x:Key="PcoNavListItem" TargetType="ListBoxItem">
+        <Setter Property="Padding" Value="12,8"/>
+        <Setter Property="Margin" Value="0,0,0,2"/>
+        <Setter Property="Foreground" Value="{StaticResource PcoMuted2Brush}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource PcoFocusVisual}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBoxItem">
+                    <Border x:Name="Bd" Background="Transparent" CornerRadius="6">
+                        <Grid>
+                            <Border x:Name="Indicator" Width="3" Height="16" CornerRadius="1.5" HorizontalAlignment="Left"
+                                    Background="{StaticResource PcoAccentBrush}" Visibility="Collapsed"/>
+                            <ContentPresenter Margin="{TemplateBinding Padding}"/>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource PcoHoverBrush}"/>
+                            <Setter Property="Foreground" Value="{StaticResource PcoTextBrightBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource PcoHoverBrush}"/>
+                            <Setter TargetName="Indicator" Property="Visibility" Value="Visible"/>
+                            <Setter Property="Foreground" Value="{StaticResource PcoTextBrightBrush}"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Selectable core chip (target panel). CheckBox semantics; content supplied by the item template. -->
+    <Style x:Key="PcoCoreChip" TargetType="CheckBox">
+        <Setter Property="Foreground" Value="{StaticResource PcoMuted2Brush}"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource PcoFocusVisual}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <Border x:Name="Bd" Background="{StaticResource PcoBg2Brush}" BorderBrush="{StaticResource PcoBorderSoftBrush}"
+                            BorderThickness="1" CornerRadius="6" Padding="8,5" SnapsToDevicePixels="True">
+                        <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource PcoBorderStrongBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource PcoAccentSubtleBrush}"/>
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="#2F4C80"/>
+                            <Setter Property="Foreground" Value="{StaticResource PcoTextBrightBrush}"/>
+                        </Trigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsChecked" Value="True"/>
+                                <Condition Property="IsMouseOver" Value="True"/>
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource PcoAccentBrush}"/>
+                        </MultiTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Filter chip: CheckBox rendered as a pill toggle (process filters). -->
+    <Style x:Key="PcoFilterChip" TargetType="CheckBox">
+        <Setter Property="Foreground" Value="{StaticResource PcoMuted2Brush}"/>
+        <Setter Property="FontSize" Value="12.5"/>
+        <Setter Property="Height" Value="32"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource PcoFocusVisual}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <Border x:Name="Bd" Background="{StaticResource PcoBg3Brush}" BorderBrush="{StaticResource PcoBorderBrush}"
+                            BorderThickness="1" CornerRadius="16" Padding="12,0" SnapsToDevicePixels="True">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock x:Name="Check" Text="&#xE73E;" FontFamily="{StaticResource PcoIconFont}" FontSize="10"
+                                       Margin="0,0,6,0" VerticalAlignment="Center" Visibility="Collapsed" Foreground="{StaticResource PcoAccentLightBrush}"/>
+                            <ContentPresenter VerticalAlignment="Center" RecognizesAccessKey="True"/>
+                        </StackPanel>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource PcoBorderStrongBrush}"/>
+                            <Setter Property="Foreground" Value="{StaticResource PcoTextBrightBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource PcoAccentSubtleBrush}"/>
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="#2F4C80"/>
+                            <Setter TargetName="Check" Property="Visibility" Value="Visible"/>
+                            <Setter Property="Foreground" Value="{StaticResource PcoTextBrightBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Page header subtitle under PcoTitle. -->
+    <Style x:Key="PcoSubtitle" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource PcoMutedBrush}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+        <Setter Property="Margin" Value="0,-10,0,18"/>
+    </Style>
+
+    <!-- Key/value rows in details panels. -->
+    <Style x:Key="PcoKeyText" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource PcoDimBrush}"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Margin" Value="0,0,12,6"/>
+        <Setter Property="VerticalAlignment" Value="Top"/>
+    </Style>
+
+    <Style x:Key="PcoValueText" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource PcoTextBrush}"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Margin" Value="0,0,0,6"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+        <Setter Property="VerticalAlignment" Value="Top"/>
     </Style>
 
 </ResourceDictionary>

@@ -4,11 +4,12 @@
         Title="Process Core Optimizer" Width="440" SizeToContent="Height"
         WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
         ShowInTaskbar="False" WindowStyle="None" AllowsTransparency="True"
-        Background="Transparent" UseLayoutRounding="True">
-    <Border Background="{StaticResource PcoBg1Brush}" BorderBrush="{StaticResource PcoBorderBrush}" BorderThickness="1" CornerRadius="8" Margin="8" MouseLeftButtonDown="DialogRoot_MouseLeftButtonDown">
-        <Border.BitmapEffect>
-            <DropShadowBitmapEffect ShadowDepth="2" Direction="270" Opacity="0.45" Softness="0.35"/>
-        </Border.BitmapEffect>
+        Background="Transparent" UseLayoutRounding="True"
+        FontFamily="{StaticResource PcoFontFamily}">
+    <Border Background="{StaticResource PcoBg1Brush}" BorderBrush="{StaticResource PcoBorderBrush}" BorderThickness="1" CornerRadius="10" Margin="12" MouseLeftButtonDown="DialogRoot_MouseLeftButtonDown">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="16" ShadowDepth="2" Direction="270" Opacity="0.4" Color="Black" RenderingBias="Performance"/>
+        </Border.Effect>
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -42,8 +43,8 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <Button x:Name="OpenReleaseButton" Grid.Column="0" Style="{StaticResource StandardButton}" Background="{StaticResource PcoAccentBrush}" Margin="0,0,6,0" IsDefault="True" Click="OpenReleaseButton_Click"/>
-                <Button x:Name="LaterButton" Grid.Column="1" Style="{StaticResource SmallFilterButton}" Margin="6,0,0,0" IsCancel="True" Click="LaterButton_Click"/>
+                <Button x:Name="OpenReleaseButton" Grid.Column="0" Style="{StaticResource PcoPrimaryButton}" Margin="0,0,6,0" IsDefault="True" Click="OpenReleaseButton_Click"/>
+                <Button x:Name="LaterButton" Grid.Column="1" Style="{StaticResource PcoSecondaryButton}" Margin="6,0,0,0" IsCancel="True" Click="LaterButton_Click"/>
             </Grid>
         </Grid>
     </Border>

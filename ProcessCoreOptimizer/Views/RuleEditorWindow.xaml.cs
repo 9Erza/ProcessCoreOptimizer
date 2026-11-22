@@ -23,6 +23,7 @@ namespace ProcessCoreOptimizer.WPF.Views
         public RuleEditorWindow(SmartRule draft, bool isNew, IEnumerable<ProcessProfile> profiles, bool isPolish)
         {
             InitializeComponent();
+            ProcessCoreOptimizer.WPF.Helpers.WindowTheme.Attach(this);
             Draft = draft ?? throw new ArgumentNullException(nameof(draft));
             _isNew = isNew;
             _isPolish = isPolish;

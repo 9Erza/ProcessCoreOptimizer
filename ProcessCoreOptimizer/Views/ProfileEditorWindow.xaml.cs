@@ -22,6 +22,7 @@ namespace ProcessCoreOptimizer.WPF.Views
         public ProfileEditorWindow(ProcessProfile draft, bool isNew, bool allowRealtime, bool isPolish, IReadOnlyList<ProcessProfile>? siblings = null)
         {
             InitializeComponent();
+            ProcessCoreOptimizer.WPF.Helpers.WindowTheme.Attach(this);
             Draft = draft ?? throw new ArgumentNullException(nameof(draft));
             _isNew = isNew;
             _isPolish = isPolish;
