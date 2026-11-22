@@ -1,4 +1,4 @@
-# Installer & distribution (2.1.0)
+# Installer & distribution (2.1.1)
 
 ## Phase 2 investigation result (verified 2026-11-02)
 

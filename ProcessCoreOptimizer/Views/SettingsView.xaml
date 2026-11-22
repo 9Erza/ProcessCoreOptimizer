@@ -233,6 +233,18 @@
                                 </StackPanel>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8" VerticalAlignment="Center">
+                                <Button Style="{StaticResource IconLinkButton}" Command="{Binding OpenStudioCommand}"
+                                        ToolTip="{DynamicResource StrStudioTooltip}"
+                                        ap:AutomationProperties.Name="{DynamicResource StrStudioTooltip}"
+                                        Margin="0,0,8,0" Focusable="True">
+                                    <ContentControl Content="{StaticResource IconGlobe}" Focusable="False"/>
+                                </Button>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="{DynamicResource StrStudioCaption}" Foreground="{StaticResource PcoMutedBrush}" FontSize="11"/>
+                                    <Button Content="Erza Studio · erza.studio" Command="{Binding OpenStudioCommand}" Style="{StaticResource LinkTextButton}" ToolTip="{DynamicResource StrStudioTooltip}" ap:AutomationProperties.Name="erza.studio"/>
+                                </StackPanel>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8" VerticalAlignment="Center">
                                 <Button Style="{StaticResource IconLinkButton}" Command="{Binding OpenRepositoryCommand}"
                                         ToolTip="{DynamicResource StrRepoTooltip}"
                                         ap:AutomationProperties.Name="{DynamicResource StrRepoTooltip}"

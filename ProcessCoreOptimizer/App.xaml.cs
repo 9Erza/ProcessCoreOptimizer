@@ -130,6 +130,11 @@ namespace ProcessCoreOptimizer.WPF
                     {
                         Dispatcher.BeginInvoke(() =>
                         {
+                            if (MainWindow is Views.MainWindow main)
+                            {
+                                Views.MainWindow.BringToFront(main);
+                                return;
+                            }
                             var window = MainWindow;
                             if (window == null) return;
                             window.Show();

@@ -292,6 +292,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
         public ICommand OpenAuthorCommand { get; }
         public ICommand OpenRepositoryCommand { get; }
         public ICommand OpenWebsiteCommand { get; }
+        public ICommand OpenStudioCommand { get; }
         public ICommand OpenSupportCommand { get; }
         public ICommand OpenAboutCommand { get; }
 
@@ -329,7 +330,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
 
         public string AppVersion { get; } = FormatDisplayVersion(Assembly.GetExecutingAssembly()
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-            .InformationalVersion ?? "2.1.0");
+            .InformationalVersion ?? "2.1.1");
 
         private static string FormatDisplayVersion(string informationalVersion)
         {
@@ -692,7 +693,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                     return;
                 }
 
-                _selectedPriority = value.Priority;
+                _selectedPriority = TranslatePriority(value.Priority);
                 OnPropertyChanged(nameof(SelectedPriority));
                 SelectedOptimizationMode = OptimizationMode.Affinity;
                 UpdateCoreSelectionFromAffinity(value.Name);
@@ -1248,6 +1249,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
             OpenAuthorCommand = new RelayCommand(_ => OpenExternalLink(PcoExternalLink.Author));
             OpenRepositoryCommand = new RelayCommand(_ => OpenExternalLink(PcoExternalLink.Repository));
             OpenWebsiteCommand = new RelayCommand(_ => OpenExternalLink(PcoExternalLink.Website));
+            OpenStudioCommand = new RelayCommand(_ => OpenExternalLink(PcoExternalLink.Studio));
             OpenSupportCommand = new RelayCommand(_ => OpenExternalLink(PcoExternalLink.Support));
             OpenAboutCommand = new RelayCommand(_ => NavigateToAbout());
             ApplyCorePresetCommand = new RelayCommand(preset => ApplyCorePreset(preset?.ToString()));
@@ -3337,10 +3339,20 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
 
         private void RefreshAvailablePriorities()
         {
+            // Clearing the list makes the bound ComboBox push null into
+            // SelectedPriority; keep the language-neutral value and restore it in
+            // the new language so the drop-down never ends up empty.
+            string rawSelected = NormalizePriority(_selectedPriority);
             AvailablePriorities.Clear();
             foreach (string priority in PriorityService.GetDisplayPriorities(AppSettings.Language, AppSettings.AllowRealtimePriority))
             {
                 AvailablePriorities.Add(priority);
+            }
+
+            if (!string.IsNullOrEmpty(rawSelected))
+            {
+                _selectedPriority = TranslatePriority(rawSelected);
+                OnPropertyChanged(nameof(SelectedPriority));
             }
         }
 
