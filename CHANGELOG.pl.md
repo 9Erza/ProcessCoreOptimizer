@@ -1,5 +1,25 @@
 # Lista zmian
 
+## Process Core Optimizer 2.1.1
+
+**Data wydania: 2026-11-22** · Windows 10/11 x64 · Instalator: `ProcessCoreOptimizer_Setup_2.1.1.exe`
+
+Aktualizacja serwisowa wersji 2.1.0. Instalacja na 2.0.x lub 2.1.0 aktualizuje ją w miejscu.
+
+### Dodano
+
+- **Erza Studio** — „Tworzy Erza Studio · erza.studio” w Ustawieniach → O programie oraz
+  link erza.studio w Developer Hubie (otwiera https://erza.studio/pco/).
+
+### Naprawiono
+
+- Ponowne uruchomienie PCO (np. przy logowaniu, gdy już działał) mogło kończyć się
+  awarią przez plik logu zablokowany przez działającą instancję; logowanie jest teraz
+  współdzielone i nie blokuje startu.
+- Jeszcze nieodrysowane fragmenty okna (zmiana rozmiaru, przywracanie, GPU zajęte grą)
+  mają kolor tła aplikacji zamiast czarnego; otwieranie z zasobnika nie przechodzi już
+  przez minimalizację i przywracanie.
+
 ## Process Core Optimizer 2.1.0
 
 **Data wydania: 2026-11-22** · Windows 10/11 x64 · Instalator: `ProcessCoreOptimizer_Setup_2.1.0.exe`

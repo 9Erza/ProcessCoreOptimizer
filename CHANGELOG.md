@@ -1,5 +1,25 @@
 # Changelog
 
+## Process Core Optimizer 2.1.1
+
+**Release date: 2026-11-22** · Windows 10/11 x64 · Installer: `ProcessCoreOptimizer_Setup_2.1.1.exe`
+
+A maintenance update for 2.1.0. Installing it over 2.0.x or 2.1.0 upgrades in place.
+
+### Added
+
+- **Erza Studio** — "Made by Erza Studio · erza.studio" in Settings → About and an
+  erza.studio link in the Developer Hub (opens https://erza.studio/pco/).
+
+### Fixed
+
+- Starting PCO a second time (e.g. at logon while it was already running) could crash
+  because the log file was locked by the running instance; logging is now shared and
+  best-effort.
+- Areas of the window not yet repainted (resize, restore, GPU busy with a game) show
+  the app background instead of black; opening from the tray no longer goes through a
+  minimized → restore round trip.
+
 ## Process Core Optimizer 2.1.0
 
 **Release date: 2026-11-22** · Windows 10/11 x64 · Installer: `ProcessCoreOptimizer_Setup_2.1.0.exe`

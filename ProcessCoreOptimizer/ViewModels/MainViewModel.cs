@@ -330,7 +330,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
 
         public string AppVersion { get; } = FormatDisplayVersion(Assembly.GetExecutingAssembly()
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-            .InformationalVersion ?? "2.1.0");
+            .InformationalVersion ?? "2.1.1");
 
         private static string FormatDisplayVersion(string informationalVersion)
         {

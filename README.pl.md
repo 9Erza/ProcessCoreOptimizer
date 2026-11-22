@@ -12,12 +12,12 @@
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4?style=flat-square)
 [![CI](https://github.com/9Erza/ProcessCoreOptimizer/actions/workflows/ci.yml/badge.svg)](https://github.com/9Erza/ProcessCoreOptimizer/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-2EA44F?style=flat-square)](LICENSE)
-![Release](https://img.shields.io/badge/release-v2.1.0-2EA44F?style=flat-square)
+![Release](https://img.shields.io/badge/release-v2.1.1-2EA44F?style=flat-square)
 
 </div>
 
 > [!NOTE]
-> **Ostatnie publiczne wydanie: v2.1.0** ([GitHub Releases](https://github.com/9Erza/ProcessCoreOptimizer/releases)).
+> **Ostatnie publiczne wydanie: v2.1.1** ([GitHub Releases](https://github.com/9Erza/ProcessCoreOptimizer/releases)).
 > Lekkie, samodzielne narzędzie do zarządzania CPU procesów.
 > Bez ukrytych optymalizacji i zbędnego obciążenia — każda zmiana jest jawna, odwracalna i logowana.
 
@@ -173,8 +173,8 @@ Ręczne akcje **Apply / Save / Update** używają `force: true` i omijają cache
 
 ## Instalacja i uruchomienie
 
-> **Status wydania:** aktualne publiczne wydanie to **v2.1.0**.
-> Pobierz `ProcessCoreOptimizer_Setup_2.1.0.exe` z
+> **Status wydania:** aktualne publiczne wydanie to **v2.1.1**.
+> Pobierz `ProcessCoreOptimizer_Setup_2.1.1.exe` z
 > [GitHub Releases](https://github.com/9Erza/ProcessCoreOptimizer/releases),
 > zweryfikuj SHA-256 z opisu wydania i uruchom instalator
 > (Windows 10/11 x64, kreator EN+PL). Instalator nie ma jeszcze podpisu EV:
@@ -182,7 +182,7 @@ Ręczne akcje **Apply / Save / Update** używają `force: true` i omijają cache
 >
 > Aktualizacja z v1.3.0 **nie** jest aktualizacją in-place: najpierw odinstaluj 1.3.0
 > (profile/ustawienia w `%APPDATA%\ProcessCoreOptimizer` zostają zachowane),
-> potem zainstaluj 2.1.0. Instalacja 2.1.0 na 2.0.0 aktualizuje ją w miejscu.
+> potem zainstaluj 2.1.1. Instalacja 2.1.1 na 2.0.x/2.1.0 aktualizuje ją w miejscu.
 
 1. Uruchom instalator z assetu najnowszego wydania na GitHub.
 2. Uruchom z Menu Start (opcjonalny skrót na pulpicie).
@@ -304,7 +304,7 @@ benchmarki PresentMon, Companion).
 
 ## Changelog
 
-Zobacz [CHANGELOG.pl.md](CHANGELOG.pl.md). Wersja kodu na tej gałęzi: **v2.1.0 (stabilna, opublikowana)**; zobacz [GitHub Releases](https://github.com/9Erza/ProcessCoreOptimizer/releases).
+Zobacz [CHANGELOG.pl.md](CHANGELOG.pl.md). Wersja kodu na tej gałęzi: **v2.1.1 (stabilna, opublikowana)**; zobacz [GitHub Releases](https://github.com/9Erza/ProcessCoreOptimizer/releases).
 Przegląd techniczny: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 Bez wyraźnej zgody nie publikujemy z automatyzacji release, instalatora ani podbicia wersji.
 
