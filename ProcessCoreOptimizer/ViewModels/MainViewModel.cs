@@ -693,7 +693,7 @@ namespace ProcessCoreOptimizer.WPF.ViewModels
                     return;
                 }
 
-                _selectedPriority = value.Priority;
+                _selectedPriority = TranslatePriority(value.Priority);
                 OnPropertyChanged(nameof(SelectedPriority));
                 SelectedOptimizationMode = OptimizationMode.Affinity;
                 UpdateCoreSelectionFromAffinity(value.Name);
